@@ -1,0 +1,1875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vector Databases for Python Developers</title>
+<style>
+  :root {
+    --bg: #0f0e2a;
+    --bg2: #1a1840;
+    --bg3: #231f55;
+    --accent: #ff6ec7;
+    --accent2: #a78bfa;
+    --accent3: #38bdf8;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --card: #1e1b4b;
+    --card2: #2d2a6e;
+    --green: #22c55e;
+    --yellow: #facc15;
+    --nav-w: 270px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── PARTICLES ── */
+  #particles {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  }
+  .particle {
+    position: absolute; border-radius: 50%;
+    animation: float linear infinite;
+    opacity: 0.15;
+  }
+  @keyframes float {
+    0%   { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+    10%  { opacity: 0.15; }
+    90%  { opacity: 0.15; }
+    100% { transform: translateY(-10vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    width: var(--nav-w);
+    min-height: 100vh;
+    background: linear-gradient(180deg, #12103a 0%, #1a1840 100%);
+    border-right: 1px solid #2d2a6e;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 100;
+    transition: transform .3s ease;
+  }
+  .sidebar-logo {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid #2d2a6e;
+  }
+  .sidebar-logo h1 {
+    font-size: 14px; font-weight: 700;
+    color: var(--accent);
+    letter-spacing: .5px;
+    line-height: 1.4;
+  }
+  .sidebar-logo p { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+  .nav-section {
+    padding: 16px 12px 8px;
+    font-size: 10px; font-weight: 700;
+    color: var(--text-dim); letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: all .2s ease;
+    font-size: 13px;
+    color: var(--text-dim);
+    text-decoration: none;
+  }
+  .nav-item:hover { background: rgba(167,139,250,.1); color: var(--text); border-left-color: var(--accent2); }
+  .nav-item.active { background: rgba(255,110,199,.1); color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+  .nav-item .nav-num {
+    font-size: 10px; font-weight: 700;
+    background: var(--bg3);
+    color: var(--accent2);
+    border-radius: 4px; padding: 2px 6px;
+    min-width: 24px; text-align: center;
+  }
+  .nav-item.active .nav-num { background: var(--accent); color: white; }
+  .progress-bar {
+    margin: 16px 20px 8px;
+    height: 4px; background: var(--bg3);
+    border-radius: 2px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px; transition: width .4s ease;
+    width: 0%;
+  }
+  .progress-label { font-size: 10px; color: var(--text-dim); margin: 0 20px 16px; }
+
+  /* ── MAIN ── */
+  #main {
+    margin-left: var(--nav-w);
+    flex: 1;
+    position: relative; z-index: 1;
+  }
+
+  /* ── HERO ── */
+  #hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: flex-start;
+    padding: 80px 80px 60px;
+    background: radial-gradient(ellipse at 70% 40%, #2d1b69 0%, transparent 60%),
+                radial-gradient(ellipse at 20% 80%, #1e1b4b 0%, transparent 50%),
+                var(--bg);
+    position: relative; overflow: hidden;
+  }
+  .hero-badge {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--accent); background: rgba(255,110,199,.1);
+    border: 1px solid rgba(255,110,199,.3);
+    border-radius: 20px; padding: 6px 16px;
+    margin-bottom: 28px;
+    animation: fadeInUp .6s ease;
+  }
+  #hero h1 {
+    font-size: clamp(36px, 5vw, 64px);
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1.1;
+    animation: fadeInUp .7s ease;
+  }
+  #hero .subtitle {
+    font-size: 18px; color: var(--text-dim);
+    max-width: 520px; line-height: 1.7;
+    margin: 20px 0 36px;
+    animation: fadeInUp .8s ease;
+  }
+  .hero-tags {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    animation: fadeInUp .9s ease;
+  }
+  .hero-tag {
+    font-size: 12px; font-weight: 600;
+    padding: 8px 18px; border-radius: 6px;
+    background: var(--bg3); color: var(--accent2);
+    border: 1px solid #3d3a7e;
+  }
+  .hero-network {
+    position: absolute; right: 60px; top: 50%;
+    transform: translateY(-50%);
+    width: 340px; height: 340px;
+    animation: fadeInRight 1s ease;
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeInRight {
+    from { opacity: 0; transform: translate(40px, -50%); }
+    to   { opacity: 1; transform: translate(0, -50%); }
+  }
+  .scroll-hint {
+    position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    color: var(--text-dim); font-size: 12px;
+    animation: bounce 2s infinite;
+  }
+  @keyframes bounce { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(6px); } }
+
+  /* ── SECTIONS ── */
+  .section {
+    padding: 80px;
+    border-bottom: 1px solid #1a1840;
+    position: relative;
+    animation: none;
+  }
+  .section.visible { animation: sectionIn .5s ease forwards; }
+  @keyframes sectionIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .chapter-badge {
+    display: inline-block;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--accent2); background: rgba(167,139,250,.1);
+    border: 1px solid rgba(167,139,250,.3);
+    border-radius: 4px; padding: 4px 12px;
+    margin-bottom: 16px;
+  }
+  .section h2 {
+    font-size: clamp(28px, 3vw, 42px);
+    font-weight: 800; color: var(--accent);
+    line-height: 1.2; margin-bottom: 24px;
+  }
+  .section p { color: var(--text-dim); line-height: 1.8; max-width: 700px; }
+  .section p + p { margin-top: 12px; }
+  strong { color: var(--text); }
+
+  /* ── CARDS ── */
+  .card-grid {
+    display: grid; gap: 20px; margin-top: 32px;
+  }
+  .card-grid.cols-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .card-grid.cols-4 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .card {
+    background: var(--card); border: 1px solid #2d2a6e;
+    border-radius: 12px; padding: 24px;
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+  }
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(167,139,250,.15);
+    border-color: var(--accent2);
+  }
+  .card h3 { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+  .card p  { font-size: 14px; color: var(--text-dim); line-height: 1.7; }
+  .card .card-icon { font-size: 28px; margin-bottom: 12px; }
+  .card.highlight { border-color: var(--accent); background: rgba(255,110,199,.05); }
+  .card.highlight h3 { color: var(--accent); }
+
+  /* ── INFO BOX ── */
+  .info-box {
+    background: rgba(56,189,248,.05);
+    border: 1px solid rgba(56,189,248,.3);
+    border-left: 4px solid var(--accent3);
+    border-radius: 8px; padding: 16px 20px;
+    margin: 20px 0;
+    color: var(--text-dim); font-size: 14px; line-height: 1.7;
+  }
+  .info-box.green { border-left-color: var(--green); background: rgba(34,197,94,.05); border-color: rgba(34,197,94,.3); }
+  .info-box.yellow { border-left-color: var(--yellow); background: rgba(250,204,21,.05); border-color: rgba(250,204,21,.3); }
+  .info-box.pink { border-left-color: var(--accent); background: rgba(255,110,199,.05); border-color: rgba(255,110,199,.3); }
+
+  /* ── COMPARISON TABLE ── */
+  .compare-table { width: 100%; border-collapse: collapse; margin-top: 28px; font-size: 14px; }
+  .compare-table th {
+    text-align: left; padding: 14px 20px;
+    background: var(--bg3); color: var(--accent2);
+    font-weight: 700; font-size: 13px;
+    border-bottom: 2px solid var(--accent2);
+  }
+  .compare-table th:first-child { border-radius: 8px 0 0 0; }
+  .compare-table th:last-child  { border-radius: 0 8px 0 0; color: var(--accent); border-bottom-color: var(--accent); }
+  .compare-table td { padding: 14px 20px; border-bottom: 1px solid #1e1b4b; color: var(--text-dim); vertical-align: top; }
+  .compare-table td:first-child { color: var(--accent2); font-weight: 600; }
+  .compare-table td:last-child { color: var(--text); }
+  .compare-table tr:hover td { background: rgba(167,139,250,.05); }
+
+  /* ── CODE BLOCK ── */
+  .code-wrap { position: relative; margin: 28px 0; }
+  pre {
+    background: #0d0b21; border: 1px solid #2d2a6e;
+    border-radius: 12px; padding: 24px;
+    overflow-x: auto; font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 13px; line-height: 1.8;
+    color: #c9d1d9;
+  }
+  .code-label {
+    position: absolute; top: -10px; left: 20px;
+    background: var(--accent2); color: white;
+    font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    padding: 2px 10px; border-radius: 4px;
+  }
+  .py-kw  { color: #ff79c6; }
+  .py-fn  { color: #50fa7b; }
+  .py-str { color: #f1fa8c; }
+  .py-cm  { color: #6272a4; font-style: italic; }
+  .py-num { color: #bd93f9; }
+  .copy-btn {
+    position: absolute; top: 10px; right: 12px;
+    background: var(--bg3); color: var(--text-dim);
+    border: 1px solid #3d3a7e; border-radius: 6px;
+    padding: 4px 10px; font-size: 11px; cursor: pointer;
+    transition: all .2s;
+  }
+  .copy-btn:hover { background: var(--accent2); color: white; border-color: var(--accent2); }
+  .copy-btn.copied { background: var(--green); color: white; border-color: var(--green); }
+
+  /* ── FLOW STEPS ── */
+  .flow {
+    display: flex; align-items: center; gap: 0;
+    margin: 36px 0; flex-wrap: wrap;
+  }
+  .flow-step {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    flex: 1; min-width: 120px; text-align: center;
+    padding: 20px;
+    animation: popIn .4s ease backwards;
+  }
+  .flow-step:nth-child(1) { animation-delay: .1s; }
+  .flow-step:nth-child(3) { animation-delay: .2s; }
+  .flow-step:nth-child(5) { animation-delay: .3s; }
+  .flow-step:nth-child(7) { animation-delay: .4s; }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(.8); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  .flow-icon {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: var(--bg3); border: 2px solid var(--accent2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    box-shadow: 0 0 20px rgba(167,139,250,.2);
+    transition: transform .2s, box-shadow .2s;
+  }
+  .flow-icon:hover { transform: scale(1.1); box-shadow: 0 0 30px rgba(167,139,250,.4); }
+  .flow-label { font-size: 13px; font-weight: 700; color: var(--text); }
+  .flow-arrow { font-size: 24px; color: var(--accent); flex-shrink: 0; }
+
+  /* ── INTERACTIVE CALCULATOR ── */
+  .calc-box {
+    background: var(--card); border: 1px solid #2d2a6e;
+    border-radius: 16px; padding: 32px; margin-top: 36px;
+  }
+  .calc-box h3 { font-size: 18px; font-weight: 700; color: var(--accent2); margin-bottom: 8px; }
+  .calc-box p  { font-size: 13px; color: var(--text-dim); margin-bottom: 20px; }
+  .calc-row { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px; }
+  .calc-field { flex: 1; min-width: 120px; }
+  .calc-field label { display: block; font-size: 11px; color: var(--text-dim); font-weight: 600; letter-spacing: .5px; margin-bottom: 6px; }
+  .calc-field input {
+    width: 100%; padding: 10px 14px;
+    background: var(--bg); border: 1px solid #3d3a7e;
+    border-radius: 8px; color: var(--text); font-size: 14px;
+    font-family: monospace; outline: none;
+    transition: border-color .2s;
+  }
+  .calc-field input:focus { border-color: var(--accent2); }
+  .calc-btn {
+    padding: 10px 24px; background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; border-radius: 8px; color: white;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: opacity .2s, transform .1s;
+    white-space: nowrap;
+  }
+  .calc-btn:hover { opacity: .9; }
+  .calc-btn:active { transform: scale(.97); }
+  .calc-result {
+    background: var(--bg); border: 1px solid #3d3a7e;
+    border-radius: 10px; padding: 16px 20px;
+    font-family: monospace; font-size: 14px;
+    min-height: 60px; white-space: pre-wrap;
+    color: var(--accent3);
+    transition: all .3s;
+  }
+  .calc-result.good { border-color: var(--green); color: var(--green); }
+  .calc-result.neutral { border-color: var(--yellow); color: var(--yellow); }
+
+  /* ── VECTOR VIZ ── */
+  .vector-canvas-wrap {
+    background: var(--bg); border: 1px solid #2d2a6e;
+    border-radius: 12px; padding: 16px; margin-top: 20px;
+    text-align: center;
+  }
+  canvas { border-radius: 8px; max-width: 100%; }
+
+  /* ── PITFALLS / PRACTICES ── */
+  .pitfall-list { list-style: none; margin-top: 20px; }
+  .pitfall-list li {
+    display: flex; gap: 14px; align-items: flex-start;
+    padding: 16px 20px; border-radius: 10px;
+    margin-bottom: 12px; background: var(--card);
+    border-left: 4px solid;
+    transition: transform .2s;
+  }
+  .pitfall-list li:hover { transform: translateX(6px); }
+  .pitfall-list li.bad  { border-left-color: #ef4444; }
+  .pitfall-list li.good { border-left-color: var(--green); }
+  .pitfall-list li .li-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+  .pitfall-list li .li-body h4 { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .pitfall-list li .li-body p  { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+
+  /* ── DB CARDS ── */
+  .db-card {
+    background: var(--card); border: 1px solid #2d2a6e;
+    border-radius: 14px; padding: 28px;
+    transition: all .25s ease;
+    position: relative; overflow: hidden;
+  }
+  .db-card::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, transparent, rgba(167,139,250,.03));
+    pointer-events: none;
+  }
+  .db-card:hover { transform: translateY(-6px); border-color: var(--accent); box-shadow: 0 20px 50px rgba(255,110,199,.1); }
+  .db-card .db-name { font-size: 22px; font-weight: 800; color: var(--accent); margin-bottom: 12px; }
+  .db-card .db-badge {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    padding: 3px 10px; border-radius: 20px; margin-bottom: 14px;
+  }
+  .db-card .db-badge.managed { background: rgba(34,197,94,.15); color: var(--green); }
+  .db-card .db-badge.open    { background: rgba(56,189,248,.15); color: var(--accent3); }
+  .db-card .db-badge.library { background: rgba(250,204,21,.15); color: var(--yellow); }
+  .db-card .db-badge.light   { background: rgba(255,110,199,.15); color: var(--accent); }
+  .db-card p { font-size: 14px; color: var(--text-dim); line-height: 1.7; }
+  .db-card .db-use {
+    margin-top: 14px; font-size: 12px; font-weight: 600;
+    color: var(--accent2); padding-top: 14px;
+    border-top: 1px solid #2d2a6e;
+  }
+
+  /* ── TOKEN SLIDER ── */
+  .slider-row { display: flex; align-items: center; gap: 16px; margin: 16px 0; }
+  input[type=range] {
+    -webkit-appearance: none; flex: 1; height: 6px;
+    background: var(--bg3); border-radius: 3px; outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 18px; height: 18px;
+    border-radius: 50%; background: var(--accent);
+    cursor: pointer; box-shadow: 0 0 8px rgba(255,110,199,.5);
+  }
+  .slider-val {
+    min-width: 80px; text-align: center;
+    font-size: 18px; font-weight: 700; color: var(--accent);
+    font-family: monospace;
+  }
+
+  /* ── TOOLTIP ── */
+  .tooltip-wrap { position: relative; display: inline-block; cursor: help; }
+  .tooltip-wrap::after {
+    content: attr(data-tip);
+    position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%);
+    background: var(--bg3); color: var(--text);
+    font-size: 12px; padding: 8px 12px; border-radius: 6px;
+    white-space: nowrap; pointer-events: none;
+    opacity: 0; transition: opacity .2s; z-index: 999;
+    border: 1px solid #3d3a7e; max-width: 220px; white-space: normal;
+  }
+  .tooltip-wrap:hover::after { opacity: 1; }
+
+  /* ── QUIZ ── */
+  .quiz-box {
+    background: var(--card); border: 1px solid #2d2a6e;
+    border-radius: 14px; padding: 28px; margin-top: 32px;
+  }
+  .quiz-box h3 { font-size: 16px; font-weight: 700; color: var(--accent2); margin-bottom: 20px; }
+  .quiz-q { font-size: 15px; color: var(--text); margin-bottom: 14px; font-weight: 600; }
+  .quiz-options { display: flex; flex-direction: column; gap: 8px; }
+  .quiz-opt {
+    padding: 12px 18px; background: var(--bg);
+    border: 1px solid #3d3a7e; border-radius: 8px;
+    cursor: pointer; font-size: 13px; color: var(--text-dim);
+    transition: all .2s;
+  }
+  .quiz-opt:hover { border-color: var(--accent2); color: var(--text); }
+  .quiz-opt.correct { background: rgba(34,197,94,.1); border-color: var(--green); color: var(--green); }
+  .quiz-opt.wrong   { background: rgba(239,68,68,.1); border-color: #ef4444; color: #ef4444; }
+  .quiz-feedback { margin-top: 12px; font-size: 13px; font-style: italic; color: var(--text-dim); min-height: 20px; }
+  .quiz-next { margin-top: 16px; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: #3d3a7e; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent2); }
+
+  /* ── FOOTER ── */
+  .site-footer {
+    padding: 40px 80px; text-align: center;
+    border-top: 1px solid #1a1840;
+    color: var(--text-dim); font-size: 13px;
+  }
+  .site-footer a { color: var(--accent); text-decoration: none; }
+
+  /* ── MOBILE ── */
+  .hamburger {
+    display: none; position: fixed; top: 16px; left: 16px; z-index: 200;
+    background: var(--accent); border: none; border-radius: 8px;
+    padding: 10px 12px; cursor: pointer; color: white; font-size: 18px;
+  }
+  @media (max-width: 900px) {
+    :root { --nav-w: 240px; }
+    #sidebar { transform: translateX(-100%); }
+    #sidebar.open { transform: translateX(0); }
+    #main { margin-left: 0; }
+    .hamburger { display: block; }
+    .section, #hero { padding: 60px 24px; }
+    .hero-network { display: none; }
+    .compare-table { display: block; overflow-x: auto; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Particles -->
+<canvas id="particles"></canvas>
+
+<!-- Hamburger -->
+<button class="hamburger" id="hamburger" aria-label="Menu">☰</button>
+
+<!-- ── SIDEBAR ── -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <h1>Vector Databases<br>for Python Devs</h1>
+    <p>Search by meaning, not just text</p>
+  </div>
+
+  <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  <div class="progress-label" id="progress-label">0% read</div>
+
+  <div class="nav-section">Chapters</div>
+
+  <a class="nav-item active" href="#hero" data-section="hero">
+    <span class="nav-num">00</span> Introduction
+  </a>
+  <a class="nav-item" href="#ch1" data-section="ch1">
+    <span class="nav-num">01</span> What Is a Vector DB?
+  </a>
+  <a class="nav-item" href="#ch2" data-section="ch2">
+    <span class="nav-num">02</span> From Text to Vectors
+  </a>
+  <a class="nav-item" href="#ch3" data-section="ch3">
+    <span class="nav-num">03</span> Similarity Search
+  </a>
+  <a class="nav-item" href="#ch4" data-section="ch4">
+    <span class="nav-num">04</span> Traditional vs Vector DB
+  </a>
+  <a class="nav-item" href="#ch5" data-section="ch5">
+    <span class="nav-num">05</span> Core Concepts
+  </a>
+  <a class="nav-item" href="#ch6" data-section="ch6">
+    <span class="nav-num">06</span> Popular Databases
+  </a>
+  <a class="nav-item" href="#ch7" data-section="ch7">
+    <span class="nav-num">07</span> Python with Chroma
+  </a>
+  <a class="nav-item" href="#ch8" data-section="ch8">
+    <span class="nav-num">08</span> RAG
+  </a>
+  <a class="nav-item" href="#ch9" data-section="ch9">
+    <span class="nav-num">09</span> Best Practices
+  </a>
+
+  <div class="nav-section" style="margin-top:8px;">Interactives</div>
+  <a class="nav-item" href="#ch3" data-section="ch3">
+    <span class="nav-num">🧮</span> Cosine Calculator
+  </a>
+  <a class="nav-item" href="#ch5" data-section="ch5">
+    <span class="nav-num">🎛️</span> Token Slider
+  </a>
+  <a class="nav-item" href="#ch9" data-section="ch9">
+    <span class="nav-num">🧠</span> Quiz
+  </a>
+</nav>
+
+<!-- ── MAIN ── -->
+<main id="main">
+
+  <!-- HERO -->
+  <section id="hero">
+    <div class="hero-badge">PYTHON · AI · EMBEDDINGS</div>
+    <h1>Vector Databases<br>for Python<br>Developers</h1>
+    <p class="subtitle">Search by meaning, not just exact matches — the foundation of modern AI applications.</p>
+    <div class="hero-tags">
+      <span class="hero-tag">Embeddings</span>
+      <span class="hero-tag">Semantic Search</span>
+      <span class="hero-tag">RAG</span>
+      <span class="hero-tag">ChromaDB</span>
+      <span class="hero-tag">FAISS</span>
+      <span class="hero-tag">ANN / KNN</span>
+    </div>
+    <svg class="hero-network" viewBox="0 0 340 340" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.6"/>
+          <stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <!-- Center node -->
+      <circle cx="170" cy="170" r="22" fill="#a78bfa" opacity="0.9">
+        <animate attributeName="r" values="22;26;22" dur="2s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="170" cy="170" r="35" fill="url(#glow)" opacity="0.5"/>
+      <!-- Lines & nodes animated -->
+      <g opacity="0.6" stroke="#a78bfa" stroke-width="1.5">
+        <line x1="170" y1="170" x2="90" y2="80"><animate attributeName="stroke-dasharray" values="0 200;120 200" dur="1.5s" fill="freeze"/></line>
+        <line x1="170" y1="170" x2="260" y2="70"><animate attributeName="stroke-dasharray" values="0 200;130 200" dur="1.7s" fill="freeze"/></line>
+        <line x1="170" y1="170" x2="310" y2="160"><animate attributeName="stroke-dasharray" values="0 200;145 200" dur="1.4s" fill="freeze"/></line>
+        <line x1="170" y1="170" x2="270" y2="270"><animate attributeName="stroke-dasharray" values="0 200;150 200" dur="1.8s" fill="freeze"/></line>
+        <line x1="170" y1="170" x2="110" y2="290"><animate attributeName="stroke-dasharray" values="0 200;140 200" dur="1.6s" fill="freeze"/></line>
+        <line x1="170" y1="170" x2="30" y2="240"><animate attributeName="stroke-dasharray" values="0 200;165 200" dur="1.9s" fill="freeze"/></line>
+        <line x1="170" y1="170" x2="40" y2="130"><animate attributeName="stroke-dasharray" values="0 200;155 200" dur="1.3s" fill="freeze"/></line>
+        <line x1="170" y1="170" x2="200" y2="40"><animate attributeName="stroke-dasharray" values="0 200;140 200" dur="2s" fill="freeze"/></line>
+      </g>
+      <g fill="#ff6ec7">
+        <rect x="78" y="68" width="24" height="24" rx="4" opacity="0.9"/>
+        <rect x="248" y="58" width="24" height="24" rx="4" opacity="0.9"/>
+        <rect x="298" y="148" width="24" height="24" rx="4" opacity="0.9"/>
+        <rect x="258" y="258" width="24" height="24" rx="4" opacity="0.9"/>
+        <rect x="98" y="278" width="24" height="24" rx="4" opacity="0.9"/>
+        <rect x="18" y="228" width="24" height="24" rx="4" opacity="0.9"/>
+        <rect x="28" y="118" width="24" height="24" rx="4" opacity="0.9"/>
+        <rect x="188" y="28" width="24" height="24" rx="4" opacity="0.9"/>
+      </g>
+      <!-- Pulse rings -->
+      <circle cx="170" cy="170" r="60" stroke="#38bdf8" stroke-width="1" fill="none" opacity="0.3">
+        <animate attributeName="r" values="60;80;60" dur="3s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.3;0;0.3" dur="3s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="170" cy="170" r="100" stroke="#a78bfa" stroke-width="0.5" fill="none" opacity="0.2">
+        <animate attributeName="r" values="100;130;100" dur="4s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.2;0;0.2" dur="4s" repeatCount="indefinite"/>
+      </circle>
+    </svg>
+    <div class="scroll-hint">
+      <span style="font-size:20px">↓</span>
+      Scroll to explore
+    </div>
+  </section>
+
+  <!-- CH1: WHAT IS A VECTOR DB -->
+  <section class="section" id="ch1">
+    <div class="chapter-badge">CHAPTER 1 — INTRODUCTION</div>
+    <h2>What Is a Vector Database?</h2>
+    <p>A vector database stores data as <strong>numerical arrays (vectors)</strong> that capture meaning — not just exact text.</p>
+    <div class="info-box" style="margin:20px 0;">
+      💡 Think of it like a library organized by <em>theme</em> instead of alphabetical order.
+    </div>
+    <p>In a traditional database, querying for <code style="color:var(--accent2)">WHERE name = "Alice"</code> returns only exact matches. A vector database, by contrast, understands that <strong>"happy"</strong> is close to <strong>"joyful"</strong> and <strong>"glad"</strong> — because these words share similar vector representations in high-dimensional space.</p>
+
+    <div class="card-grid cols-2" style="margin-top:32px;">
+      <div class="card">
+        <div class="card-icon">🗄️</div>
+        <h3>Traditional DB</h3>
+        <p>Matches exact values: <code style="color:var(--accent2)">WHERE name = "Alice"</code><br><br>Fast for structured, exact lookups. SQL, B-Tree indexes, rows and columns.</p>
+      </div>
+      <div class="card highlight">
+        <div class="card-icon">🧠</div>
+        <h3>Vector DB</h3>
+        <p>Finds similar meanings: <em>"happy" → "joyful", "glad"</em><br><br>Powered by high-dimensional embeddings and approximate nearest neighbor search.</p>
+      </div>
+    </div>
+
+    <!-- Extra: interactive word similarity demo -->
+    <div class="calc-box" style="margin-top:36px;">
+      <h3>🔍 Interactive: What kind of DB would you use?</h3>
+      <p>Click a use-case below — see which type of database fits best.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;" id="usecase-btns">
+        <button class="calc-btn" style="font-size:12px;" onclick="showUsecase('Find all users named Bob','Traditional DB — exact match is fast and perfect here.','neutral')">Find users named Bob</button>
+        <button class="calc-btn" style="font-size:12px;" onclick="showUsecase('Find articles about AI and machine learning','Vector DB — semantic search finds related concepts even without exact keywords.','good')">Articles about AI</button>
+        <button class="calc-btn" style="font-size:12px;" onclick="showUsecase('Product recommendations similar to this item','Vector DB — embeddings capture item similarity from user behavior.','good')">Product recommendations</button>
+        <button class="calc-btn" style="font-size:12px;" onclick="showUsecase('Count orders placed today','Traditional DB — simple aggregation with SQL.','neutral')">Count today\'s orders</button>
+        <button class="calc-btn" style="font-size:12px;" onclick="showUsecase('Find support tickets similar to this new one','Vector DB — semantic clustering groups related issues.','good')">Similar support tickets</button>
+      </div>
+      <div class="calc-result" id="usecase-result" style="margin-top:16px;">Click a use-case above to see the answer...</div>
+    </div>
+  </section>
+
+  <!-- CH2: EMBEDDINGS -->
+  <section class="section" id="ch2">
+    <div class="chapter-badge">CHAPTER 2 — EMBEDDINGS</div>
+    <h2>From Text to Vectors</h2>
+    <p>An <strong>embedding</strong> is a model that converts text (or images) into a list of numbers — a vector — where similar things land close together in space.</p>
+    <p style="margin-top:12px;">Each dimension captures a different aspect of meaning — sentiment, topic, style — learned by the model from massive text data.</p>
+
+    <!-- Flow diagram -->
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-icon">📝</div>
+        <div class="flow-label">Input Text</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">"I love cats"</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-icon">🤖</div>
+        <div class="flow-label">Embedding Model</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">all-MiniLM-L6-v2</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-icon">📊</div>
+        <div class="flow-label">Vector Output</div>
+        <div style="font-size:11px;color:var(--accent);margin-top:4px;font-family:monospace;">[0.42, -0.17, 0.89...]</div>
+      </div>
+    </div>
+
+    <!-- Vector dimension visualizer -->
+    <div class="calc-box">
+      <h3>🎛️ Vector Dimension Visualizer</h3>
+      <p>A real embedding has 384–1536 dimensions. Use the slider to see how many numbers represent one word.</p>
+      <div class="slider-row">
+        <span style="font-size:13px;color:var(--text-dim);">Dimensions:</span>
+        <input type="range" id="dim-slider" min="4" max="512" value="16" step="4" oninput="updateDimViz(this.value)">
+        <span class="slider-val" id="dim-val">16</span>
+      </div>
+      <div id="dim-display" style="font-family:monospace;font-size:12px;color:var(--accent3);background:var(--bg);border:1px solid #3d3a7e;border-radius:8px;padding:14px;line-height:1.8;word-break:break-all;max-height:120px;overflow:hidden;"></div>
+      <p style="font-size:11px;color:var(--text-dim);margin-top:8px;">📌 Popular models: MiniLM = 384d · text-embedding-3-small = 1536d · OpenAI large = 3072d</p>
+    </div>
+
+    <div class="card-grid cols-2" style="margin-top:28px;">
+      <div class="card">
+        <h3>Why vectors?</h3>
+        <p>Vectors let us use <strong>linear algebra</strong> to measure semantic closeness. The angle between two vectors encodes how "similar" two pieces of text are in meaning.</p>
+      </div>
+      <div class="card">
+        <h3>What models produce them?</h3>
+        <p><strong>sentence-transformers</strong> (free, local), <strong>OpenAI Embeddings API</strong>, <strong>Cohere Embed</strong>, and <strong>Google Vertex AI</strong> all produce embeddings from text.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CH3: SIMILARITY SEARCH -->
+  <section class="section" id="ch3">
+    <div class="chapter-badge">CHAPTER 3 — SIMILARITY SEARCH</div>
+    <h2>How Does Similarity Work?</h2>
+    <p>Vector similarity measures how "close" two vectors are in high-dimensional space. The two most common metrics are <strong>Cosine Similarity</strong> and <strong>Euclidean Distance</strong>.</p>
+
+    <div class="card-grid cols-2" style="margin-top:28px;">
+      <div class="card highlight">
+        <div class="card-icon">📐</div>
+        <h3>Cosine Similarity</h3>
+        <p>Measures the <strong>angle</strong> between vectors. Ignores length — great for text. Range: <strong>-1 to 1</strong>. A score of 1 means identical direction (same meaning). Most vector DBs use this for text.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📏</div>
+        <h3>Euclidean Distance</h3>
+        <p>Measures <strong>straight-line distance</strong> between points. Intuitive "as the crow flies" metric. Good for image similarity and normalized embeddings. Lower = more similar.</p>
+      </div>
+    </div>
+
+    <div class="info-box pink" style="margin-top:24px;">
+      💡 Most vector DBs use <strong>cosine similarity</strong> for text — it captures <em>direction of meaning</em>, not vector magnitude.
+    </div>
+
+    <!-- Interactive Cosine Calculator -->
+    <div class="calc-box" style="margin-top:28px;">
+      <h3>🧮 Cosine Similarity Calculator</h3>
+
+      <!-- Formula display -->
+      <div style="display:flex;align-items:center;justify-content:center;margin:18px 0 22px;padding:18px 24px;background:var(--bg);border:1px solid #2d2a6e;border-radius:12px;">
+        <span style="font-size:15px;color:var(--text-dim);margin-right:16px;font-style:italic;">Cosine Similarity</span>
+        <span style="font-size:17px;color:var(--text-dim);margin-right:10px;">=</span>
+        <span style="font-size:17px;color:var(--accent2);font-style:italic;margin-right:10px;">cos(θ)</span>
+        <span style="font-size:17px;color:var(--text-dim);margin-right:14px;">=</span>
+        <span style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;">
+          <span style="font-size:16px;font-weight:700;color:var(--accent);font-style:italic;border-bottom:2px solid var(--accent2);padding-bottom:5px;letter-spacing:.5px;">
+            <span style="font-weight:800;">A</span> · <span style="font-weight:800;">B</span>
+          </span>
+          <span style="font-size:15px;color:var(--accent2);padding-top:5px;letter-spacing:.5px;">
+            ‖<span style="font-weight:700;">A</span>‖ ‖<span style="font-weight:700;">B</span>‖
+          </span>
+        </span>
+      </div>
+
+      <!-- Worked example -->
+      <div style="background:var(--bg);border:1px solid #2d2a6e;border-radius:12px;padding:18px 24px;margin-bottom:20px;font-size:13px;line-height:2;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--accent2);margin-bottom:10px;">Example: A = (1, 2) &nbsp;·&nbsp; B = (2, 3)</div>
+        <div style="display:flex;flex-direction:column;gap:4px;font-family:monospace;">
+          <span><span style="color:var(--text-dim);">Step 1 — Dot product:&nbsp;&nbsp;&nbsp;</span><span style="color:var(--accent);">A · B</span> = (1×2) + (2×3) = 2 + 6 = <strong style="color:var(--accent);">8</strong></span>
+          <span><span style="color:var(--text-dim);">Step 2 — Magnitude A:&nbsp;&nbsp;&nbsp;</span><span style="color:var(--accent2);">‖A‖</span> = √(1² + 2²) = √5 ≈ <strong style="color:var(--accent2);">2.236</strong></span>
+          <span><span style="color:var(--text-dim);">Step 3 — Magnitude B:&nbsp;&nbsp;&nbsp;</span><span style="color:var(--accent2);">‖B‖</span> = √(2² + 3²) = √13 ≈ <strong style="color:var(--accent2);">3.606</strong></span>
+          <span><span style="color:var(--text-dim);">Step 4 — Similarity:&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:var(--green);">cos(θ)</span> = 8 / (2.236 × 3.606) = 8 / 8.062 ≈ <strong style="color:var(--green);">0.9923</strong> 🟢 Very similar</span>
+        </div>
+      </div>
+
+      <p>Enter two 2D vectors and calculate their cosine similarity. Format: <code style="color:var(--accent2)">x,y</code> (e.g. <code style="color:var(--accent2)">1,2</code>)</p>
+      <div class="calc-row">
+        <div class="calc-field">
+          <label>Vector A (x,y)</label>
+          <input type="text" id="vec-a" value="1,2" placeholder="1,2">
+        </div>
+        <div class="calc-field">
+          <label>Vector B (x,y)</label>
+          <input type="text" id="vec-b" value="2,3" placeholder="2,3">
+        </div>
+        <button class="calc-btn" onclick="calcCosine()">Calculate</button>
+      </div>
+      <div class="calc-result" id="cosine-result">Hit Calculate to see the result...</div>
+      <div class="vector-canvas-wrap" style="margin-top:16px;">
+        <canvas id="vecCanvas" width="400" height="260"></canvas>
+        <p style="font-size:11px;color:var(--text-dim);margin-top:8px;">Visual: vectors plotted in 2D space. The angle between them determines cosine similarity.</p>
+      </div>
+    </div>
+
+    <!-- Euclidean Calculator -->
+    <div class="calc-box" style="margin-top:24px;">
+      <h3>📏 Euclidean Distance Calculator</h3>
+
+      <!-- Formula display -->
+      <div style="display:flex;align-items:center;justify-content:center;margin:18px 0 22px;padding:18px 24px;background:var(--bg);border:1px solid #2d2a6e;border-radius:12px;">
+        <span style="font-size:15px;color:var(--text-dim);margin-right:16px;font-style:italic;">d(A, B)</span>
+        <span style="font-size:17px;color:var(--text-dim);margin-right:14px;">=</span>
+        <span style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;">
+          <span style="font-size:16px;font-weight:700;color:var(--accent);letter-spacing:.5px;">
+            √ <span style="border-top:2px solid var(--accent2);padding:2px 6px;color:var(--accent2);">(x<sub>2</sub>−x<sub>1</sub>)<sup>2</sup> + (y<sub>2</sub>−y<sub>1</sub>)<sup>2</sup></span>
+          </span>
+        </span>
+      </div>
+
+      <!-- Worked example -->
+      <div style="background:var(--bg);border:1px solid #2d2a6e;border-radius:12px;padding:18px 24px;margin-bottom:20px;font-size:13px;line-height:2;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--accent2);margin-bottom:10px;">Example: A = (0, 0) &nbsp;·&nbsp; B = (3, 4)</div>
+        <div style="display:flex;flex-direction:column;gap:4px;font-family:monospace;">
+          <span><span style="color:var(--text-dim);">Step 1 — Differences:&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:var(--accent);">Δx</span> = 3−0 = <strong style="color:var(--accent);">3</strong>,&nbsp; <span style="color:var(--accent);">Δy</span> = 4−0 = <strong style="color:var(--accent);">4</strong></span>
+          <span><span style="color:var(--text-dim);">Step 2 — Square them:&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:var(--accent2);">3²</span> = 9,&nbsp; <span style="color:var(--accent2);">4²</span> = 16</span>
+          <span><span style="color:var(--text-dim);">Step 3 — Sum &amp; root:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:var(--green);">d</span> = √(9 + 16) = √25 = <strong style="color:var(--green);">5.0</strong> 🟢 Classic 3-4-5 triangle</span>
+        </div>
+      </div>
+
+      <p>Enter two points and compute the straight-line distance.</p>
+      <div class="calc-row">
+        <div class="calc-field">
+          <label>Point A (x,y)</label>
+          <input type="text" id="eu-a" value="0,0" placeholder="0,0">
+        </div>
+        <div class="calc-field">
+          <label>Point B (x,y)</label>
+          <input type="text" id="eu-b" value="3,4" placeholder="3,4">
+        </div>
+        <button class="calc-btn" onclick="calcEuclidean()">Calculate</button>
+      </div>
+      <div class="calc-result" id="eu-result">Hit Calculate to see the result...</div>
+    </div>
+  </section>
+
+  <!-- CH4: COMPARISON -->
+  <section class="section" id="ch4">
+    <div class="chapter-badge">CHAPTER 4 — COMPARISON</div>
+    <h2>Traditional DB vs. Vector DB</h2>
+    <p>Both database types have their strengths. Knowing when to use each — or both together — is key to designing modern AI systems.</p>
+
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Traditional DB</th>
+          <th>Vector DB</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Query type</td>
+          <td>Exact match, SQL filters</td>
+          <td>Semantic similarity, KNN</td>
+        </tr>
+        <tr>
+          <td>Data stored</td>
+          <td>Rows, columns, JSON</td>
+          <td>High-dimensional vectors + metadata</td>
+        </tr>
+        <tr>
+          <td>Best for</td>
+          <td>Transactions, structured data</td>
+          <td>Search by meaning, AI pipelines</td>
+        </tr>
+        <tr>
+          <td>Index type</td>
+          <td>B-Tree, Hash</td>
+          <td>HNSW, IVF, Flat</td>
+        </tr>
+        <tr>
+          <td>Example use</td>
+          <td>User accounts, orders</td>
+          <td>RAG, recommendations, semantic search</td>
+        </tr>
+        <tr>
+          <td>Scale</td>
+          <td>Billions of rows, mature tooling</td>
+          <td>Millions-billions of vectors, rapidly evolving</td>
+        </tr>
+        <tr>
+          <td>Query language</td>
+          <td>SQL (standardized)</td>
+          <td>SDKs, REST APIs, no universal standard</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="info-box" style="margin-top:28px;">
+      ℹ️ <strong>Hybrid approach:</strong> Many systems use <em>both</em> — a Postgres DB for structured data + a vector DB for semantic search. Tools like <strong>pgvector</strong> even add vector support directly to Postgres.
+    </div>
+
+    <!-- Cost comparison interactive -->
+    <div class="calc-box" style="margin-top:28px;">
+      <h3>⚡ Speed Comparison (relative)</h3>
+      <p>Traditional exact lookup vs. vector ANN search at different dataset sizes.</p>
+      <div class="slider-row">
+        <span style="font-size:13px;color:var(--text-dim);">Dataset size:</span>
+        <input type="range" id="scale-slider" min="1" max="10" value="5" oninput="updateScale(this.value)">
+        <span class="slider-val" id="scale-val">1M</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">
+        <div>
+          <div style="font-size:12px;color:var(--text-dim);margin-bottom:6px;">SQL Exact Match</div>
+          <div style="height:24px;background:linear-gradient(90deg,#38bdf8,#0ea5e9);border-radius:4px;transition:width .4s;" id="sql-bar"></div>
+          <div style="font-size:13px;color:var(--accent3);margin-top:4px;" id="sql-time"></div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--text-dim);margin-bottom:6px;">Vector ANN Search (HNSW)</div>
+          <div style="height:24px;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:4px;transition:width .4s;" id="vec-bar"></div>
+          <div style="font-size:13px;color:var(--accent);margin-top:4px;" id="vec-time"></div>
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--text-dim);margin-top:12px;">* Simulated values for illustration. Actual performance depends on hardware, index type, and query complexity.</p>
+    </div>
+  </section>
+
+  <!-- CH5: CORE CONCEPTS -->
+  <section class="section" id="ch5">
+    <div class="chapter-badge">CHAPTER 5 — CORE CONCEPTS</div>
+    <h2>How Vector DBs Work Under the Hood</h2>
+    <p>Understanding the internals helps you choose the right settings for your use case.</p>
+
+    <div class="card-grid cols-2" style="margin-top:32px;">
+      <div class="card">
+        <div class="card-icon">🗂️</div>
+        <h3>Indexing</h3>
+        <p>Pre-organizes vectors so searches are fast. Without an index, you'd scan every vector — slow at scale. Common index types: <strong>HNSW</strong> (best recall), <strong>IVF</strong> (clustered), <strong>Flat</strong> (exact but slow).</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔎</div>
+        <h3>KNN / ANN Search</h3>
+        <p><strong>KNN</strong> = exact nearest neighbors (100% accurate, slow for large datasets). <strong>ANN</strong> = approximate (faster, slightly less precise). Trade speed vs. accuracy depending on your needs.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🏷️</div>
+        <h3>Metadata Filtering</h3>
+        <p>Combine vector search with filters: <code style="color:var(--accent2)">where={"author": "Alice"}</code>. Narrows results by context — e.g., search only documents from this year, only PDFs, only high-rated items.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">💾</div>
+        <h3>Persistence</h3>
+        <p>Vectors and metadata are stored on disk — surviving restarts. Some DBs also support cloud sync. In-memory mode (e.g. Chroma) is faster but data is lost on restart.</p>
+      </div>
+    </div>
+
+    <!-- Index types explanation -->
+    <h3 style="font-size:18px;font-weight:700;color:var(--accent2);margin:36px 0 16px;">Common Index Types Explained</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">
+      <div style="background:var(--bg);border:1px solid var(--accent2);border-radius:12px;padding:20px;position:relative;overflow:hidden;">
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));"></div>
+        <div style="font-size:22px;margin-bottom:8px;">🕸️</div>
+        <div style="font-size:14px;font-weight:800;color:var(--accent2);margin-bottom:4px;">HNSW</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);background:rgba(255,110,199,.1);border-radius:4px;padding:2px 8px;display:inline-block;margin-bottom:10px;">Best Recall · Fast</div>
+        <p style="font-size:13px;color:var(--text-dim);line-height:1.7;"><strong style="color:var(--text);">Hierarchical Navigable Small World.</strong> Builds a multi-layer graph — upper layers give a coarse overview, lower layers get precise. Search starts at the top and zooms in. Gives ~95–99% recall at 10–100× the speed of brute force. The go-to choice for most production systems.</p>
+        <div style="margin-top:12px;font-size:11px;color:var(--text-dim);border-top:1px solid #2d2a6e;padding-top:10px;">⚡ Speed: <strong style="color:var(--green);">Very fast</strong> &nbsp;·&nbsp; 🎯 Accuracy: <strong style="color:var(--green);">Very high</strong></div>
+      </div>
+      <div style="background:var(--bg);border:1px solid #3d3a7e;border-radius:12px;padding:20px;position:relative;overflow:hidden;">
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent3),#0ea5e9);"></div>
+        <div style="font-size:22px;margin-bottom:8px;">🗂️</div>
+        <div style="font-size:14px;font-weight:800;color:var(--accent3);margin-bottom:4px;">IVF</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent3);background:rgba(56,189,248,.1);border-radius:4px;padding:2px 8px;display:inline-block;margin-bottom:10px;">Clustered · Scalable</div>
+        <p style="font-size:13px;color:var(--text-dim);line-height:1.7;"><strong style="color:var(--text);">Inverted File Index.</strong> Groups vectors into clusters using k-means. At query time, only the nearest clusters are searched — skipping most of the dataset. Great for large datasets that won't fit entirely in RAM. Accuracy depends on how many clusters you probe (<code style="color:var(--accent2);">nprobe</code>).</p>
+        <div style="margin-top:12px;font-size:11px;color:var(--text-dim);border-top:1px solid #2d2a6e;padding-top:10px;">⚡ Speed: <strong style="color:var(--yellow);">Fast</strong> &nbsp;·&nbsp; 🎯 Accuracy: <strong style="color:var(--yellow);">Tunable</strong></div>
+      </div>
+      <div style="background:var(--bg);border:1px solid #3d3a7e;border-radius:12px;padding:20px;position:relative;overflow:hidden;">
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#6b7280,#9ca3af);"></div>
+        <div style="font-size:22px;margin-bottom:8px;">📋</div>
+        <div style="font-size:14px;font-weight:800;color:#9ca3af;margin-bottom:4px;">Flat</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9ca3af;background:rgba(156,163,175,.1);border-radius:4px;padding:2px 8px;display:inline-block;margin-bottom:10px;">Exact · Slow at Scale</div>
+        <p style="font-size:13px;color:var(--text-dim);line-height:1.7;"><strong style="color:var(--text);">Brute Force / Exact Search.</strong> Compares the query vector against every single stored vector. Zero approximation — 100% accurate results guaranteed. Fine for small datasets (&lt;10K vectors) but impractical at scale. Often used as a benchmark to measure accuracy loss from other indexes.</p>
+        <div style="margin-top:12px;font-size:11px;color:var(--text-dim);border-top:1px solid #2d2a6e;padding-top:10px;">⚡ Speed: <strong style="color:#ef4444;">Slow O(n)</strong> &nbsp;·&nbsp; 🎯 Accuracy: <strong style="color:var(--green);">100% exact</strong></div>
+      </div>
+    </div>
+    <!-- Visual examples -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:16px;">
+
+      <!-- HNSW visual -->
+      <div style="background:var(--bg);border:1px solid var(--accent2);border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:10px;letter-spacing:.5px;">HNSW — Multi-Layer Graph</div>
+        <svg viewBox="0 0 220 160" width="100%" style="max-height:160px;">
+          <!-- Layer labels -->
+          <text x="4" y="22" font-size="8" fill="#6272a4">Layer 2</text>
+          <text x="4" y="72" font-size="8" fill="#6272a4">Layer 1</text>
+          <text x="4" y="132" font-size="8" fill="#6272a4">Layer 0</text>
+
+          <!-- Layer 2 (coarse) — 3 nodes -->
+          <line x1="60" y1="18" x2="120" y2="18" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="none" opacity=".6"/>
+          <line x1="120" y1="18" x2="180" y2="18" stroke="#a78bfa" stroke-width="1.5" opacity=".6"/>
+          <circle cx="60"  cy="18" r="7" fill="#a78bfa" opacity=".9"/>
+          <circle cx="120" cy="18" r="7" fill="#a78bfa" opacity=".9"/>
+          <circle cx="180" cy="18" r="7" fill="#a78bfa" opacity=".9"/>
+
+          <!-- Layer 1 (mid) — 5 nodes -->
+          <line x1="40"  y1="68" x2="80"  y2="68" stroke="#a78bfa" stroke-width="1.2" opacity=".5"/>
+          <line x1="80"  y1="68" x2="120" y2="68" stroke="#a78bfa" stroke-width="1.2" opacity=".5"/>
+          <line x1="120" y1="68" x2="160" y2="68" stroke="#a78bfa" stroke-width="1.2" opacity=".5"/>
+          <line x1="160" y1="68" x2="200" y2="68" stroke="#a78bfa" stroke-width="1.2" opacity=".5"/>
+          <circle cx="40"  cy="68" r="5" fill="#7c3aed" opacity=".8"/>
+          <circle cx="80"  cy="68" r="5" fill="#7c3aed" opacity=".8"/>
+          <circle cx="120" cy="68" r="5" fill="#7c3aed" opacity=".8"/>
+          <circle cx="160" cy="68" r="5" fill="#7c3aed" opacity=".8"/>
+          <circle cx="200" cy="68" r="5" fill="#7c3aed" opacity=".8"/>
+
+          <!-- Layer 0 (fine) — 9 nodes -->
+          <line x1="30"  y1="128" x2="55"  y2="128" stroke="#a78bfa" stroke-width="1" opacity=".35"/>
+          <line x1="55"  y1="128" x2="80"  y2="128" stroke="#a78bfa" stroke-width="1" opacity=".35"/>
+          <line x1="80"  y1="128" x2="100" y2="128" stroke="#a78bfa" stroke-width="1" opacity=".35"/>
+          <line x1="100" y1="128" x2="120" y2="128" stroke="#a78bfa" stroke-width="1" opacity=".35"/>
+          <line x1="120" y1="128" x2="142" y2="128" stroke="#a78bfa" stroke-width="1" opacity=".35"/>
+          <line x1="142" y1="128" x2="162" y2="128" stroke="#a78bfa" stroke-width="1" opacity=".35"/>
+          <line x1="162" y1="128" x2="182" y2="128" stroke="#a78bfa" stroke-width="1" opacity=".35"/>
+          <line x1="182" y1="128" x2="205" y2="128" stroke="#a78bfa" stroke-width="1" opacity=".35"/>
+          <circle cx="30"  cy="128" r="4" fill="#4c1d95" opacity=".8"/>
+          <circle cx="55"  cy="128" r="4" fill="#4c1d95" opacity=".8"/>
+          <circle cx="80"  cy="128" r="4" fill="#4c1d95" opacity=".8"/>
+          <circle cx="100" cy="128" r="4" fill="#4c1d95" opacity=".8"/>
+          <circle cx="120" cy="128" r="4" fill="#4c1d95" opacity=".8"/>
+          <circle cx="142" cy="128" r="4" fill="#4c1d95" opacity=".8"/>
+          <circle cx="162" cy="128" r="4" fill="#4c1d95" opacity=".8"/>
+          <circle cx="182" cy="128" r="4" fill="#4c1d95" opacity=".8"/>
+          <circle cx="205" cy="128" r="4" fill="#4c1d95" opacity=".8"/>
+
+          <!-- Vertical cross-layer links -->
+          <line x1="60"  y1="25" x2="40"  y2="63" stroke="#ff6ec7" stroke-width="1" stroke-dasharray="3,2" opacity=".5"/>
+          <line x1="120" y1="25" x2="120" y2="63" stroke="#ff6ec7" stroke-width="1" stroke-dasharray="3,2" opacity=".5"/>
+          <line x1="180" y1="25" x2="200" y2="63" stroke="#ff6ec7" stroke-width="1" stroke-dasharray="3,2" opacity=".5"/>
+          <line x1="80"  y1="73" x2="80"  y2="123" stroke="#ff6ec7" stroke-width="1" stroke-dasharray="3,2" opacity=".4"/>
+          <line x1="120" y1="73" x2="120" y2="123" stroke="#ff6ec7" stroke-width="1" stroke-dasharray="3,2" opacity=".4"/>
+          <line x1="160" y1="73" x2="162" y2="123" stroke="#ff6ec7" stroke-width="1" stroke-dasharray="3,2" opacity=".4"/>
+
+          <!-- Query path arrow -->
+          <polyline points="120,18 120,68 120,128" stroke="#ff6ec7" stroke-width="2" fill="none" stroke-dasharray="4,3">
+            <animate attributeName="stroke-dashoffset" values="20;0" dur="1.5s" repeatCount="indefinite"/>
+          </polyline>
+          <!-- Query star -->
+          <circle cx="120" cy="128" r="7" fill="none" stroke="#ff6ec7" stroke-width="2">
+            <animate attributeName="r" values="7;10;7" dur="1.2s" repeatCount="indefinite"/>
+          </circle>
+          <text x="128" y="148" font-size="8" fill="#ff6ec7">query</text>
+        </svg>
+        <p style="font-size:11px;color:var(--text-dim);margin-top:6px;">Search drills top→bottom through graph layers</p>
+      </div>
+
+      <!-- IVF visual -->
+      <div style="background:var(--bg);border:1px solid #3d3a7e;border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:12px;font-weight:700;color:var(--accent3);margin-bottom:10px;letter-spacing:.5px;">IVF — Clusters (Voronoi)</div>
+        <svg viewBox="0 0 220 160" width="100%" style="max-height:160px;">
+          <!-- Cluster boundaries (rough Voronoi polygons) -->
+          <polygon points="10,10 110,10 80,90 10,80"   fill="rgba(56,189,248,.06)"  stroke="#38bdf8" stroke-width="1" stroke-dasharray="4,3" opacity=".7"/>
+          <polygon points="110,10 210,10 210,80 140,90" fill="rgba(167,139,250,.06)" stroke="#a78bfa" stroke-width="1" stroke-dasharray="4,3" opacity=".7"/>
+          <polygon points="10,80 80,90 100,155 10,155"  fill="rgba(255,110,199,.06)" stroke="#ff6ec7" stroke-width="1" stroke-dasharray="4,3" opacity=".7"/>
+          <polygon points="140,90 210,80 210,155 100,155" fill="rgba(250,204,21,.06)" stroke="#facc15" stroke-width="1" stroke-dasharray="4,3" opacity=".7"/>
+
+          <!-- Cluster centroids -->
+          <circle cx="52"  cy="48"  r="8" fill="#38bdf8" opacity=".85"/>
+          <circle cx="162" cy="44"  r="8" fill="#a78bfa" opacity=".85"/>
+          <circle cx="50"  cy="118" r="8" fill="#ff6ec7" opacity=".85"/>
+          <circle cx="168" cy="120" r="8" fill="#facc15" opacity=".85"/>
+          <text x="46"  y="51"  font-size="7" fill="white" text-anchor="middle">C1</text>
+          <text x="162" y="47"  font-size="7" fill="white" text-anchor="middle">C2</text>
+          <text x="50"  y="121" font-size="7" fill="white" text-anchor="middle">C3</text>
+          <text x="168" y="123" font-size="7" fill="white" text-anchor="middle">C4</text>
+
+          <!-- Points in each cluster -->
+          <circle cx="30"  cy="30"  r="3" fill="#38bdf8" opacity=".6"/>
+          <circle cx="70"  cy="25"  r="3" fill="#38bdf8" opacity=".6"/>
+          <circle cx="35"  cy="65"  r="3" fill="#38bdf8" opacity=".6"/>
+          <circle cx="72"  cy="70"  r="3" fill="#38bdf8" opacity=".6"/>
+
+          <circle cx="140" cy="25"  r="3" fill="#a78bfa" opacity=".6"/>
+          <circle cx="185" cy="30"  r="3" fill="#a78bfa" opacity=".6"/>
+          <circle cx="150" cy="60"  r="3" fill="#a78bfa" opacity=".6"/>
+          <circle cx="190" cy="62"  r="3" fill="#a78bfa" opacity=".6"/>
+
+          <circle cx="25"  cy="100" r="3" fill="#ff6ec7" opacity=".6"/>
+          <circle cx="65"  cy="105" r="3" fill="#ff6ec7" opacity=".6"/>
+          <circle cx="30"  cy="140" r="3" fill="#ff6ec7" opacity=".6"/>
+          <circle cx="75"  cy="145" r="3" fill="#ff6ec7" opacity=".6"/>
+
+          <circle cx="145" cy="100" r="3" fill="#facc15" opacity=".5"/>
+          <circle cx="192" cy="100" r="3" fill="#facc15" opacity=".5"/>
+          <circle cx="148" cy="142" r="3" fill="#facc15" opacity=".5"/>
+          <circle cx="195" cy="145" r="3" fill="#facc15" opacity=".5"/>
+
+          <!-- Query point -->
+          <circle cx="110" cy="82" r="7" fill="#ff6ec7" stroke="white" stroke-width="1.5">
+            <animate attributeName="r" values="7;10;7" dur="1.2s" repeatCount="indefinite"/>
+          </circle>
+          <text x="118" y="78" font-size="8" fill="#ff6ec7">query</text>
+
+          <!-- Lines from query only to nearest centroids (C1 & C2) — highlighted -->
+          <line x1="110" y1="82" x2="52"  y2="48"  stroke="#38bdf8" stroke-width="1.8" opacity=".9"/>
+          <line x1="110" y1="82" x2="162" y2="44"  stroke="#a78bfa" stroke-width="1.8" opacity=".9"/>
+          <!-- Far clusters dimmed -->
+          <line x1="110" y1="82" x2="50"  y2="118" stroke="#444" stroke-width="1" stroke-dasharray="3,3" opacity=".4"/>
+          <line x1="110" y1="82" x2="168" y2="120" stroke="#444" stroke-width="1" stroke-dasharray="3,3" opacity=".4"/>
+        </svg>
+        <p style="font-size:11px;color:var(--text-dim);margin-top:6px;">Only nearest clusters are searched — rest are skipped</p>
+      </div>
+
+      <!-- Flat visual -->
+      <div style="background:var(--bg);border:1px solid #3d3a7e;border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:12px;font-weight:700;color:#9ca3af;margin-bottom:10px;letter-spacing:.5px;">Flat — Brute Force (Every Vector)</div>
+        <svg viewBox="0 0 220 160" width="100%" style="max-height:160px;">
+          <!-- Grid of stored vectors -->
+          <circle cx="30"  cy="30"  r="4" fill="#4c1d95" opacity=".7"/>
+          <circle cx="70"  cy="25"  r="4" fill="#4c1d95" opacity=".7"/>
+          <circle cx="110" cy="32"  r="4" fill="#4c1d95" opacity=".7"/>
+          <circle cx="150" cy="22"  r="4" fill="#4c1d95" opacity=".7"/>
+          <circle cx="190" cy="35"  r="4" fill="#4c1d95" opacity=".7"/>
+          <circle cx="25"  cy="70"  r="4" fill="#4c1d95" opacity=".7"/>
+          <circle cx="65"  cy="75"  r="4" fill="#4c1d95" opacity=".7"/>
+          <circle cx="105" cy="65"  r="4" fill="#4c1d95" opacity=".7"/>
+          <circle cx="148" cy="72"  r="4" fill="#4c1d95" opacity=".7"/>
+          <circle cx="192" cy="68"  r="4" fill="#4c1d95" opacity=".7"/>
+          <circle cx="30"  cy="115" r="4" fill="#4c1d95" opacity=".7"/>
+          <circle cx="72"  cy="120" r="4" fill="#4c1d95" opacity=".7"/>
+          <circle cx="115" cy="112" r="4" fill="#4c1d95" opacity=".7"/>
+          <circle cx="155" cy="118" r="4" fill="#4c1d95" opacity=".7"/>
+          <circle cx="195" cy="110" r="4" fill="#4c1d95" opacity=".7"/>
+          <circle cx="28"  cy="150" r="4" fill="#4c1d95" opacity=".7"/>
+          <circle cx="70"  cy="148" r="4" fill="#4c1d95" opacity=".7"/>
+          <circle cx="112" cy="152" r="4" fill="#4c1d95" opacity=".7"/>
+          <circle cx="155" cy="148" r="4" fill="#4c1d95" opacity=".7"/>
+          <circle cx="195" cy="152" r="4" fill="#4c1d95" opacity=".7"/>
+
+          <!-- Query node -->
+          <circle cx="110" cy="90" r="8" fill="#ff6ec7" stroke="white" stroke-width="1.5">
+            <animate attributeName="r" values="8;11;8" dur="1.2s" repeatCount="indefinite"/>
+          </circle>
+
+          <!-- Lines from query to ALL points (brute force) — animated sequential -->
+          <g stroke="#ff6ec7" stroke-width="1" opacity=".45">
+            <line x1="110" y1="90" x2="30"  y2="30"/>
+            <line x1="110" y1="90" x2="70"  y2="25"/>
+            <line x1="110" y1="90" x2="110" y2="32"/>
+            <line x1="110" y1="90" x2="150" y2="22"/>
+            <line x1="110" y1="90" x2="190" y2="35"/>
+            <line x1="110" y1="90" x2="25"  y2="70"/>
+            <line x1="110" y1="90" x2="65"  y2="75"/>
+            <line x1="110" y1="90" x2="105" y2="65"/>
+            <line x1="110" y1="90" x2="148" y2="72"/>
+            <line x1="110" y1="90" x2="192" y2="68"/>
+            <line x1="110" y1="90" x2="30"  y2="115"/>
+            <line x1="110" y1="90" x2="72"  y2="120"/>
+            <line x1="110" y1="90" x2="115" y2="112"/>
+            <line x1="110" y1="90" x2="155" y2="118"/>
+            <line x1="110" y1="90" x2="195" y2="110"/>
+            <line x1="110" y1="90" x2="28"  y2="150"/>
+            <line x1="110" y1="90" x2="70"  y2="148"/>
+            <line x1="110" y1="90" x2="112" y2="152"/>
+            <line x1="110" y1="90" x2="155" y2="148"/>
+            <line x1="110" y1="90" x2="195" y2="152"/>
+          </g>
+          <!-- Closest vector highlighted -->
+          <line x1="110" y1="90" x2="105" y2="65" stroke="#22c55e" stroke-width="2.5" opacity=".95"/>
+          <circle cx="105" cy="65" r="6" fill="none" stroke="#22c55e" stroke-width="2"/>
+          <text x="114" y="61" font-size="8" fill="#22c55e">nearest</text>
+          <text x="104" y="104" font-size="8" fill="#ff6ec7" text-anchor="middle">query</text>
+        </svg>
+        <p style="font-size:11px;color:var(--text-dim);margin-top:6px;">Every vector compared — guaranteed exact result, O(n) cost</p>
+      </div>
+
+    </div>
+
+    <div style="margin-top:16px;background:rgba(167,139,250,.06);border:1px solid rgba(167,139,250,.25);border-radius:10px;padding:14px 20px;font-size:13px;color:var(--text-dim);line-height:1.8;">
+      📊 <strong style="color:var(--text);">How to pick:</strong> &nbsp;
+      Use <strong style="color:#9ca3af;">Flat</strong> for &lt;10K vectors or exact benchmarking. &nbsp;
+      Use <strong style="color:var(--accent3);">IVF</strong> for large, memory-constrained datasets — tune <code style="color:var(--accent2);">nprobe</code> for recall vs. speed. &nbsp;
+      Use <strong style="color:var(--accent2);">HNSW</strong> for everything else — the default production recommendation.
+    </div>
+
+    <!-- Chunking calculator -->
+    <div class="calc-box" style="margin-top:36px;">
+      <h3>✂️ Chunking Size Calculator</h3>
+      <p>Enter text and see how it would be split at different chunk sizes. Chunking is critical for RAG — too large dilutes meaning, too small loses context.</p>
+      <div class="calc-row" style="flex-wrap:wrap;">
+        <div class="calc-field" style="flex:3;min-width:260px;">
+          <label>Your Text</label>
+          <input type="text" id="chunk-text" value="Vector databases store embeddings and enable semantic search for AI applications. They power RAG pipelines and recommendation systems." placeholder="Enter your text here...">
+        </div>
+        <div class="calc-field" style="flex:1;">
+          <label>Chunk size (chars)</label>
+          <input type="number" id="chunk-size" value="60" min="10" max="500">
+        </div>
+        <button class="calc-btn" onclick="calcChunks()">Split</button>
+      </div>
+      <div class="calc-result" id="chunk-result">Hit Split to see the chunks...</div>
+    </div>
+
+    <!-- HNSW explained -->
+    <div class="info-box" style="margin-top:28px;">
+      <strong>HNSW (Hierarchical Navigable Small World)</strong> — the gold standard index for vector DBs. Builds a multi-layer graph where each layer has fewer nodes. Search starts at the top layer (coarse), drills down to the bottom (precise), giving O(log n) lookup instead of O(n) brute force.
+    </div>
+  </section>
+
+  <!-- CH6: POPULAR DATABASES -->
+  <section class="section" id="ch6">
+    <div class="chapter-badge">CHAPTER 6 — TOOLS</div>
+    <h2>Popular Vector Databases</h2>
+    <p>Each vector database has a different tradeoff between ease of use, performance, and deployment model. Here are the four most popular options for Python developers.</p>
+
+    <div class="card-grid cols-2" style="margin-top:32px;">
+      <div class="db-card">
+        <div class="db-name">🌲 Pinecone</div>
+        <div class="db-badge managed">Fully Managed</div>
+        <p>Cloud-native, fully managed service. No infrastructure to maintain. Great for production workloads. Scales automatically. Supports real-time upserts and metadata filtering.</p>
+        <div class="db-use">Best for: Production apps · Teams that want zero ops</div>
+      </div>
+      <div class="db-card">
+        <div class="db-name">🕸️ Weaviate</div>
+        <div class="db-badge open">Open Source</div>
+        <p>Open-source with GraphQL API. Can self-host or use Weaviate Cloud. Rich schema features, multi-tenancy, and hybrid search (vector + BM25 keyword). Python client available.</p>
+        <div class="db-use">Best for: Complex schemas · Hybrid search · Self-hosting</div>
+      </div>
+      <div class="db-card">
+        <div class="db-name">⚡ FAISS</div>
+        <div class="db-badge library">Python Library</div>
+        <p>Meta's library (Python + C++). Lightning-fast ANN search. No server — runs in-process. Supports GPU acceleration. Great for research and prototyping. Not a full DB — no metadata or persistence by default.</p>
+        <div class="db-use">Best for: Speed · Research · Large-scale ANN · No server needed</div>
+      </div>
+      <div class="db-card">
+        <div class="db-name">🎨 Chroma</div>
+        <div class="db-badge light">Lightweight</div>
+        <p>Lightweight, Python-friendly. Perfect for learning and small projects. In-memory or persistent mode. Built-in embedding support via sentence-transformers. Minimal setup — just <code style="color:var(--accent2)">pip install chromadb</code>.</p>
+        <div class="db-use">Best for: Learning · Prototypes · Small projects · LLM apps</div>
+      </div>
+    </div>
+
+    <!-- Added: comparison summary -->
+    <div class="info-box" style="margin-top:28px;">
+      <strong>Quick pick guide:</strong><br>
+      🎓 Learning → <strong>Chroma</strong> &nbsp;|&nbsp;
+      🧪 Research → <strong>FAISS</strong> &nbsp;|&nbsp;
+      🏗️ Self-host → <strong>Weaviate</strong> &nbsp;|&nbsp;
+      🚀 Production SaaS → <strong>Pinecone</strong>
+    </div>
+
+    <!-- Other notable DBs (added content) -->
+    <h3 style="font-size:18px;font-weight:700;color:var(--accent2);margin:32px 0 16px;">Also Worth Knowing</h3>
+    <div class="card-grid cols-2">
+      <div class="card">
+        <h3>🐘 pgvector</h3>
+        <p>Postgres extension that adds vector storage and similarity search. If you already use Postgres, this is the lowest-friction path to vector search. Supports L2, inner product, and cosine distance.</p>
+      </div>
+      <div class="card">
+        <h3>🔴 Qdrant</h3>
+        <p>Rust-based, open source, high performance. Excellent Python SDK. Supports payload filtering, named vectors, and on-disk storage. Growing rapidly in the community.</p>
+      </div>
+      <div class="card">
+        <h3>🟣 Milvus</h3>
+        <p>Enterprise-grade open-source vector DB. Designed for billion-scale workloads. Supports multiple index types (HNSW, IVF, DiskANN). Strong GPU support.</p>
+      </div>
+      <div class="card">
+        <h3>🦙 LanceDB</h3>
+        <p>Columnar storage, serverless-friendly. Built on Apache Arrow. Zero-copy data access. Native Python and JavaScript SDKs. Great for embedded use cases.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CH7: PYTHON CHROMA -->
+  <section class="section" id="ch7">
+    <div class="chapter-badge">CHAPTER 7 — HANDS-ON</div>
+    <h2>Python Example with Chroma</h2>
+    <p>Chroma makes it trivially easy to get started with vector search in Python. Here's a complete working example.</p>
+
+    <div class="code-wrap" style="margin-top:28px;">
+      <div class="code-label">PYTHON</div>
+      <button class="copy-btn" onclick="copyCode('code1', this)">Copy</button>
+      <pre id="code1"><span class="py-kw">import</span> chromadb
+<span class="py-kw">from</span> sentence_transformers <span class="py-kw">import</span> SentenceTransformer
+
+<span class="py-cm"># Load embedding model</span>
+model = SentenceTransformer(<span class="py-str">"all-MiniLM-L6-v2"</span>)
+
+<span class="py-cm"># Create client & collection</span>
+client = chromadb.<span class="py-fn">Client</span>()
+collection = client.<span class="py-fn">create_collection</span>(<span class="py-str">"docs"</span>)
+
+<span class="py-cm"># Add documents (auto-embedded)</span>
+collection.<span class="py-fn">add</span>(
+    documents=[<span class="py-str">"Cats are great pets"</span>,
+               <span class="py-str">"Dogs are loyal companions"</span>],
+    ids=[<span class="py-str">"doc1"</span>, <span class="py-str">"doc2"</span>]
+)
+
+<span class="py-cm"># Query</span>
+results = collection.<span class="py-fn">query</span>(
+    query_texts=[<span class="py-str">"I love animals"</span>],
+    n_results=<span class="py-num">2</span>
+)
+<span class="py-fn">print</span>(results[<span class="py-str">"documents"</span>])</pre>
+    </div>
+
+    <!-- What's happening steps -->
+    <div class="card-grid cols-2" style="margin-top:28px;">
+      <div class="card">
+        <div style="font-size:32px;font-weight:800;color:var(--accent2);margin-bottom:8px;">01</div>
+        <h3>Embed</h3>
+        <p>SentenceTransformer converts text → vector automatically. The model runs locally — no API calls needed.</p>
+      </div>
+      <div class="card">
+        <div style="font-size:32px;font-weight:800;color:var(--accent2);margin-bottom:8px;">02</div>
+        <h3>Store</h3>
+        <p>Chroma saves vectors + original text + unique IDs. You can also pass metadata dicts for filtering later.</p>
+      </div>
+      <div class="card">
+        <div style="font-size:32px;font-weight:800;color:var(--accent2);margin-bottom:8px;">03</div>
+        <h3>Query</h3>
+        <p>Pass a question — Chroma returns the most similar docs. Results include documents, distances, and metadata.</p>
+      </div>
+      <div class="card">
+        <div style="font-size:32px;font-weight:800;color:var(--accent2);margin-bottom:8px;">04</div>
+        <h3>Filter</h3>
+        <p>Add metadata filters: <code style="color:var(--accent2)">where={"author": "Alice"}</code> to narrow results without sacrificing semantic power.</p>
+      </div>
+    </div>
+
+    <!-- install code -->
+    <h3 style="font-size:18px;font-weight:700;color:var(--accent2);margin:32px 0 16px;">Getting Started</h3>
+    <div class="code-wrap">
+      <div class="code-label">BASH</div>
+      <button class="copy-btn" onclick="copyCode('code2', this)">Copy</button>
+      <pre id="code2">pip install chromadb sentence-transformers</pre>
+    </div>
+
+    <!-- Persistent storage example -->
+    <h3 style="font-size:18px;font-weight:700;color:var(--accent2);margin:28px 0 12px;">Persistent Storage</h3>
+    <div class="code-wrap">
+      <div class="code-label">PYTHON</div>
+      <button class="copy-btn" onclick="copyCode('code3', this)">Copy</button>
+      <pre id="code3"><span class="py-cm"># Persist to disk so data survives restarts</span>
+client = chromadb.<span class="py-fn">PersistentClient</span>(path=<span class="py-str">"./my_vector_db"</span>)
+
+<span class="py-cm"># With metadata filtering</span>
+collection.<span class="py-fn">add</span>(
+    documents=[<span class="py-str">"Python is great for AI"</span>],
+    metadatas=[{<span class="py-str">"source"</span>: <span class="py-str">"blog"</span>, <span class="py-str">"year"</span>: <span class="py-num">2024</span>}],
+    ids=[<span class="py-str">"doc3"</span>]
+)
+
+results = collection.<span class="py-fn">query</span>(
+    query_texts=[<span class="py-str">"programming languages"</span>],
+    n_results=<span class="py-num">3</span>,
+    where={<span class="py-str">"year"</span>: {<span class="py-str">"$gte"</span>: <span class="py-num">2023</span>}}  <span class="py-cm"># filter by metadata</span>
+)</pre>
+    </div>
+  </section>
+
+  <!-- CH8: RAG -->
+  <section class="section" id="ch8">
+    <div class="chapter-badge">CHAPTER 8 — RAG</div>
+    <h2>RAG: Retrieval-Augmented Generation</h2>
+    <p>RAG connects an LLM to your own data via a vector DB — so it answers with facts, not just training memory.</p>
+    <p style="margin-top:12px;">The vector DB retrieves the most relevant document chunks, which are injected into the LLM's context window for accurate, sourced answers.</p>
+
+    <!-- RAG Flow -->
+    <div class="flow" style="margin:36px 0;">
+      <div class="flow-step">
+        <div class="flow-icon">🧑</div>
+        <div class="flow-label">User Query</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">"What is HNSW?"</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-icon">🗄️</div>
+        <div class="flow-label">Vector DB Search</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">Top-K chunks retrieved</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-icon">📎</div>
+        <div class="flow-label">Inject Context</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">Chunks added to prompt</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-icon">🤖</div>
+        <div class="flow-label">LLM Answer</div>
+        <div style="font-size:11px;color:var(--accent);margin-top:4px;">Accurate, sourced reply</div>
+      </div>
+    </div>
+
+    <div class="card-grid cols-2">
+      <div class="card">
+        <h3>❓ Why RAG?</h3>
+        <ul style="list-style:none;padding:0;margin-top:8px;">
+          <li style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;color:var(--text-dim);font-size:14px;"><span>🔒</span><span>LLMs don't know your private data</span></li>
+          <li style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;color:var(--text-dim);font-size:14px;"><span>🎯</span><span>Reduces hallucinations with real sources</span></li>
+          <li style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;color:var(--text-dim);font-size:14px;"><span>🔄</span><span>Update knowledge without retraining</span></li>
+          <li style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;color:var(--text-dim);font-size:14px;"><span>💰</span><span>Much cheaper than fine-tuning</span></li>
+        </ul>
+      </div>
+      <div class="card highlight">
+        <h3>🗄️ Vector DB's Role in RAG</h3>
+        <ul style="list-style:none;padding:0;margin-top:8px;">
+          <li style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;color:var(--text-dim);font-size:14px;"><span>📦</span><span>Stores your documents as embeddings</span></li>
+          <li style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;color:var(--text-dim);font-size:14px;"><span>⚡</span><span>Retrieves top-K relevant chunks fast</span></li>
+          <li style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;color:var(--text-dim);font-size:14px;"><span>🏷️</span><span>Filters by metadata (source, date, etc.)</span></li>
+          <li style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;color:var(--text-dim);font-size:14px;"><span>🔗</span><span>Bridges your data and the LLM</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- RAG code example -->
+    <h3 style="font-size:18px;font-weight:700;color:var(--accent2);margin:32px 0 16px;">RAG Pipeline in Python</h3>
+    <div class="code-wrap">
+      <div class="code-label">PYTHON</div>
+      <button class="copy-btn" onclick="copyCode('code4', this)">Copy</button>
+      <pre id="code4"><span class="py-kw">import</span> chromadb
+<span class="py-kw">import</span> anthropic  <span class="py-cm"># or openai</span>
+
+<span class="py-cm"># 1. Set up vector DB with your docs</span>
+client = chromadb.<span class="py-fn">PersistentClient</span>(path=<span class="py-str">"./docs_db"</span>)
+collection = client.<span class="py-fn">get_or_create_collection</span>(<span class="py-str">"my_docs"</span>)
+
+<span class="py-cm"># 2. Query — find relevant chunks</span>
+<span class="py-kw">def</span> <span class="py-fn">rag_query</span>(user_question: str) -> str:
+    results = collection.<span class="py-fn">query</span>(
+        query_texts=[user_question],
+        n_results=<span class="py-num">3</span>
+    )
+    context = <span class="py-str">"\n\n"</span>.<span class="py-fn">join</span>(results[<span class="py-str">"documents"</span>][<span class="py-num">0</span>])
+
+    <span class="py-cm"># 3. Inject context into LLM prompt</span>
+    prompt = <span class="py-fn">f</span><span class="py-str">"""Answer based on this context:
+{context}
+
+Question: {user_question}"""</span>
+
+    <span class="py-cm"># 4. Get LLM answer</span>
+    claude = anthropic.<span class="py-fn">Anthropic</span>()
+    response = claude.messages.<span class="py-fn">create</span>(
+        model=<span class="py-str">"claude-sonnet-4-6"</span>,
+        max_tokens=<span class="py-num">1024</span>,
+        messages=[{<span class="py-str">"role"</span>: <span class="py-str">"user"</span>, <span class="py-str">"content"</span>: prompt}]
+    )
+    <span class="py-kw">return</span> response.content[<span class="py-num">0</span>].text</pre>
+    </div>
+  </section>
+
+  <!-- CH9: BEST PRACTICES -->
+  <section class="section" id="ch9">
+    <div class="chapter-badge">CHAPTER 9 — WRAP-UP</div>
+    <h2>Best Practices, Pitfalls & Takeaways</h2>
+    <p>Avoid common mistakes and follow proven patterns to build reliable vector search applications.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:32px;flex-wrap:wrap;">
+      <!-- Pitfalls -->
+      <div>
+        <h3 style="font-size:16px;font-weight:700;color:#ef4444;margin-bottom:16px;">⚠️ Common Pitfalls</h3>
+        <ul class="pitfall-list">
+          <li class="bad">
+            <span class="li-icon">🎭</span>
+            <div class="li-body">
+              <h4>Bad Embeddings</h4>
+              <p>Wrong model = meaningless vectors. Match model to your domain. Code search needs a code-trained model, not a general text model.</p>
+            </div>
+          </li>
+          <li class="bad">
+            <span class="li-icon">✂️</span>
+            <div class="li-body">
+              <h4>Chunking Errors</h4>
+              <p>Too large = diluted meaning. Too small = lost context. Aim for 200–500 tokens with overlap between chunks.</p>
+            </div>
+          </li>
+          <li class="bad">
+            <span class="li-icon">🕰️</span>
+            <div class="li-body">
+              <h4>Stale Index</h4>
+              <p>Updated docs need re-embedding. Automate re-indexing with webhooks or scheduled jobs — stale vectors return wrong results.</p>
+            </div>
+          </li>
+          <li class="bad">
+            <span class="li-icon">🎲</span>
+            <div class="li-body">
+              <h4>No Metadata Filtering</h4>
+              <p>Pure vector search retrieves semantically similar content from ALL documents. Add metadata filters to scope results properly.</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Best Practices -->
+      <div>
+        <h3 style="font-size:16px;font-weight:700;color:var(--green);margin-bottom:16px;">✅ Best Practices</h3>
+        <ul class="pitfall-list">
+          <li class="good">
+            <span class="li-icon">🚀</span>
+            <div class="li-body">
+              <h4>Start with all-MiniLM-L6-v2</h4>
+              <p>Fast, solid, free to run locally. 384 dimensions. Great baseline for most text tasks before optimizing.</p>
+            </div>
+          </li>
+          <li class="good">
+            <span class="li-icon">📏</span>
+            <div class="li-body">
+              <h4>Chunk at ~200–500 tokens</h4>
+              <p>For most text tasks. Use sliding window overlap (50–100 tokens) to avoid cutting context at chunk boundaries.</p>
+            </div>
+          </li>
+          <li class="good">
+            <span class="li-icon">🔗</span>
+            <div class="li-body">
+              <h4>Combine vector + metadata filters</h4>
+              <p>Vector search finds semantically similar content; metadata filters scope it. Use both for precise, context-aware results.</p>
+            </div>
+          </li>
+          <li class="good">
+            <span class="li-icon">⚡</span>
+            <div class="li-body">
+              <h4>Use ANN (HNSW) for large datasets</h4>
+              <p>Speed vs. accuracy trade-off: HNSW gives 95–99% recall at 10-100x speed. Only use Flat (exact) for &lt;10K vectors.</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="info-box green" style="margin-top:32px;">
+      ✅ <strong>Key takeaway:</strong> Vector DBs power semantic search, RAG, and recommendations — essential tools for modern Python AI projects.
+    </div>
+
+    <!-- Quiz -->
+    <div class="quiz-box" style="margin-top:36px;">
+      <h3>🧠 Quick Knowledge Check</h3>
+      <div id="quiz-container"></div>
+    </div>
+
+    <!-- Summary cheat sheet -->
+    <h3 style="font-size:20px;font-weight:700;color:var(--accent2);margin:40px 0 16px;">📋 Cheat Sheet</h3>
+    <div class="code-wrap">
+      <div class="code-label">REFERENCE</div>
+      <pre style="color:var(--text-dim);">Task                     | Best Tool              | Notes
+─────────────────────────┼────────────────────────┼──────────────────────────────
+Prototype / learning     | Chroma                 | pip install chromadb
+Production cloud         | Pinecone               | Fully managed, auto-scale
+Self-host, rich schema   | Weaviate               | GraphQL + hybrid search
+Fast ANN, no server      | FAISS                  | Best raw speed, GPU support
+Already using Postgres   | pgvector               | ALTER TABLE ADD COLUMN emb vector(384)
+High scale, open source  | Milvus / Qdrant        | Rust-based Qdrant is fast & modern
+Embedding model (local)  | all-MiniLM-L6-v2       | 384d, fast, balanced quality
+Embedding model (API)    | text-embedding-3-small | OpenAI, 1536d
+Similarity metric (text) | Cosine similarity      | Ignores magnitude, captures direction
+Similarity metric (img)  | Euclidean distance     | Works well with normalized vectors
+Chunking sweet spot      | 200-500 tokens         | Overlap 50-100 tokens between chunks
+Index for large scale    | HNSW                   | Best recall/speed trade-off</pre>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <p>Based on <em>Vector Databases for Python Developers</em> · Built as an interactive learning guide.</p>
+    <p style="margin-top:8px;">PYTHON · AI · EMBEDDINGS · <a href="#hero">Back to Top ↑</a></p>
+  </footer>
+
+</main>
+
+<script>
+// ── PARTICLES ──────────────────────────────────────────
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+
+const COLORS = ['#a78bfa','#ff6ec7','#38bdf8','#7c3aed'];
+const particles = Array.from({length: 60}, () => ({
+  x: Math.random() * canvas.width,
+  y: canvas.height + Math.random() * 100,
+  r: Math.random() * 3 + 1,
+  speed: Math.random() * 0.4 + 0.2,
+  color: COLORS[Math.floor(Math.random() * COLORS.length)],
+  delay: Math.random() * 15
+}));
+
+function drawParticles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles.forEach(p => {
+    if (p.delay > 0) { p.delay--; return; }
+    p.y -= p.speed;
+    if (p.y < -10) { p.y = canvas.height + 10; p.x = Math.random() * canvas.width; }
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = 0.12;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  });
+  requestAnimationFrame(drawParticles);
+}
+drawParticles();
+
+// ── NAVIGATION ─────────────────────────────────────────
+const navItems = document.querySelectorAll('.nav-item[data-section]');
+const sections = document.querySelectorAll('#hero, .section');
+const progressFill = document.getElementById('progress');
+const progressLabel = document.getElementById('progress-label');
+
+function updateNav() {
+  let current = 'hero';
+  const scrollY = window.scrollY + window.innerHeight / 3;
+  sections.forEach(sec => {
+    if (sec.offsetTop <= scrollY) current = sec.id;
+  });
+  navItems.forEach(item => {
+    item.classList.toggle('active', item.dataset.section === current);
+  });
+  const pct = Math.min(100, Math.round((window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100));
+  progressFill.style.width = pct + '%';
+  progressLabel.textContent = pct + '% read';
+}
+window.addEventListener('scroll', updateNav, { passive: true });
+updateNav();
+
+// ── HAMBURGER ──────────────────────────────────────────
+document.getElementById('hamburger').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.toggle('open');
+});
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.getElementById('sidebar').classList.remove('open');
+  });
+});
+
+// ── SECTION FADE-IN ────────────────────────────────────
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.08 });
+sections.forEach(s => observer.observe(s));
+
+// ── COPY CODE ──────────────────────────────────────────
+function copyCode(id, btn) {
+  const text = document.getElementById(id).innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ── USECASE DEMO ───────────────────────────────────────
+function showUsecase(q, answer, type) {
+  const el = document.getElementById('usecase-result');
+  el.textContent = '→ ' + answer;
+  el.className = 'calc-result ' + type;
+}
+
+// ── DIM VISUALIZER ─────────────────────────────────────
+function updateDimViz(n) {
+  document.getElementById('dim-val').textContent = n;
+  const nums = Array.from({length: parseInt(n)}, () => (Math.random() * 2 - 1).toFixed(4));
+  document.getElementById('dim-display').textContent = '[' + nums.join(', ') + ']';
+}
+updateDimViz(16);
+
+// ── COSINE SIMILARITY ──────────────────────────────────
+function parseVec(s) {
+  const parts = s.split(',').map(x => parseFloat(x.trim()));
+  if (parts.length !== 2 || parts.some(isNaN)) return null;
+  return parts;
+}
+
+function calcCosine() {
+  const a = parseVec(document.getElementById('vec-a').value);
+  const b = parseVec(document.getElementById('vec-b').value);
+  const el = document.getElementById('cosine-result');
+  if (!a || !b) { el.textContent = '❌ Invalid input. Use format: x,y (e.g. 1,2)'; el.className='calc-result'; return; }
+
+  const dot = a[0]*b[0] + a[1]*b[1];
+  const magA = Math.sqrt(a[0]**2 + a[1]**2);
+  const magB = Math.sqrt(b[0]**2 + b[1]**2);
+  if (magA === 0 || magB === 0) { el.textContent = '❌ Zero vector — cannot compute.'; return; }
+  const cos = dot / (magA * magB);
+  const angle = (Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI).toFixed(1);
+
+  let label = cos > 0.9 ? '🟢 Very similar' : cos > 0.5 ? '🟡 Moderately similar' : cos > 0 ? '🟠 Weakly related' : '🔴 Dissimilar / opposite';
+  el.textContent = `Dot product:       ${dot.toFixed(4)}
+|A| magnitude:     ${magA.toFixed(4)}
+|B| magnitude:     ${magB.toFixed(4)}
+Cosine similarity: ${cos.toFixed(4)}
+Angle between:     ${angle}°
+Assessment:        ${label}`;
+  el.className = 'calc-result ' + (cos > 0.7 ? 'good' : cos > 0.3 ? 'neutral' : '');
+  drawVectors(a, b, cos);
+}
+
+function drawVectors(a, b, cos) {
+  const c = document.getElementById('vecCanvas');
+  const cx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  cx.clearRect(0, 0, W, H);
+
+  const ox = W/2, oy = H/2;
+  const scale = Math.min(W, H) * 0.32 / Math.max(Math.hypot(...a), Math.hypot(...b), 1);
+
+  // Grid
+  cx.strokeStyle = '#2d2a6e'; cx.lineWidth = 1;
+  for (let x = 0; x <= W; x += 40) { cx.beginPath(); cx.moveTo(x,0); cx.lineTo(x,H); cx.stroke(); }
+  for (let y = 0; y <= H; y += 40) { cx.beginPath(); cx.moveTo(0,y); cx.lineTo(W,y); cx.stroke(); }
+
+  // Axes
+  cx.strokeStyle = '#3d3a7e'; cx.lineWidth = 1.5;
+  cx.beginPath(); cx.moveTo(0,oy); cx.lineTo(W,oy); cx.stroke();
+  cx.beginPath(); cx.moveTo(ox,0); cx.lineTo(ox,H); cx.stroke();
+
+  function arrow(x1,y1,x2,y2,color) {
+    cx.strokeStyle = color; cx.lineWidth = 2.5;
+    cx.beginPath(); cx.moveTo(x1,y1); cx.lineTo(x2,y2); cx.stroke();
+    const angle = Math.atan2(y2-y1, x2-x1);
+    cx.fillStyle = color;
+    cx.beginPath();
+    cx.moveTo(x2, y2);
+    cx.lineTo(x2 - 12*Math.cos(angle-0.4), y2 - 12*Math.sin(angle-0.4));
+    cx.lineTo(x2 - 12*Math.cos(angle+0.4), y2 - 12*Math.sin(angle+0.4));
+    cx.closePath(); cx.fill();
+  }
+
+  const ax = ox + a[0]*scale, ay = oy - a[1]*scale;
+  const bx = ox + b[0]*scale, by = oy - b[1]*scale;
+  arrow(ox, oy, ax, ay, '#ff6ec7');
+  arrow(ox, oy, bx, by, '#a78bfa');
+
+  cx.fillStyle = '#ff6ec7'; cx.font = 'bold 14px monospace';
+  cx.fillText('A', ax+8, ay-6);
+  cx.fillStyle = '#a78bfa';
+  cx.fillText('B', bx+8, by-6);
+
+  // Cosine label
+  const mid = `cos = ${cos.toFixed(3)}`;
+  cx.fillStyle = '#38bdf8'; cx.font = '12px monospace';
+  cx.fillText(mid, 10, H-12);
+}
+
+// ── EUCLIDEAN ──────────────────────────────────────────
+function calcEuclidean() {
+  const a = parseVec(document.getElementById('eu-a').value);
+  const b = parseVec(document.getElementById('eu-b').value);
+  const el = document.getElementById('eu-result');
+  if (!a || !b) { el.textContent = '❌ Invalid input.'; el.className='calc-result'; return; }
+  const dx = b[0]-a[0], dy = b[1]-a[1];
+  const dist = Math.sqrt(dx**2 + dy**2);
+  el.textContent = `Δx = ${dx.toFixed(4)},  Δy = ${dy.toFixed(4)}
+Distance = √(${dx.toFixed(2)}² + ${dy.toFixed(2)}²) = ${dist.toFixed(4)}
+${dist < 2 ? '🟢 Very close' : dist < 5 ? '🟡 Moderately close' : '🔴 Far apart'}`;
+  el.className = 'calc-result ' + (dist < 2 ? 'good' : dist < 5 ? 'neutral' : '');
+}
+
+// ── SCALE COMPARISON ───────────────────────────────────
+const sizeLabels = ['10K','50K','100K','500K','1M','5M','10M','50M','100M','1B'];
+function updateScale(v) {
+  const i = parseInt(v) - 1;
+  document.getElementById('scale-val').textContent = sizeLabels[i];
+  const sqlMs   = [1,2,5,20,80,200,500,2000,5000,20000][i];
+  const vecMs   = [2,3,5,8,12,15,18,25,30,40][i];
+  const maxMs   = Math.max(sqlMs, vecMs);
+  const sqlPct  = Math.round((sqlMs/maxMs)*100);
+  const vecPct  = Math.round((vecMs/maxMs)*100);
+  document.getElementById('sql-bar').style.width = sqlPct+'%';
+  document.getElementById('vec-bar').style.width = vecPct+'%';
+  document.getElementById('sql-time').textContent = sqlMs >= 1000 ? (sqlMs/1000).toFixed(1)+'s' : sqlMs+'ms';
+  document.getElementById('vec-time').textContent = vecMs+'ms';
+}
+updateScale(5);
+
+// ── CHUNKING CALCULATOR ────────────────────────────────
+function calcChunks() {
+  const text = document.getElementById('chunk-text').value.trim();
+  const size = parseInt(document.getElementById('chunk-size').value) || 60;
+  if (!text) { document.getElementById('chunk-result').textContent = 'Enter some text first.'; return; }
+  const chunks = [];
+  for (let i = 0; i < text.length; i += size) chunks.push(text.slice(i, i+size));
+  let out = `Split into ${chunks.length} chunk${chunks.length===1?'':'s'} (size=${size} chars):\n\n`;
+  chunks.forEach((c,i) => out += `[${i+1}] "${c}"\n`);
+  document.getElementById('chunk-result').textContent = out;
+}
+
+// ── QUIZ ───────────────────────────────────────────────
+const questions = [
+  {
+    q: "Which distance metric ignores vector magnitude and is best for text similarity?",
+    opts: ["Euclidean Distance", "Manhattan Distance", "Cosine Similarity", "Hamming Distance"],
+    ans: 2,
+    explain: "Cosine similarity measures the angle between vectors, ignoring their length. This makes it ideal for text where document length varies."
+  },
+  {
+    q: "What does ANN stand for in vector search?",
+    opts: ["Artificial Neural Network", "Approximate Nearest Neighbor", "Advanced Node Navigation", "Automated Name Normalization"],
+    ans: 1,
+    explain: "ANN = Approximate Nearest Neighbor. It trades a small amount of accuracy for massive speed gains — essential at scale."
+  },
+  {
+    q: "Which Python library is best for quickly prototyping a vector search app locally?",
+    opts: ["Pinecone", "Milvus", "Chroma", "Weaviate"],
+    ans: 2,
+    explain: "Chroma is lightweight, Python-friendly, needs no server, and works in-memory or persistent. Perfect for learning and prototyping."
+  },
+  {
+    q: "What is the ideal chunk size (in tokens) for most RAG use cases?",
+    opts: ["10–50 tokens", "200–500 tokens", "1000–2000 tokens", "Full document"],
+    ans: 1,
+    explain: "200–500 tokens balances meaning (not too diluted) and context (not too fragmented). Use overlap between chunks to avoid cutting important context."
+  },
+  {
+    q: "RAG stands for:",
+    opts: ["Random Access Generation", "Retrieval-Augmented Generation", "Recursive Attention Graph", "Relational AI Gateway"],
+    ans: 1,
+    explain: "RAG = Retrieval-Augmented Generation. It connects an LLM to external data via a vector DB so it can answer with real facts, not just training memory."
+  },
+  {
+    q: "Which index type provides the best speed/recall tradeoff for large vector datasets?",
+    opts: ["Flat (Brute Force)", "B-Tree", "HNSW", "Hash Index"],
+    ans: 2,
+    explain: "HNSW (Hierarchical Navigable Small World) gives excellent recall (95–99%) at 10–100x the speed of brute force search."
+  }
+];
+
+let qIdx = 0, score = 0, answered = false;
+
+function renderQuiz() {
+  const q = questions[qIdx];
+  const el = document.getElementById('quiz-container');
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <span style="font-size:12px;color:var(--text-dim);">Question ${qIdx+1} of ${questions.length}</span>
+      <span style="font-size:12px;color:var(--accent2);">Score: ${score}/${qIdx}</span>
+    </div>
+    <div class="quiz-q">${q.q}</div>
+    <div class="quiz-options">
+      ${q.opts.map((o,i) => `<div class="quiz-opt" onclick="answerQuiz(${i})">${o}</div>`).join('')}
+    </div>
+    <div class="quiz-feedback" id="qfb"></div>
+    <div class="quiz-next" id="qnext"></div>
+  `;
+  answered = false;
+}
+
+function answerQuiz(i) {
+  if (answered) return;
+  answered = true;
+  const q = questions[qIdx];
+  const opts = document.querySelectorAll('.quiz-opt');
+  opts.forEach((o,j) => {
+    if (j === q.ans) o.classList.add('correct');
+    else if (j === i && i !== q.ans) o.classList.add('wrong');
+  });
+  if (i === q.ans) score++;
+  document.getElementById('qfb').textContent = (i === q.ans ? '✅ Correct! ' : '❌ Not quite. ') + q.explain;
+  const nxt = document.getElementById('qnext');
+  if (qIdx < questions.length - 1) {
+    nxt.innerHTML = `<button class="calc-btn" onclick="nextQuiz()">Next Question →</button>`;
+  } else {
+    nxt.innerHTML = `<button class="calc-btn" onclick="finishQuiz()">See Results 🎉</button>`;
+  }
+}
+
+function nextQuiz() { qIdx++; renderQuiz(); }
+
+function finishQuiz() {
+  const pct = Math.round(score/questions.length*100);
+  const grade = pct === 100 ? '🏆 Perfect!' : pct >= 80 ? '🎯 Great job!' : pct >= 60 ? '👍 Good effort!' : '📚 Keep learning!';
+  document.getElementById('quiz-container').innerHTML = `
+    <div style="text-align:center;padding:20px;">
+      <div style="font-size:56px;margin-bottom:12px;">${grade.split(' ')[0]}</div>
+      <div style="font-size:28px;font-weight:800;color:var(--accent);">${score}/${questions.length}</div>
+      <div style="font-size:16px;color:var(--text-dim);margin:8px 0;">${grade.slice(2)}</div>
+      <div style="font-size:14px;color:var(--accent2);margin-bottom:20px;">${pct}% correct</div>
+      <button class="calc-btn" onclick="qIdx=0;score=0;renderQuiz()">Retry Quiz 🔄</button>
+    </div>
+  `;
+}
+
+renderQuiz();
+
+// Auto-calc cosine on page load
+calcCosine();
+updateScale(5);
+</script>
+</body>
+</html>

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Advanced</title>
+<style>
+  :root {
+    --bg: #0f0e2a;
+    --bg2: #1a1840;
+    --bg3: #231f55;
+    --accent: #ff6ec7;
+    --accent2: #a78bfa;
+    --accent3: #38bdf8;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --card: #1e1b4b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  /* ── CANVAS BG ── */
+  canvas {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative; z-index: 1;
+    text-align: center;
+    padding: 80px 24px 48px;
+  }
+  .eyebrow {
+    display: inline-block;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 3px; text-transform: uppercase;
+    color: var(--accent2);
+    background: rgba(167,139,250,.12);
+    border: 1px solid rgba(167,139,250,.3);
+    border-radius: 20px; padding: 6px 18px;
+    margin-bottom: 28px;
+    animation: fadeDown .6s ease both;
+  }
+  header h1 {
+    font-size: clamp(52px, 8vw, 96px);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -2px;
+    background: linear-gradient(135deg, #fff 10%, var(--accent) 50%, var(--accent2) 90%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: fadeDown .7s ease both;
+  }
+  header p {
+    margin-top: 18px;
+    font-size: 17px; color: var(--text-dim);
+    max-width: 480px; margin-inline: auto;
+    line-height: 1.7;
+    animation: fadeDown .8s ease both;
+  }
+  .header-line {
+    width: 60px; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    margin: 28px auto 0;
+    animation: fadeDown .9s ease both;
+  }
+
+  /* ── TOPICS GRID ── */
+  .topics {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 860px;
+    padding: 0 24px 100px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .section-label {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    animation: fadeUp .7s ease both;
+  }
+
+  /* ── TOPIC CARD ── */
+  .topic-card {
+    display: flex; align-items: center; gap: 24px;
+    background: var(--card);
+    border: 1px solid #2d2a6e;
+    border-radius: 18px;
+    padding: 28px 32px;
+    text-decoration: none;
+    color: inherit;
+    position: relative; overflow: hidden;
+    transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+    animation: fadeUp .8s ease both;
+  }
+  .topic-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(120deg, rgba(255,110,199,.06) 0%, rgba(167,139,250,.04) 100%);
+    opacity: 0; transition: opacity .25s ease;
+  }
+  .topic-card:hover { transform: translateY(-5px); border-color: var(--accent); box-shadow: 0 20px 60px rgba(255,110,199,.15); }
+  .topic-card:hover::before { opacity: 1; }
+
+  /* Glow bar on left edge */
+  .topic-card .bar {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, var(--accent), var(--accent2));
+    border-radius: 18px 0 0 18px;
+    opacity: 0; transition: opacity .25s ease;
+  }
+  .topic-card:hover .bar { opacity: 1; }
+
+  .topic-num {
+    font-size: 13px; font-weight: 800;
+    color: var(--accent2);
+    background: rgba(167,139,250,.12);
+    border: 1px solid rgba(167,139,250,.25);
+    border-radius: 10px;
+    min-width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: background .25s, border-color .25s;
+  }
+  .topic-card:hover .topic-num {
+    background: rgba(255,110,199,.15);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .topic-icon {
+    font-size: 32px; flex-shrink: 0;
+    transition: transform .25s ease;
+  }
+  .topic-card:hover .topic-icon { transform: scale(1.15) rotate(-4deg); }
+
+  .topic-body { flex: 1; }
+  .topic-body h2 {
+    font-size: 20px; font-weight: 800;
+    color: var(--text);
+    margin-bottom: 6px;
+    transition: color .2s;
+  }
+  .topic-card:hover .topic-body h2 { color: var(--accent); }
+  .topic-body p {
+    font-size: 13px; color: var(--text-dim); line-height: 1.6;
+  }
+
+  .topic-tags {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px;
+  }
+  .topic-tag {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: .5px; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 20px;
+    background: rgba(56,189,248,.1);
+    color: var(--accent3);
+    border: 1px solid rgba(56,189,248,.2);
+  }
+
+  .topic-arrow {
+    font-size: 20px; color: var(--text-dim);
+    flex-shrink: 0; transition: transform .25s ease, color .25s;
+  }
+  .topic-card:hover .topic-arrow { transform: translateX(4px); color: var(--accent); }
+
+  /* ── COMING SOON CARD ── */
+  .topic-card.soon {
+    opacity: .45; pointer-events: none; cursor: default;
+  }
+  .topic-card.soon:hover { transform: none; box-shadow: none; border-color: #2d2a6e; }
+  .soon-badge {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    padding: 3px 10px; border-radius: 20px;
+    background: rgba(250,204,21,.1);
+    color: #facc15; border: 1px solid rgba(250,204,21,.2);
+    flex-shrink: 0;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative; z-index: 1;
+    text-align: center;
+    padding: 24px;
+    font-size: 12px; color: var(--text-dim);
+    border-top: 1px solid #1a1840;
+    width: 100%;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+
+<header>
+  <div class="eyebrow">Learning Path</div>
+  <h1>AI Advanced</h1>
+  <p>Deep-dive modules for Python developers building real AI systems.</p>
+  <div class="header-line"></div>
+</header>
+
+<main class="topics">
+  <div class="section-label">Modules</div>
+
+  <a class="topic-card" href="vector-db.html">
+    <div class="bar"></div>
+    <div class="topic-num">01</div>
+    <div class="topic-icon">🗄️</div>
+    <div class="topic-body">
+      <h2>Vector DB &amp; RAG</h2>
+      <p>Embeddings, similarity search, HNSW · IVF · Flat indexes, Chroma hands-on, and Retrieval-Augmented Generation pipelines.</p>
+      <div class="topic-tags">
+        <span class="topic-tag">Embeddings</span>
+        <span class="topic-tag">ChromaDB</span>
+        <span class="topic-tag">FAISS</span>
+        <span class="topic-tag">RAG</span>
+        <span class="topic-tag">Cosine Similarity</span>
+      </div>
+    </div>
+    <div class="topic-arrow">→</div>
+  </a>
+
+  <a class="topic-card soon" href="#">
+    <div class="bar"></div>
+    <div class="topic-num">02</div>
+    <div class="topic-icon">🤖</div>
+    <div class="topic-body">
+      <h2>LLMs &amp; Prompt Engineering</h2>
+      <p>System prompts, few-shot learning, chain-of-thought, tool use, and fine-tuning strategies.</p>
+      <div class="topic-tags">
+        <span class="topic-tag">Claude</span>
+        <span class="topic-tag">GPT-4</span>
+        <span class="topic-tag">Tool Use</span>
+      </div>
+    </div>
+    <div class="soon-badge">Coming Soon</div>
+  </a>
+
+  <a class="topic-card soon" href="#">
+    <div class="bar"></div>
+    <div class="topic-num">03</div>
+    <div class="topic-icon">🔗</div>
+    <div class="topic-body">
+      <h2>AI Agents &amp; Orchestration</h2>
+      <p>Multi-step agents, tool calling, memory systems, and orchestration frameworks like LangChain and LlamaIndex.</p>
+      <div class="topic-tags">
+        <span class="topic-tag">Agents</span>
+        <span class="topic-tag">LangChain</span>
+        <span class="topic-tag">Memory</span>
+      </div>
+    </div>
+    <div class="soon-badge">Coming Soon</div>
+  </a>
+
+</main>
+
+<footer>AI Advanced · Python · Embeddings · RAG · Agents</footer>
+
+<script>
+// ── ANIMATED PARTICLE CANVAS ──────────────────────────
+const canvas = document.getElementById('bg');
+const ctx    = canvas.getContext('2d');
+
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+resize();
+window.addEventListener('resize', resize);
+
+const COLORS = ['#a78bfa','#ff6ec7','#38bdf8'];
+const pts = Array.from({ length: 70 }, () => ({
+  x: Math.random() * window.innerWidth,
+  y: Math.random() * window.innerHeight,
+  vx: (Math.random() - .5) * .35,
+  vy: (Math.random() - .5) * .35,
+  r:  Math.random() * 2 + 1,
+  c:  COLORS[Math.floor(Math.random() * COLORS.length)],
+}));
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Draw connecting lines between nearby points
+  for (let i = 0; i < pts.length; i++) {
+    for (let j = i + 1; j < pts.length; j++) {
+      const dx = pts[i].x - pts[j].x;
+      const dy = pts[i].y - pts[j].y;
+      const d  = Math.sqrt(dx*dx + dy*dy);
+      if (d < 120) {
+        ctx.beginPath();
+        ctx.moveTo(pts[i].x, pts[i].y);
+        ctx.lineTo(pts[j].x, pts[j].y);
+        ctx.strokeStyle = '#a78bfa';
+        ctx.globalAlpha = (1 - d / 120) * 0.07;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+  }
+
+  // Draw points
+  pts.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = p.c;
+    ctx.globalAlpha = 0.18;
+    ctx.fill();
+
+    p.x += p.vx;
+    p.y += p.vy;
+    if (p.x < 0 || p.x > canvas.width)  p.vx *= -1;
+    if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+  });
+
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>
