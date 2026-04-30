@@ -1264,10 +1264,6 @@
       <div class="code-label">PYTHON</div>
       <button class="copy-btn" onclick="copyCode('code1', this)">Copy</button>
       <pre id="code1"><span class="py-kw">import</span> chromadb
-<span class="py-kw">from</span> sentence_transformers <span class="py-kw">import</span> SentenceTransformer
-
-<span class="py-cm"># Load embedding model</span>
-model = SentenceTransformer(<span class="py-str">"all-MiniLM-L6-v2"</span>)
 
 <span class="py-cm"># Create client & collection</span>
 client = chromadb.<span class="py-fn">Client</span>()
@@ -1318,6 +1314,46 @@ results = collection.<span class="py-fn">query</span>(
       <div class="code-label">BASH</div>
       <button class="copy-btn" onclick="copyCode('code2', this)">Copy</button>
       <pre id="code2">pip install chromadb sentence-transformers</pre>
+    </div>
+
+    <!-- With SentenceTransformer explicitly -->
+    <h3 style="font-size:18px;font-weight:700;color:var(--accent2);margin:32px 0 16px;">Using SentenceTransformer Explicitly</h3>
+    <p style="color:var(--text-dim);font-size:14px;margin-bottom:16px;">Here we manually generate embeddings with SentenceTransformer and pass them directly to Chroma — giving you full control over the embedding step.</p>
+    <div class="code-wrap">
+      <div class="code-label">PYTHON</div>
+      <button class="copy-btn" onclick="copyCode('code2b', this)">Copy</button>
+      <pre id="code2b"><span class="py-kw">import</span> chromadb
+<span class="py-kw">from</span> sentence_transformers <span class="py-kw">import</span> SentenceTransformer
+
+<span class="py-cm"># Load embedding model</span>
+model = SentenceTransformer(<span class="py-str">"all-MiniLM-L6-v2"</span>)
+
+<span class="py-cm"># Documents to store</span>
+docs = [<span class="py-str">"Cats are great pets"</span>, <span class="py-str">"Dogs are loyal companions"</span>]
+
+<span class="py-cm"># Manually generate embeddings</span>
+embeddings = model.<span class="py-fn">encode</span>(docs).<span class="py-fn">tolist</span>()
+
+<span class="py-cm"># Create client & collection</span>
+client = chromadb.<span class="py-fn">Client</span>()
+collection = client.<span class="py-fn">create_collection</span>(<span class="py-str">"docs"</span>)
+
+<span class="py-cm"># Add documents with pre-computed embeddings</span>
+collection.<span class="py-fn">add</span>(
+    documents=docs,
+    embeddings=embeddings,
+    ids=[<span class="py-str">"doc1"</span>, <span class="py-str">"doc2"</span>]
+)
+
+<span class="py-cm"># Query — also embed the query manually</span>
+query = <span class="py-str">"I love animals"</span>
+query_embedding = model.<span class="py-fn">encode</span>([query]).<span class="py-fn">tolist</span>()
+
+results = collection.<span class="py-fn">query</span>(
+    query_embeddings=query_embedding,
+    n_results=<span class="py-num">2</span>
+)
+<span class="py-fn">print</span>(results[<span class="py-str">"documents"</span>])</pre>
     </div>
 
     <!-- Persistent storage example -->
