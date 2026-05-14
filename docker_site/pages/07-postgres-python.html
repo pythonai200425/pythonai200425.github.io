@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 07 — PostgreSQL + Python</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐳</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <a href="../index.html" class="topbar-logo">
+    <span class="whale">🐳</span>
+    <span>Docker<span class="brand-docker">Tutorial</span></span>
+  </a>
+  <div class="topbar-progress-wrap">
+    <div class="topbar-progress-bar" style="width:70%"></div>
+  </div>
+  <span class="topbar-chapter-label">Chapter 7 of 10</span>
+  <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-title">All Chapters</div>
+    <ul class="chapter-list">
+      <li class="chapter-item"><a href="01-hello-world.html"><span class="ch-num">01</span><span class="ch-name">Hello World</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="02-simple-demo.html"><span class="ch-num">02</span><span class="ch-name">Simple Containers</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="03-files-and-volumes.html"><span class="ch-num">03</span><span class="ch-name">Files &amp; Volumes</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="04-build-image.html"><span class="ch-num">04</span><span class="ch-name">Build Images</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="05-env-and-network.html"><span class="ch-num">05</span><span class="ch-name">Env &amp; Networking</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="06-debug-and-lifecycle.html"><span class="ch-num">06</span><span class="ch-name">Debug &amp; Lifecycle</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item active"><a href="07-postgres-python.html"><span class="ch-num">07</span><span class="ch-name">PostgreSQL + Python</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="08-compose-basics.html"><span class="ch-num">08</span><span class="ch-name">Compose Basics</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="09-compose-project.html"><span class="ch-num">09</span><span class="ch-name">Compose Project</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="10-best-practices.html"><span class="ch-num">10</span><span class="ch-name">Best Practices</span><span class="ch-done">✓</span></a></li>
+    </ul>
+  </aside>
+
+  <main class="content">
+    <div class="chapter-badge">🐘 Chapter 07</div>
+    <h1 class="chapter-title">PostgreSQL + Python</h1>
+    <p class="chapter-subtitle">Run a real PostgreSQL 16 database inside Docker and connect to it from a Python script — no installation, no config files, just <code>docker run</code>.</p>
+
+    <div class="goal-box reveal">
+      <div class="goal-icon">🎯</div>
+      <div>
+        <div class="goal-label">Chapter Goal</div>
+        <div class="goal-text">Spin up a fully configured PostgreSQL database with a single Docker command, then write a Python script using psycopg3 that creates a table, inserts rows, and queries them back.</div>
+      </div>
+    </div>
+
+    <!-- ARCHITECTURE -->
+    <div class="section reveal">
+      <h2 class="section-title">How It Fits Together</h2>
+      <div class="diagram">
+<pre>
+  Your Machine
+  ┌──────────────────────────────────────────────────────┐
+  │                                                       │
+  │  pg_test.py             Docker Container             │
+  │  ┌────────────┐         ┌──────────────────────┐    │
+  │  │ psycopg    │─ :5432 ─▶  postgres:16          │   │
+  │  │ (Python)   │◀─────── │  user: appuser        │   │
+  │  └────────────┘         │  db:   appdb          │   │
+  │                          │  pass: apppass        │   │
+  │                          └──────────────────────┘   │
+  │                                                       │
+  └──────────────────────────────────────────────────────┘
+  Python runs on YOUR host — Postgres runs in Docker.
+  Port 5432 is mapped through.
+</pre>
+      </div>
+    </div>
+
+    <!-- STEP 1 -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">1</span> Run the PostgreSQL Container</h2>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker run -d \
+  --name pgdemo \
+  -e POSTGRES_USER=appuser \
+  -e POSTGRES_PASSWORD=apppass \
+  -e POSTGRES_DB=appdb \
+  -p 5432:5432 \
+  postgres:16</code></pre>
+      </div>
+      <p>Wait for PostgreSQL to be ready:</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker logs -f pgdemo</code></pre>
+      </div>
+      <p>Press <kbd>Ctrl+C</kbd> once you see: <code>database system is ready to accept connections</code></p>
+
+      <div class="table-wrap" style="margin-top:20px">
+        <table>
+          <thead><tr><th>Environment Variable</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>POSTGRES_USER</td><td>Creates a superuser with this name</td></tr>
+            <tr><td>POSTGRES_PASSWORD</td><td>Password for the superuser (required)</td></tr>
+            <tr><td>POSTGRES_DB</td><td>Creates a database with this name on startup</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">2</span> Write the Python Script</h2>
+      <p>Create a file called <code>pg_test.py</code> on your host machine:</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">python</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-python">import psycopg
+
+# Connect to the PostgreSQL container via localhost:5432
+conn = psycopg.connect(
+    "host=localhost port=5432 dbname=appdb user=appuser password=apppass"
+)
+
+with conn.cursor() as cur:
+    # Create table if first run
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id   SERIAL PRIMARY KEY,
+            name TEXT NOT NULL
+        )
+    """)
+
+    # Insert a row
+    cur.execute("INSERT INTO users (name) VALUES (%s)", ("Alice",))
+
+    # Query all rows
+    cur.execute("SELECT id, name FROM users ORDER BY id")
+    rows = cur.fetchall()
+
+conn.commit()
+conn.close()
+
+print("Users in database:")
+for row in rows:
+    print(f"  {row[0]}: {row[1]}")</code></pre>
+      </div>
+      <div class="callout info">
+        <span class="callout-icon">ℹ️</span>
+        <div>
+          <div class="callout-title">psycopg vs psycopg2</div>
+          This uses <strong>psycopg3</strong> (installed as the <code>psycopg</code> package). It's the modern, async-ready successor to psycopg2. The API is nearly identical but psycopg3 uses <code>%s</code> placeholders in all queries, even for non-string types.
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">3</span> Install &amp; Run</h2>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash"># Create a virtual environment
+python -m venv .venv
+
+# Activate it
+# On Windows (PowerShell):
+.venv\Scripts\Activate.ps1
+# On Mac/Linux:
+source .venv/bin/activate
+
+# Install psycopg with the binary C extension
+pip install "psycopg[binary]"
+
+# Run the script
+python pg_test.py</code></pre>
+      </div>
+      <p>Expected output:</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">output</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">Users in database:
+  1: Alice</code></pre>
+      </div>
+      <p>Run <code>python pg_test.py</code> again — you'll see two Alice rows because the container is still running with its data intact.</p>
+    </div>
+
+    <!-- BONUS: PSQL -->
+    <div class="section reveal">
+      <h2 class="section-title">Bonus: Connect with psql</h2>
+      <p>You can also connect interactively using the <code>psql</code> tool — no local PostgreSQL installation needed!</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker exec -it pgdemo psql -U appuser -d appdb</code></pre>
+      </div>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">sql (psql prompt)</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-sql">SELECT * FROM users;
+\dt          -- list tables
+\q           -- quit</code></pre>
+      </div>
+    </div>
+
+    <!-- CLEANUP -->
+    <div class="section reveal">
+      <h2 class="section-title">Cleanup</h2>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker rm -f pgdemo</code></pre>
+      </div>
+      <div class="callout warning">
+        <span class="callout-icon">⚠️</span>
+        <div>
+          <div class="callout-title">Data is gone!</div>
+          Removing the container without a volume also deletes the database. In the next chapters, you'll learn to use Docker Compose with a named volume so data persists between restarts.
+        </div>
+      </div>
+    </div>
+
+    <div class="exercise-box reveal">
+      <div class="exercise-header">
+        <span class="ex-icon">🧪</span>
+        <h3>Quick Exercise</h3>
+      </div>
+      <ol>
+        <li>Add a second insert in <code>pg_test.py</code> for <code>"Bob"</code>.</li>
+        <li>Add a parameterized query that selects only users whose name starts with "A": <code>WHERE name LIKE %s</code> with <code>("A%",)</code>.</li>
+        <li>Print the row count before and after inserting using <code>cur.rowcount</code>.</li>
+        <li>Restart the container with <code>docker restart pgdemo</code> — is your data still there?</li>
+        <li>Remove and recreate the container — is your data gone?</li>
+      </ol>
+    </div>
+
+    <div class="chapter-nav">
+      <a href="06-debug-and-lifecycle.html" class="nav-btn prev">
+        <span class="nav-arrow">←</span>
+        <div class="nav-text">
+          <span class="nav-label">Previous</span>
+          <span class="nav-title">Debug &amp; Lifecycle</span>
+        </div>
+      </a>
+      <a href="08-compose-basics.html" class="nav-btn next">
+        <div class="nav-text" style="text-align:right">
+          <span class="nav-label">Next Chapter</span>
+          <span class="nav-title">Docker Compose Basics</span>
+        </div>
+        <span class="nav-arrow">→</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
+<script src="../js/main.js"></script>
+</body>
+</html>

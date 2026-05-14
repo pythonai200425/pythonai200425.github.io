@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 09 — Compose Project: Python + PostgreSQL</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐳</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <a href="../index.html" class="topbar-logo">
+    <span class="whale">🐳</span>
+    <span>Docker<span class="brand-docker">Tutorial</span></span>
+  </a>
+  <div class="topbar-progress-wrap">
+    <div class="topbar-progress-bar" style="width:90%"></div>
+  </div>
+  <span class="topbar-chapter-label">Chapter 9 of 10</span>
+  <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-title">All Chapters</div>
+    <ul class="chapter-list">
+      <li class="chapter-item"><a href="01-hello-world.html"><span class="ch-num">01</span><span class="ch-name">Hello World</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="02-simple-demo.html"><span class="ch-num">02</span><span class="ch-name">Simple Containers</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="03-files-and-volumes.html"><span class="ch-num">03</span><span class="ch-name">Files &amp; Volumes</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="04-build-image.html"><span class="ch-num">04</span><span class="ch-name">Build Images</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="05-env-and-network.html"><span class="ch-num">05</span><span class="ch-name">Env &amp; Networking</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="06-debug-and-lifecycle.html"><span class="ch-num">06</span><span class="ch-name">Debug &amp; Lifecycle</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="07-postgres-python.html"><span class="ch-num">07</span><span class="ch-name">PostgreSQL + Python</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="08-compose-basics.html"><span class="ch-num">08</span><span class="ch-name">Compose Basics</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item active"><a href="09-compose-project.html"><span class="ch-num">09</span><span class="ch-name">Compose Project</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="10-best-practices.html"><span class="ch-num">10</span><span class="ch-name">Best Practices</span><span class="ch-done">✓</span></a></li>
+    </ul>
+  </aside>
+
+  <main class="content">
+    <div class="chapter-badge">🚀 Chapter 09</div>
+    <h1 class="chapter-title">Compose Project: Python + PostgreSQL</h1>
+    <p class="chapter-subtitle">Build a complete app stack: a Python service that writes to PostgreSQL — both managed by a single Compose file, with persistent data and automatic startup order.</p>
+
+    <div class="goal-box reveal">
+      <div class="goal-icon">🎯</div>
+      <div>
+        <div class="goal-label">Chapter Goal</div>
+        <div class="goal-text">Create a project with its own Dockerfile for the Python app, wire it to PostgreSQL using Compose, persist the DB data in a volume, and handle startup ordering with retry logic.</div>
+      </div>
+    </div>
+
+    <!-- ARCHITECTURE -->
+    <div class="section reveal">
+      <h2 class="section-title">Project Architecture</h2>
+      <div class="diagram">
+<pre>
+  compose-python-postgres/
+  ├── app.py              ← Python app (inserts + queries)
+  ├── requirements.txt    ← psycopg dependency
+  ├── Dockerfile          ← builds the app image
+  └── docker-compose.yml  ← wires app + db together
+
+  Services:
+  ┌──────────────┐    DB_HOST=db    ┌──────────────────┐
+  │     app      │─────────────────▶│       db         │
+  │  (Python)    │                  │  (postgres:16)   │
+  │  (builds     │                  │  volume: pg_data │
+  │  from .)     │                  └──────────────────┘
+  └──────────────┘
+         │
+    depends_on: db
+    (starts after db container is created)
+</pre>
+      </div>
+    </div>
+
+    <!-- FILE 1: app.py -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">1</span> Create the Project Files</h2>
+      <h3>app.py</h3>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">python</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-python">import os
+import time
+import psycopg
+
+DB_HOST = os.getenv("DB_HOST", "db")
+DB_NAME = os.getenv("DB_NAME", "appdb")
+DB_USER = os.getenv("DB_USER", "appuser")
+DB_PASS = os.getenv("DB_PASS", "apppass")
+
+# Retry loop — PostgreSQL may not be ready immediately
+for attempt in range(20):
+    try:
+        conn = psycopg.connect(
+            f"host={DB_HOST} dbname={DB_NAME} user={DB_USER} password={DB_PASS}"
+        )
+        print(f"Connected on attempt {attempt + 1}")
+        break
+    except Exception as e:
+        print(f"Waiting for DB... ({e})")
+        time.sleep(1)
+else:
+    raise RuntimeError("Could not connect to database after 20 attempts")
+
+with conn.cursor() as cur:
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS notes (
+            id   SERIAL PRIMARY KEY,
+            text TEXT NOT NULL
+        )
+    """)
+    cur.execute("INSERT INTO notes (text) VALUES (%s)", ("Hello from compose app",))
+    cur.execute("SELECT id, text FROM notes ORDER BY id")
+    rows = cur.fetchall()
+
+conn.commit()
+conn.close()
+
+print(f"\nAll {len(rows)} note(s) in database:")
+for row in rows:
+    print(f"  [{row[0]}] {row[1]}")</code></pre>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>
+          <div class="callout-title">Why the retry loop?</div>
+          <code>depends_on: db</code> only waits for the container to <em>start</em>, not for PostgreSQL to be <em>ready to accept connections</em>. PostgreSQL takes a few seconds to initialise. The retry loop solves this gracefully.
+        </div>
+      </div>
+
+      <h3>requirements.txt</h3>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">text</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code>psycopg[binary]==3.2.1</code></pre>
+      </div>
+
+      <h3>Dockerfile</h3>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">dockerfile</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-dockerfile">FROM python:3.12-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY app.py .
+CMD ["python", "app.py"]</code></pre>
+      </div>
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>
+          <div class="callout-title">Layer ordering for faster rebuilds</div>
+          <code>requirements.txt</code> is copied and installed <em>before</em> <code>app.py</code>. This way, when you only change Python code, Docker reuses the pip install layer from cache.
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPOSE FILE -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">2</span> The Compose File</h2>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">yaml</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-yaml">services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: apppass
+      POSTGRES_DB: appdb
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  app:
+    build: .
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_NAME: appdb
+      DB_USER: appuser
+      DB_PASS: apppass
+
+volumes:
+  pg_data:</code></pre>
+      </div>
+
+      <div class="table-wrap" style="margin-top:20px">
+        <table>
+          <thead><tr><th>Key</th><th>What It Does</th></tr></thead>
+          <tbody>
+            <tr><td>build: .</td><td>Build the image from the Dockerfile in current directory</td></tr>
+            <tr><td>depends_on</td><td>Start <code>db</code> container before <code>app</code></td></tr>
+            <tr><td>environment</td><td>Inject env vars — notice DB_HOST is <code>db</code> (service name = DNS name)</td></tr>
+            <tr><td>volumes: pg_data:</td><td>Top-level declaration required for named volumes</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- RUN -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">3</span> Run the Stack</h2>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker compose up --build</code></pre>
+      </div>
+      <p>Expected output (after PostgreSQL starts):</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">output</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">app-1  | Waiting for DB... (connection refused)
+app-1  | Connected on attempt 3
+app-1  |
+app-1  | All 1 note(s) in database:
+app-1  |   [1] Hello from compose app
+app-1 exited with code 0</code></pre>
+      </div>
+      <p>Run <code>docker compose up --build</code> again — you'll see 2 notes because the PostgreSQL data persists in the <code>pg_data</code> volume!</p>
+    </div>
+
+    <!-- CLEANUP -->
+    <div class="section reveal">
+      <h2 class="section-title">Stop &amp; Cleanup</h2>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker compose down        # stop &amp; remove containers, keep the volume
+docker compose down -v     # also delete the pg_data volume (reset DB)</code></pre>
+      </div>
+    </div>
+
+    <div class="exercise-box reveal">
+      <div class="exercise-header">
+        <span class="ex-icon">🧪</span>
+        <h3>Quick Exercise</h3>
+      </div>
+      <ol>
+        <li>Run the stack twice with <code>docker compose up --build</code> — confirm the note count grows.</li>
+        <li>Run <code>docker compose down -v</code> and then up again — confirm the count resets to 1.</li>
+        <li>Add a simple Flask web API to <code>app.py</code> that returns the notes as JSON on <code>GET /notes</code>.</li>
+        <li>Add <code>ports: ["5000:5000"]</code> to the app service and confirm you can hit the API from your browser.</li>
+        <li>Add a third service — <code>adminer</code> — for a web UI to inspect the database.</li>
+      </ol>
+    </div>
+
+    <div class="chapter-nav">
+      <a href="08-compose-basics.html" class="nav-btn prev">
+        <span class="nav-arrow">←</span>
+        <div class="nav-text">
+          <span class="nav-label">Previous</span>
+          <span class="nav-title">Docker Compose Basics</span>
+        </div>
+      </a>
+      <a href="10-best-practices.html" class="nav-btn next">
+        <div class="nav-text" style="text-align:right">
+          <span class="nav-label">Next Chapter</span>
+          <span class="nav-title">Best Practices</span>
+        </div>
+        <span class="nav-arrow">→</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
+<script src="../js/main.js"></script>
+</body>
+</html>

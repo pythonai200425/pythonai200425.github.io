@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Docker Tutorial — From Zero to Compose</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐳</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar home-topbar">
+  <a href="index.html" class="topbar-logo">
+    <span class="whale">🐳</span>
+    <span>Docker<span class="brand-docker">Tutorial</span></span>
+  </a>
+  <a href="pages/01-hello-world.html" class="start-btn">Start Learning →</a>
+</header>
+
+<!-- HERO -->
+<section class="home-hero">
+  <div class="hero-bg"></div>
+  <canvas id="particles"></canvas>
+  <div class="hero-content">
+    <div class="hero-badge">✦ Complete Hands-On Course ✦</div>
+    <h1 class="hero-title">
+      Master <span class="hl">Docker</span><br>
+      From Zero to&nbsp;Compose
+    </h1>
+    <p class="hero-desc">
+      10 hands-on chapters taking you from your first <code>docker run</code>
+      to building production-ready multi-service apps with Docker Compose —
+      with real code, real databases, and zero magic.
+    </p>
+    <a href="pages/01-hello-world.html" class="hero-cta">
+      Start Chapter 1 <span class="hero-cta-arrow">→</span>
+    </a>
+    <div class="hero-stats">
+      <div><div class="stat-num">10</div><div class="stat-lbl">Chapters</div></div>
+      <div><div class="stat-num">40+</div><div class="stat-lbl">Commands</div></div>
+      <div><div class="stat-num">5</div><div class="stat-lbl">Projects</div></div>
+      <div><div class="stat-num">0</div><div class="stat-lbl">Prerequisites*</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CHAPTERS -->
+<section class="chapters-section">
+  <div class="section-header reveal">
+    <h2>Course Curriculum</h2>
+    <p>Complete chapters in order for the best experience — each one builds on the last</p>
+  </div>
+
+  <div class="chapters-grid">
+
+    <a href="pages/01-hello-world.html" class="chapter-card reveal" data-ch="1">
+      <div class="card-row">
+        <span class="card-num">Chapter 01</span>
+        <span class="card-icon">🌍</span>
+      </div>
+      <div class="card-title">Hello World Docker</div>
+      <div class="card-desc">Run your first container and understand what actually happens under the hood — images, registries, and layers explained.</div>
+      <div class="card-tags">
+        <span class="card-tag">docker run</span>
+        <span class="card-tag">docker ps</span>
+        <span class="card-tag">images</span>
+      </div>
+    </a>
+
+    <a href="pages/02-simple-demo.html" class="chapter-card reveal" data-ch="2">
+      <div class="card-row">
+        <span class="card-num">Chapter 02</span>
+        <span class="card-icon">🐧</span>
+      </div>
+      <div class="card-title">Run Simple Containers</div>
+      <div class="card-desc">Run an interactive Linux shell and a live Nginx web server. Learn port mapping and container control commands.</div>
+      <div class="card-tags">
+        <span class="card-tag">-it</span>
+        <span class="card-tag">-d</span>
+        <span class="card-tag">-p</span>
+        <span class="card-tag">nginx</span>
+      </div>
+    </a>
+
+    <a href="pages/03-files-and-volumes.html" class="chapter-card reveal" data-ch="3">
+      <div class="card-row">
+        <span class="card-num">Chapter 03</span>
+        <span class="card-icon">📁</span>
+      </div>
+      <div class="card-title">Files &amp; Volumes</div>
+      <div class="card-desc">Three ways to move data in and out of containers: copy, bind mounts, and named volumes for persistent storage.</div>
+      <div class="card-tags">
+        <span class="card-tag">docker cp</span>
+        <span class="card-tag">-v</span>
+        <span class="card-tag">volumes</span>
+      </div>
+    </a>
+
+    <a href="pages/04-build-image.html" class="chapter-card reveal" data-ch="4">
+      <div class="card-row">
+        <span class="card-num">Chapter 04</span>
+        <span class="card-icon">🏗️</span>
+      </div>
+      <div class="card-title">Build Your Own Image</div>
+      <div class="card-desc">Write a Dockerfile, build a custom Python web server image, and understand layer caching to speed up builds.</div>
+      <div class="card-tags">
+        <span class="card-tag">Dockerfile</span>
+        <span class="card-tag">docker build</span>
+        <span class="card-tag">layers</span>
+      </div>
+    </a>
+
+    <a href="pages/05-env-and-network.html" class="chapter-card reveal" data-ch="5">
+      <div class="card-row">
+        <span class="card-num">Chapter 05</span>
+        <span class="card-icon">🔌</span>
+      </div>
+      <div class="card-title">Env Variables &amp; Networks</div>
+      <div class="card-desc">Pass configuration via environment variables and connect containers on user-defined networks using DNS names.</div>
+      <div class="card-tags">
+        <span class="card-tag">-e</span>
+        <span class="card-tag">--network</span>
+        <span class="card-tag">DNS</span>
+      </div>
+    </a>
+
+    <a href="pages/06-debug-and-lifecycle.html" class="chapter-card reveal" data-ch="6">
+      <div class="card-row">
+        <span class="card-num">Chapter 06</span>
+        <span class="card-icon">🔍</span>
+      </div>
+      <div class="card-title">Debug &amp; Lifecycle</div>
+      <div class="card-desc">Master the container lifecycle — logs, exec, pause/resume — and safely clean up unused Docker resources.</div>
+      <div class="card-tags">
+        <span class="card-tag">docker logs</span>
+        <span class="card-tag">docker exec</span>
+        <span class="card-tag">prune</span>
+      </div>
+    </a>
+
+    <a href="pages/07-postgres-python.html" class="chapter-card reveal" data-ch="7">
+      <div class="card-row">
+        <span class="card-num">Chapter 07</span>
+        <span class="card-icon">🐘</span>
+      </div>
+      <div class="card-title">PostgreSQL + Python</div>
+      <div class="card-desc">Run a real PostgreSQL database in Docker and connect to it from a Python script — no Docker Compose yet.</div>
+      <div class="card-tags">
+        <span class="card-tag">postgres:16</span>
+        <span class="card-tag">psycopg</span>
+        <span class="card-tag">SQL</span>
+      </div>
+    </a>
+
+    <a href="pages/08-compose-basics.html" class="chapter-card reveal" data-ch="8">
+      <div class="card-row">
+        <span class="card-num">Chapter 08</span>
+        <span class="card-icon">🎼</span>
+      </div>
+      <div class="card-title">Docker Compose Basics</div>
+      <div class="card-desc">Replace long docker run commands with a clean YAML file. Define multi-service apps and manage them with one command.</div>
+      <div class="card-tags">
+        <span class="card-tag">compose up</span>
+        <span class="card-tag">services</span>
+        <span class="card-tag">YAML</span>
+      </div>
+    </a>
+
+    <a href="pages/09-compose-project.html" class="chapter-card reveal" data-ch="9">
+      <div class="card-row">
+        <span class="card-num">Chapter 09</span>
+        <span class="card-icon">🚀</span>
+      </div>
+      <div class="card-title">Compose: Python + Postgres</div>
+      <div class="card-desc">Build a complete app stack — a Python service that talks to PostgreSQL — all wired together in one Compose file.</div>
+      <div class="card-tags">
+        <span class="card-tag">depends_on</span>
+        <span class="card-tag">build</span>
+        <span class="card-tag">volumes</span>
+      </div>
+    </a>
+
+    <a href="pages/10-best-practices.html" class="chapter-card reveal" data-ch="10">
+      <div class="card-row">
+        <span class="card-num">Chapter 10</span>
+        <span class="card-icon">🏆</span>
+      </div>
+      <div class="card-title">Best Practices &amp; Next Steps</div>
+      <div class="card-desc">Production-ready habits: slim images, .dockerignore, multi-stage builds, health checks, and a final challenge project.</div>
+      <div class="card-tags">
+        <span class="card-tag">multi-stage</span>
+        <span class="card-tag">.dockerignore</span>
+        <span class="card-tag">HEALTHCHECK</span>
+      </div>
+    </a>
+
+  </div>
+</section>
+
+<!-- PREREQUISITES -->
+<section style="max-width:700px;margin:0 auto 80px;padding:0 24px;text-align:center;" class="reveal">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:28px 32px;">
+    <div style="font-size:1.6rem;margin-bottom:10px;">📋</div>
+    <h3 style="font-size:1.1rem;margin-bottom:10px;color:var(--text)">Prerequisites</h3>
+    <p style="color:var(--text-muted);font-size:0.92rem;line-height:1.7;">
+      *Only <strong style="color:var(--text-dim)">Docker Desktop</strong> installed and running,
+      <strong style="color:var(--text-dim)">Python 3.10+</strong> for later chapters,
+      and basic terminal confidence. No prior Docker knowledge needed.
+    </p>
+  </div>
+</section>
+
+<footer>
+  <p>Built for Docker learners &nbsp;·&nbsp; <a href="https://docs.docker.com" target="_blank" rel="noopener">Docker Docs ↗</a> &nbsp;·&nbsp; <a href="https://hub.docker.com" target="_blank" rel="noopener">Docker Hub ↗</a></p>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

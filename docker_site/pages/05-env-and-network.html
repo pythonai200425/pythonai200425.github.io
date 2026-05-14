@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 05 — Env Variables &amp; Networks</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐳</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <a href="../index.html" class="topbar-logo">
+    <span class="whale">🐳</span>
+    <span>Docker<span class="brand-docker">Tutorial</span></span>
+  </a>
+  <div class="topbar-progress-wrap">
+    <div class="topbar-progress-bar" style="width:50%"></div>
+  </div>
+  <span class="topbar-chapter-label">Chapter 5 of 10</span>
+  <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-title">All Chapters</div>
+    <ul class="chapter-list">
+      <li class="chapter-item"><a href="01-hello-world.html"><span class="ch-num">01</span><span class="ch-name">Hello World</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="02-simple-demo.html"><span class="ch-num">02</span><span class="ch-name">Simple Containers</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="03-files-and-volumes.html"><span class="ch-num">03</span><span class="ch-name">Files &amp; Volumes</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="04-build-image.html"><span class="ch-num">04</span><span class="ch-name">Build Images</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item active"><a href="05-env-and-network.html"><span class="ch-num">05</span><span class="ch-name">Env &amp; Networking</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="06-debug-and-lifecycle.html"><span class="ch-num">06</span><span class="ch-name">Debug &amp; Lifecycle</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="07-postgres-python.html"><span class="ch-num">07</span><span class="ch-name">PostgreSQL + Python</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="08-compose-basics.html"><span class="ch-num">08</span><span class="ch-name">Compose Basics</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="09-compose-project.html"><span class="ch-num">09</span><span class="ch-name">Compose Project</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="10-best-practices.html"><span class="ch-num">10</span><span class="ch-name">Best Practices</span><span class="ch-done">✓</span></a></li>
+    </ul>
+  </aside>
+
+  <main class="content">
+    <div class="chapter-badge">🔌 Chapter 05</div>
+    <h1 class="chapter-title">Env Variables &amp; Networks</h1>
+    <p class="chapter-subtitle">Configure containers without rebuilding images using environment variables, and wire multiple containers together using Docker networks with automatic DNS resolution.</p>
+
+    <div class="goal-box reveal">
+      <div class="goal-icon">🎯</div>
+      <div>
+        <div class="goal-label">Chapter Goal</div>
+        <div class="goal-text">Pass runtime config with <code>-e</code> flags, create a user-defined network, and connect containers so they can reach each other by name — no IP addresses needed.</div>
+      </div>
+    </div>
+
+    <!-- PART A: ENV VARS -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">A</span> Environment Variables</h2>
+      <p>Environment variables let you change a container's behavior at runtime — no image rebuild needed. This is the standard way to pass database passwords, API keys, ports, and modes.</p>
+
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash"># Set two env vars and print them
+docker run --rm -e APP_MODE=dev -e APP_PORT=9000 alpine sh -c 'echo "$APP_MODE $APP_PORT"'</code></pre>
+      </div>
+
+      <p>Expected output: <code>dev 9000</code></p>
+
+      <h3>Load from a .env file</h3>
+      <p>Instead of listing vars one by one, put them in a file:</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash"># Create .env file
+echo "APP_MODE=production
+DB_HOST=localhost
+DB_PORT=5432" &gt; app.env
+
+# Pass entire file at once
+docker run --rm --env-file app.env alpine sh -c 'echo "$APP_MODE"'</code></pre>
+      </div>
+
+      <div class="callout warning">
+        <span class="callout-icon">⚠️</span>
+        <div>
+          <div class="callout-title">Never bake secrets into images</div>
+          If you put a secret in a <code>Dockerfile</code> instruction like <code>ENV DB_PASSWORD=secret</code>, it's visible in the image history forever. Always inject secrets at runtime via <code>-e</code> or <code>--env-file</code>.
+        </div>
+      </div>
+    </div>
+
+    <!-- PART B: NETWORKING -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">B</span> Docker Networks</h2>
+      <p>By default, containers are isolated. To let them talk to each other, put them on the same <strong>user-defined network</strong>. Docker's built-in DNS will resolve container names to IP addresses automatically.</p>
+
+      <div class="diagram">
+<pre>
+  ┌─────────────────────────── appnet ──────────────────────────────┐
+  │                                                                  │
+  │   ┌──────────────┐     DNS: "redis1"     ┌──────────────────┐  │
+  │   │   app        │──────────────────────▶│   redis1         │  │
+  │   │   container  │                       │   (Redis server) │  │
+  │   └──────────────┘                       └──────────────────┘  │
+  │                                                                  │
+  └──────────────────────────────────────────────────────────────────┘
+
+  Containers on the same user-defined network resolve each other by NAME.
+  Default bridge network does NOT have this DNS feature.
+</pre>
+      </div>
+
+      <h3>Step 1 — Create a network</h3>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker network create appnet</code></pre>
+      </div>
+
+      <h3>Step 2 — Start Redis on the network</h3>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker run -d --name redis1 --network appnet redis</code></pre>
+      </div>
+
+      <h3>Step 3 — Connect from another container using the DNS name</h3>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker run --rm --network appnet alpine sh -c \
+  "apk add --no-cache redis &amp;&amp; redis-cli -h redis1 ping"</code></pre>
+      </div>
+      <p>Expected output: <code>PONG</code> — the second container reached Redis by its container name, not by IP!</p>
+
+      <div class="callout info">
+        <span class="callout-icon">ℹ️</span>
+        <div>
+          <div class="callout-title">Why user-defined networks?</div>
+          The default <code>bridge</code> network only allows communication by IP. User-defined networks add DNS so containers resolve each other by name. Docker Compose creates a user-defined network automatically — that's why services find each other by service name.
+        </div>
+      </div>
+    </div>
+
+    <!-- NETWORK TYPES -->
+    <div class="section reveal">
+      <h2 class="section-title">Docker Network Types</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Driver</th><th>Use Case</th><th>Container-to-Container?</th></tr></thead>
+          <tbody>
+            <tr><td>bridge</td><td>Default for standalone containers</td><td>By IP only (no DNS)</td></tr>
+            <tr><td>user-defined bridge</td><td>Multi-container apps</td><td>Yes, by name (DNS) ✓</td></tr>
+            <tr><td>host</td><td>Max performance, Linux only</td><td>Shares host network stack</td></tr>
+            <tr><td>none</td><td>Complete isolation</td><td>No networking at all</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CLEANUP -->
+    <div class="section reveal">
+      <h2 class="section-title">Cleanup</h2>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker rm -f redis1
+docker network rm appnet</code></pre>
+      </div>
+    </div>
+
+    <div class="exercise-box reveal">
+      <div class="exercise-header">
+        <span class="ex-icon">🧪</span>
+        <h3>Quick Exercise</h3>
+      </div>
+      <ol>
+        <li>Create a network called <code>testnet</code>.</li>
+        <li>Start two Alpine containers on that network with different names: <code>node-a</code> and <code>node-b</code>.</li>
+        <li>From <code>node-a</code>, ping <code>node-b</code> by name: <code>docker exec node-a ping -c 3 node-b</code>.</li>
+        <li>Try the same ping from a container on the <em>default</em> bridge network — it should fail.</li>
+        <li>Run <code>docker network inspect testnet</code> to see which containers are attached.</li>
+      </ol>
+    </div>
+
+    <div class="chapter-nav">
+      <a href="04-build-image.html" class="nav-btn prev">
+        <span class="nav-arrow">←</span>
+        <div class="nav-text">
+          <span class="nav-label">Previous</span>
+          <span class="nav-title">Build Your Own Image</span>
+        </div>
+      </a>
+      <a href="06-debug-and-lifecycle.html" class="nav-btn next">
+        <div class="nav-text" style="text-align:right">
+          <span class="nav-label">Next Chapter</span>
+          <span class="nav-title">Debug &amp; Lifecycle</span>
+        </div>
+        <span class="nav-arrow">→</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
+<script src="../js/main.js"></script>
+</body>
+</html>

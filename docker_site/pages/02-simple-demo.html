@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 02 — Run Simple Containers</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐳</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <a href="../index.html" class="topbar-logo">
+    <span class="whale">🐳</span>
+    <span>Docker<span class="brand-docker">Tutorial</span></span>
+  </a>
+  <div class="topbar-progress-wrap">
+    <div class="topbar-progress-bar" style="width:20%"></div>
+  </div>
+  <span class="topbar-chapter-label">Chapter 2 of 10</span>
+  <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-title">All Chapters</div>
+    <ul class="chapter-list">
+      <li class="chapter-item"><a href="01-hello-world.html"><span class="ch-num">01</span><span class="ch-name">Hello World</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item active"><a href="02-simple-demo.html"><span class="ch-num">02</span><span class="ch-name">Simple Containers</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="03-files-and-volumes.html"><span class="ch-num">03</span><span class="ch-name">Files &amp; Volumes</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="04-build-image.html"><span class="ch-num">04</span><span class="ch-name">Build Images</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="05-env-and-network.html"><span class="ch-num">05</span><span class="ch-name">Env &amp; Networking</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="06-debug-and-lifecycle.html"><span class="ch-num">06</span><span class="ch-name">Debug &amp; Lifecycle</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="07-postgres-python.html"><span class="ch-num">07</span><span class="ch-name">PostgreSQL + Python</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="08-compose-basics.html"><span class="ch-num">08</span><span class="ch-name">Compose Basics</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="09-compose-project.html"><span class="ch-num">09</span><span class="ch-name">Compose Project</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="10-best-practices.html"><span class="ch-num">10</span><span class="ch-name">Best Practices</span><span class="ch-done">✓</span></a></li>
+    </ul>
+  </aside>
+
+  <main class="content">
+    <div class="chapter-badge">🐧 Chapter 02</div>
+    <h1 class="chapter-title">Run Simple Containers</h1>
+    <p class="chapter-subtitle">Run an interactive Linux shell inside Docker and spin up a live Nginx web server — and understand ports, flags, and container control.</p>
+
+    <div class="goal-box reveal">
+      <div class="goal-icon">🎯</div>
+      <div>
+        <div class="goal-label">Chapter Goal</div>
+        <div class="goal-text">Use <code>-it</code> for interactive containers and <code>-d -p</code> for background web servers. Control running containers with start, stop, logs, and rm.</div>
+      </div>
+    </div>
+
+    <!-- DEMO A -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">A</span> Interactive Ubuntu Shell</h2>
+      <p>Run a full Ubuntu Linux environment that lives only while your terminal session is open:</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker run -it ubuntu bash</code></pre>
+      </div>
+      <p>Your prompt changes to something like <code>root@3f9a2c1d:/# </code>. You're inside the container! Try:</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash (inside container)</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">cat /etc/os-release    # confirm it's Ubuntu
+ls /                   # see the container filesystem
+hostname               # short container ID
+exit                   # leave and stop the container</code></pre>
+      </div>
+
+      <div class="table-wrap" style="margin-top:20px">
+        <table>
+          <thead><tr><th>Flag</th><th>Full Name</th><th>What It Does</th></tr></thead>
+          <tbody>
+            <tr><td>-i</td><td>--interactive</td><td>Keep STDIN open so you can type commands</td></tr>
+            <tr><td>-t</td><td>--tty</td><td>Attach a pseudo-terminal (gives you a prompt)</td></tr>
+            <tr><td>-it</td><td>(combined)</td><td>Use both — standard for interactive sessions</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>
+          <div class="callout-title">Isolation in action</div>
+          Install something with <code>apt-get install -y curl</code> inside the container, then exit and run a new Ubuntu container. It won't have curl — each container starts fresh from the image.
+        </div>
+      </div>
+    </div>
+
+    <!-- DEMO B -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">B</span> Nginx Web Server (Detached)</h2>
+      <p>Run Nginx as a background service and map a port so your browser can reach it:</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker run -d --name mynginx -p 8080:80 nginx</code></pre>
+      </div>
+      <p>Open <a href="http://localhost:8080" target="_blank" style="color:var(--accent2)">http://localhost:8080</a> — you should see the Nginx welcome page. 🎉</p>
+
+      <div class="diagram">
+<pre>
+  Your Browser           Docker Host              Container
+  ┌──────────┐           ┌──────────┐             ┌────────┐
+  │ :8080    │──────────▶│  -p      │────────────▶│ :80    │
+  │          │           │ 8080:80  │             │ nginx  │
+  └──────────┘           └──────────┘             └────────┘
+   Host port                bridge                Container
+   (your machine)                                  port
+</pre>
+      </div>
+
+      <p>The <code>-p HOST:CONTAINER</code> flag maps a port on your machine to a port inside the container. You can change the host port freely — the container always listens on 80.</p>
+
+      <h3>Manage the Running Container</h3>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker ps                # confirm it's running
+docker logs mynginx      # see access logs
+docker logs -f mynginx   # follow logs in real time (Ctrl+C to stop)
+docker stop mynginx      # graceful shutdown
+docker start mynginx     # start it again
+docker rm -f mynginx     # force-stop and remove in one step</code></pre>
+      </div>
+    </div>
+
+    <!-- FLAGS TABLE -->
+    <div class="section reveal">
+      <h2 class="section-title">Run Flags Cheat Sheet</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Flag</th><th>Example</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>-d</td><td><code>docker run -d nginx</code></td><td>Detached / background mode</td></tr>
+            <tr><td>--name</td><td><code>--name mynginx</code></td><td>Give the container a friendly name</td></tr>
+            <tr><td>-p</td><td><code>-p 8080:80</code></td><td>Map host port to container port</td></tr>
+            <tr><td>--rm</td><td><code>docker run --rm ubuntu</code></td><td>Auto-remove container on exit</td></tr>
+            <tr><td>-it</td><td><code>docker run -it ubuntu bash</code></td><td>Interactive terminal</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- EXERCISE -->
+    <div class="exercise-box reveal">
+      <div class="exercise-header">
+        <span class="ex-icon">🧪</span>
+        <h3>Quick Exercise</h3>
+      </div>
+      <ol>
+        <li>Run the <code>httpd</code> (Apache) image on port <code>8081</code> with name <code>myapache</code>.</li>
+        <li>Verify both Nginx (port 8080) and Apache (port 8081) run simultaneously — two containers, one machine.</li>
+        <li>Use <code>docker logs</code> to see the access log of each when you visit them in a browser.</li>
+        <li>Remove both containers with a single <code>docker container prune</code>.</li>
+      </ol>
+    </div>
+
+    <div class="chapter-nav">
+      <a href="01-hello-world.html" class="nav-btn prev">
+        <span class="nav-arrow">←</span>
+        <div class="nav-text">
+          <span class="nav-label">Previous</span>
+          <span class="nav-title">Hello World Docker</span>
+        </div>
+      </a>
+      <a href="03-files-and-volumes.html" class="nav-btn next">
+        <div class="nav-text" style="text-align:right">
+          <span class="nav-label">Next Chapter</span>
+          <span class="nav-title">Files &amp; Volumes</span>
+        </div>
+        <span class="nav-arrow">→</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
+<script src="../js/main.js"></script>
+</body>
+</html>

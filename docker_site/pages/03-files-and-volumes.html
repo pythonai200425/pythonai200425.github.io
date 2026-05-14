@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 03 — Files &amp; Volumes</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐳</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <a href="../index.html" class="topbar-logo">
+    <span class="whale">🐳</span>
+    <span>Docker<span class="brand-docker">Tutorial</span></span>
+  </a>
+  <div class="topbar-progress-wrap">
+    <div class="topbar-progress-bar" style="width:30%"></div>
+  </div>
+  <span class="topbar-chapter-label">Chapter 3 of 10</span>
+  <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-title">All Chapters</div>
+    <ul class="chapter-list">
+      <li class="chapter-item"><a href="01-hello-world.html"><span class="ch-num">01</span><span class="ch-name">Hello World</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="02-simple-demo.html"><span class="ch-num">02</span><span class="ch-name">Simple Containers</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item active"><a href="03-files-and-volumes.html"><span class="ch-num">03</span><span class="ch-name">Files &amp; Volumes</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="04-build-image.html"><span class="ch-num">04</span><span class="ch-name">Build Images</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="05-env-and-network.html"><span class="ch-num">05</span><span class="ch-name">Env &amp; Networking</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="06-debug-and-lifecycle.html"><span class="ch-num">06</span><span class="ch-name">Debug &amp; Lifecycle</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="07-postgres-python.html"><span class="ch-num">07</span><span class="ch-name">PostgreSQL + Python</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="08-compose-basics.html"><span class="ch-num">08</span><span class="ch-name">Compose Basics</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="09-compose-project.html"><span class="ch-num">09</span><span class="ch-name">Compose Project</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="10-best-practices.html"><span class="ch-num">10</span><span class="ch-name">Best Practices</span><span class="ch-done">✓</span></a></li>
+    </ul>
+  </aside>
+
+  <main class="content">
+    <div class="chapter-badge">📁 Chapter 03</div>
+    <h1 class="chapter-title">Files &amp; Volumes</h1>
+    <p class="chapter-subtitle">Containers are isolated — but data must flow in and out. Learn the three methods for sharing files between your host and containers, and how to persist data beyond a container's lifetime.</p>
+
+    <div class="goal-box reveal">
+      <div class="goal-icon">🎯</div>
+      <div>
+        <div class="goal-label">Chapter Goal</div>
+        <div class="goal-text">Master <code>docker cp</code> for one-off transfers, bind mounts for live host-folder access, and named volumes for data that must survive container deletion.</div>
+      </div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div class="section reveal">
+      <h2 class="section-title">Three Methods at a Glance</h2>
+      <div class="concepts-grid">
+        <div class="concept-card">
+          <div class="concept-icon">📋</div>
+          <h4>docker cp</h4>
+          <p>One-time file copy in or out of a container. Simple but not live — won't sync changes.</p>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">🔗</div>
+          <h4>Bind Mount</h4>
+          <p>Link a host folder directly into the container. Changes sync instantly in both directions. Great for development.</p>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">💾</div>
+          <h4>Named Volume</h4>
+          <p>Docker-managed storage that persists when containers are deleted. Best for databases and important data.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- METHOD A -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">A</span> Copy Files with docker cp</h2>
+      <p>Use <code>docker cp</code> when you need to get a file in or out of a running or stopped container — think of it like <code>scp</code> for containers.</p>
+
+      <h3>Step 1 — Create a test file on your host</h3>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">echo "hello from host" &gt; note.txt</code></pre>
+      </div>
+
+      <h3>Step 2 — Start a long-running container</h3>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker run -d --name filebox ubuntu sleep 3600</code></pre>
+      </div>
+
+      <h3>Step 3 — Copy the file in, then read it back</h3>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash"># Copy FROM host TO container
+docker cp note.txt filebox:/tmp/note.txt
+
+# Verify inside the container
+docker exec -it filebox cat /tmp/note.txt
+
+# Copy FROM container back to host
+docker cp filebox:/tmp/note.txt ./recovered.txt</code></pre>
+      </div>
+    </div>
+
+    <!-- METHOD B -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">B</span> Bind Mount a Host Folder</h2>
+      <p>With <code>-v HOST_PATH:CONTAINER_PATH</code>, the container and host share the same folder in real time. This is the go-to method during development — edit a file on your host and the container sees it immediately.</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash"># Mount current directory into /work inside the container
+docker run --rm -it -v ${PWD}:/work ubuntu bash</code></pre>
+      </div>
+      <p>Inside the container:</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash (inside container)</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">ls /work        # your host files appear here
+echo "from container" &gt;&gt; /work/new-file.txt
+exit</code></pre>
+      </div>
+      <p>Back on your host, check — <code>new-file.txt</code> exists! Changes are instant and bidirectional.</p>
+      <div class="callout warning">
+        <span class="callout-icon">⚠️</span>
+        <div>
+          <div class="callout-title">Container user permissions</div>
+          Files created inside a container may be owned by <code>root</code>. On Linux this can cause permission issues on the host. Use <code>--user $(id -u):$(id -g)</code> to match your host user.
+        </div>
+      </div>
+    </div>
+
+    <!-- METHOD C -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">C</span> Named Volumes (Persistent Data)</h2>
+      <p>Named volumes are managed entirely by Docker. They survive container deletion and can be shared between multiple containers. Perfect for database data.</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash"># Create the volume
+docker volume create mydata
+
+# Write data into the volume via a temporary container
+docker run --rm -v mydata:/data ubuntu bash -c "echo saved &gt; /data/test.txt"
+
+# Read data back via a DIFFERENT container — data persists!
+docker run --rm -v mydata:/data ubuntu cat /data/test.txt</code></pre>
+      </div>
+      <div class="callout info">
+        <span class="callout-icon">ℹ️</span>
+        <div>
+          <div class="callout-title">Where volumes live on disk</div>
+          On Linux: <code>/var/lib/docker/volumes/</code>. On Docker Desktop (Mac/Windows): inside the VM. You don't need to know the path — Docker manages it. Use <code>docker volume inspect mydata</code> to see details.
+        </div>
+      </div>
+
+      <h3>Manage Volumes</h3>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker volume ls            # list all volumes
+docker volume inspect mydata # details
+docker volume rm mydata      # delete volume (must not be in use)</code></pre>
+      </div>
+    </div>
+
+    <!-- COMPARISON -->
+    <div class="section reveal">
+      <h2 class="section-title">When to Use Which?</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Method</th><th>Best For</th><th>Survives Container Delete?</th></tr></thead>
+          <tbody>
+            <tr><td>docker cp</td><td>One-time debug or file recovery</td><td>N/A (manual copy)</td></tr>
+            <tr><td>Bind mount</td><td>Development — live code editing</td><td>Yes (it's a host path)</td></tr>
+            <tr><td>Named volume</td><td>Database files, production data</td><td>Yes (Docker-managed)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CLEANUP -->
+    <div class="section reveal">
+      <h2 class="section-title">Cleanup</h2>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker rm -f filebox
+docker volume rm mydata</code></pre>
+      </div>
+    </div>
+
+    <div class="exercise-box reveal">
+      <div class="exercise-header">
+        <span class="ex-icon">🧪</span>
+        <h3>Quick Exercise</h3>
+      </div>
+      <ol>
+        <li>Create a volume called <code>pgdata-demo</code>.</li>
+        <li>In one container, write two lines of text to <code>/data/log.txt</code> inside the volume.</li>
+        <li>In a completely separate container (different container ID), read the same file back.</li>
+        <li>Delete the first container. Confirm the data still exists in the volume.</li>
+        <li>Try using <code>docker volume inspect pgdata-demo</code> to find the mount point.</li>
+      </ol>
+    </div>
+
+    <div class="chapter-nav">
+      <a href="02-simple-demo.html" class="nav-btn prev">
+        <span class="nav-arrow">←</span>
+        <div class="nav-text">
+          <span class="nav-label">Previous</span>
+          <span class="nav-title">Simple Containers</span>
+        </div>
+      </a>
+      <a href="04-build-image.html" class="nav-btn next">
+        <div class="nav-text" style="text-align:right">
+          <span class="nav-label">Next Chapter</span>
+          <span class="nav-title">Build Your Own Image</span>
+        </div>
+        <span class="nav-arrow">→</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
+<script src="../js/main.js"></script>
+</body>
+</html>

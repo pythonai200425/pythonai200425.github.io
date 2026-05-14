@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 06 — Debug &amp; Lifecycle</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐳</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <a href="../index.html" class="topbar-logo">
+    <span class="whale">🐳</span>
+    <span>Docker<span class="brand-docker">Tutorial</span></span>
+  </a>
+  <div class="topbar-progress-wrap">
+    <div class="topbar-progress-bar" style="width:60%"></div>
+  </div>
+  <span class="topbar-chapter-label">Chapter 6 of 10</span>
+  <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-title">All Chapters</div>
+    <ul class="chapter-list">
+      <li class="chapter-item"><a href="01-hello-world.html"><span class="ch-num">01</span><span class="ch-name">Hello World</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="02-simple-demo.html"><span class="ch-num">02</span><span class="ch-name">Simple Containers</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="03-files-and-volumes.html"><span class="ch-num">03</span><span class="ch-name">Files &amp; Volumes</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="04-build-image.html"><span class="ch-num">04</span><span class="ch-name">Build Images</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="05-env-and-network.html"><span class="ch-num">05</span><span class="ch-name">Env &amp; Networking</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item active"><a href="06-debug-and-lifecycle.html"><span class="ch-num">06</span><span class="ch-name">Debug &amp; Lifecycle</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="07-postgres-python.html"><span class="ch-num">07</span><span class="ch-name">PostgreSQL + Python</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="08-compose-basics.html"><span class="ch-num">08</span><span class="ch-name">Compose Basics</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="09-compose-project.html"><span class="ch-num">09</span><span class="ch-name">Compose Project</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="10-best-practices.html"><span class="ch-num">10</span><span class="ch-name">Best Practices</span><span class="ch-done">✓</span></a></li>
+    </ul>
+  </aside>
+
+  <main class="content">
+    <div class="chapter-badge">🔍 Chapter 06</div>
+    <h1 class="chapter-title">Debug &amp; Lifecycle</h1>
+    <p class="chapter-subtitle">Containers misbehave — learn how to observe, diagnose, pause, restart, and safely clean up Docker resources without losing data.</p>
+
+    <div class="goal-box reveal">
+      <div class="goal-icon">🎯</div>
+      <div>
+        <div class="goal-label">Chapter Goal</div>
+        <div class="goal-text">Use <code>logs</code>, <code>stats</code>, and <code>exec</code> to diagnose a running container, master the full container lifecycle, and clean up unused resources safely.</div>
+      </div>
+    </div>
+
+    <!-- LIFECYCLE DIAGRAM -->
+    <div class="section reveal">
+      <h2 class="section-title">Container Lifecycle</h2>
+      <div class="diagram">
+<pre>
+                  docker run / docker start
+                         │
+                         ▼
+                  ┌─────────────┐
+       ┌─────────▶│   Running   │◀──────────┐
+       │          └──────┬──────┘           │
+  docker start           │              docker unpause
+       │           docker stop/             │
+       │           docker pause             │
+  ┌────┴────┐            │            ┌─────┴─────┐
+  │ Stopped │            ├───────────▶│  Paused   │
+  └─────────┘            │            └───────────┘
+       │                 ▼
+  docker rm      ┌──────────────┐
+       │         │    Exited    │
+       ▼         └──────────────┘
+   (gone)
+</pre>
+      </div>
+    </div>
+
+    <!-- STEP 1: OBSERVE -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">1</span> Start a Test Container</h2>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker run -d --name dbg-nginx -p 8082:80 nginx</code></pre>
+      </div>
+    </div>
+
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">2</span> Observe the Container</h2>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker ps                     # confirm running
+docker logs dbg-nginx         # see output (visit http://localhost:8082 first for some entries)
+docker logs -f dbg-nginx      # follow live (Ctrl+C to exit)
+docker logs --tail 20 dbg-nginx  # last 20 lines only
+docker stats dbg-nginx        # live CPU, memory, network I/O (q to quit)
+docker inspect dbg-nginx      # full JSON metadata</code></pre>
+      </div>
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>
+          <div class="callout-title">First debug step</div>
+          When a container exits unexpectedly, always run <code>docker logs &lt;name&gt;</code> first. The crash reason is almost always in the logs. Then check the exit code with <code>docker inspect &lt;name&gt; --format '{{.State.ExitCode}}'</code>.
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3: EXEC -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">3</span> Shell into a Running Container</h2>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker exec -it dbg-nginx sh</code></pre>
+      </div>
+      <p>Inside:</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash (inside container)</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">ls /usr/share/nginx/html   # the static files Nginx serves
+cat /etc/nginx/nginx.conf  # nginx config
+ps aux                     # running processes
+exit</code></pre>
+      </div>
+      <div class="callout info">
+        <span class="callout-icon">ℹ️</span>
+        <div>
+          <div class="callout-title">exec vs run</div>
+          <code>docker exec</code> runs a command inside an <em>already running</em> container. <code>docker run</code> starts a brand new container from an image. Use exec for debugging, not for production workflows.
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4: LIFECYCLE -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">4</span> Lifecycle Commands</h2>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker pause dbg-nginx      # freeze all processes (SIGSTOP)
+docker unpause dbg-nginx    # resume (SIGCONT)
+docker restart dbg-nginx    # stop + start
+docker stop dbg-nginx       # graceful shutdown (SIGTERM, then SIGKILL after 10s)
+docker kill dbg-nginx       # immediate SIGKILL
+docker start dbg-nginx      # restart a stopped container</code></pre>
+      </div>
+    </div>
+
+    <!-- CLEANUP -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">5</span> Cleaning Up Docker Resources</h2>
+      <p>Docker accumulates stopped containers, dangling images, and unused volumes over time. Use these targeted cleanup commands:</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker container prune   # remove all stopped containers
+docker image prune       # remove dangling (untagged) images
+docker volume prune      # remove unused volumes (careful — data loss!)
+docker network prune     # remove unused networks
+docker system df         # see disk usage breakdown</code></pre>
+      </div>
+      <div class="callout warning">
+        <span class="callout-icon">⚠️</span>
+        <div>
+          <div class="callout-title">Nuclear option</div>
+          <code>docker system prune -a</code> removes ALL stopped containers, ALL unused images, ALL build cache, and ALL unused networks. It frees a lot of space but you'll need to re-pull images. <strong>Never run this with <code>--volumes</code> unless you're sure.</strong>
+        </div>
+      </div>
+
+      <div class="table-wrap" style="margin-top:20px">
+        <table>
+          <thead><tr><th>Problem</th><th>Diagnosis</th><th>Fix</th></tr></thead>
+          <tbody>
+            <tr><td>Container exits immediately</td><td><code>docker logs &lt;name&gt;</code></td><td>Fix app crash or CMD</td></tr>
+            <tr><td>Port already in use</td><td><code>docker ps</code></td><td>Change host port or stop other container</td></tr>
+            <tr><td>Out of disk space</td><td><code>docker system df</code></td><td><code>docker system prune</code></td></tr>
+            <tr><td>Container won't stop</td><td>—</td><td><code>docker kill &lt;name&gt;</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="exercise-box reveal">
+      <div class="exercise-header">
+        <span class="ex-icon">🧪</span>
+        <h3>Quick Exercise</h3>
+      </div>
+      <ol>
+        <li>Start <code>dbg-nginx</code>, then visit <code>localhost:8082</code> in a browser.</li>
+        <li>Watch <code>docker logs -f dbg-nginx</code> — see the access log entry appear in real time.</li>
+        <li>Pause the container. Try refreshing the browser — what happens?</li>
+        <li>Unpause and confirm the browser works again.</li>
+        <li>Stop the container, then use <code>docker ps -a</code> to confirm it's Exited. Start it with <code>docker start</code> and verify it's back.</li>
+        <li>Run <code>docker system df</code> and identify which resource type is using the most space.</li>
+      </ol>
+    </div>
+
+    <div class="chapter-nav">
+      <a href="05-env-and-network.html" class="nav-btn prev">
+        <span class="nav-arrow">←</span>
+        <div class="nav-text">
+          <span class="nav-label">Previous</span>
+          <span class="nav-title">Env Variables &amp; Networks</span>
+        </div>
+      </a>
+      <a href="07-postgres-python.html" class="nav-btn next">
+        <div class="nav-text" style="text-align:right">
+          <span class="nav-label">Next Chapter</span>
+          <span class="nav-title">PostgreSQL + Python</span>
+        </div>
+        <span class="nav-arrow">→</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
+<script src="../js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 08 — Docker Compose Basics</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐳</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <a href="../index.html" class="topbar-logo">
+    <span class="whale">🐳</span>
+    <span>Docker<span class="brand-docker">Tutorial</span></span>
+  </a>
+  <div class="topbar-progress-wrap">
+    <div class="topbar-progress-bar" style="width:80%"></div>
+  </div>
+  <span class="topbar-chapter-label">Chapter 8 of 10</span>
+  <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-title">All Chapters</div>
+    <ul class="chapter-list">
+      <li class="chapter-item"><a href="01-hello-world.html"><span class="ch-num">01</span><span class="ch-name">Hello World</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="02-simple-demo.html"><span class="ch-num">02</span><span class="ch-name">Simple Containers</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="03-files-and-volumes.html"><span class="ch-num">03</span><span class="ch-name">Files &amp; Volumes</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="04-build-image.html"><span class="ch-num">04</span><span class="ch-name">Build Images</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="05-env-and-network.html"><span class="ch-num">05</span><span class="ch-name">Env &amp; Networking</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="06-debug-and-lifecycle.html"><span class="ch-num">06</span><span class="ch-name">Debug &amp; Lifecycle</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="07-postgres-python.html"><span class="ch-num">07</span><span class="ch-name">PostgreSQL + Python</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item active"><a href="08-compose-basics.html"><span class="ch-num">08</span><span class="ch-name">Compose Basics</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="09-compose-project.html"><span class="ch-num">09</span><span class="ch-name">Compose Project</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="10-best-practices.html"><span class="ch-num">10</span><span class="ch-name">Best Practices</span><span class="ch-done">✓</span></a></li>
+    </ul>
+  </aside>
+
+  <main class="content">
+    <div class="chapter-badge">🎼 Chapter 08</div>
+    <h1 class="chapter-title">Docker Compose Basics</h1>
+    <p class="chapter-subtitle">Replace long <code>docker run</code> commands with a clean declarative YAML file. Start, stop, and manage multi-service applications with a single command.</p>
+
+    <div class="goal-box reveal">
+      <div class="goal-icon">🎯</div>
+      <div>
+        <div class="goal-label">Chapter Goal</div>
+        <div class="goal-text">Write a <code>docker-compose.yml</code> defining Nginx + Redis services, start the whole stack with <code>docker compose up -d</code>, and learn the essential Compose commands.</div>
+      </div>
+    </div>
+
+    <!-- WHY COMPOSE -->
+    <div class="section reveal">
+      <h2 class="section-title">Why Docker Compose?</h2>
+      <p>Imagine running a web app that needs Nginx, Redis, and a database. Without Compose:</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash (without compose — painful)</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker network create myapp-net
+docker run -d --name redis --network myapp-net redis
+docker run -d --name web --network myapp-net -p 8083:80 nginx
+# Now imagine doing this for 5 services, with volumes, env vars...
+# And tearing it down: docker rm -f web redis &amp;&amp; docker network rm myapp-net</code></pre>
+      </div>
+      <p style="margin-top:12px">With Compose, all of that is one YAML file and two commands.</p>
+    </div>
+
+    <!-- COMPOSE FILE ANATOMY -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">1</span> Your First Compose File</h2>
+      <p>Create a folder <code>compose-demo</code> and save this as <code>docker-compose.yml</code>:</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">yaml</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-yaml">services:
+  web:
+    image: nginx:latest
+    ports:
+      - "8083:80"
+
+  redis:
+    image: redis:latest</code></pre>
+      </div>
+
+      <div class="diagram">
+<pre>
+  docker-compose.yml
+  ┌──────────────────────────────────────────────┐
+  │  services:                                    │
+  │    web:            ──────────▶  Container     │
+  │      image: nginx              (nginx)        │
+  │      ports: 8083:80                           │
+  │                                               │
+  │    redis:          ──────────▶  Container     │
+  │      image: redis              (redis)        │
+  │                                               │
+  │  ↕ Both on same auto-created network ↕        │
+  └──────────────────────────────────────────────┘
+</pre>
+      </div>
+
+      <div class="callout info">
+        <span class="callout-icon">ℹ️</span>
+        <div>
+          <div class="callout-title">Auto-created network</div>
+          Compose automatically creates a network named <code>&lt;folder&gt;_default</code> and connects all services to it. The services can reach each other by their service name — so the web service can talk to <code>redis</code> by just using <code>redis</code> as the hostname.
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: RUN -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">2</span> Start the Stack</h2>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">cd compose-demo
+docker compose up -d</code></pre>
+      </div>
+      <p>Compose will pull any missing images, create the network, and start both containers. Open <a href="http://localhost:8083" target="_blank" style="color:var(--accent2)">http://localhost:8083</a> for the Nginx welcome page.</p>
+    </div>
+
+    <!-- ESSENTIAL COMMANDS -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">3</span> Essential Compose Commands</h2>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker compose ps          # list containers in this project
+docker compose logs        # combined logs from all services
+docker compose logs -f web # follow logs for a specific service
+docker compose stop        # stop all without removing
+docker compose start       # start stopped services
+docker compose restart     # restart all
+docker compose down        # stop AND remove containers + network
+docker compose down -v     # also remove volumes (data loss!)
+docker compose exec web sh # shell into the 'web' service</code></pre>
+      </div>
+
+      <div class="table-wrap" style="margin-top:20px">
+        <table>
+          <thead><tr><th>Command</th><th>Removes Containers?</th><th>Removes Volumes?</th></tr></thead>
+          <tbody>
+            <tr><td>compose stop</td><td>No (just pauses)</td><td>No</td></tr>
+            <tr><td>compose down</td><td>Yes</td><td>No</td></tr>
+            <tr><td>compose down -v</td><td>Yes</td><td>Yes</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- REBUILD TRICK -->
+    <div class="section reveal">
+      <h2 class="section-title">Updating Your Stack</h2>
+      <p>Changed a port or image tag? Just re-run <code>up</code> — Compose is smart enough to only recreate changed services:</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash"># Edit docker-compose.yml, then:
+docker compose up -d
+
+# If you changed the image or build context, pull first:
+docker compose pull
+docker compose up -d</code></pre>
+      </div>
+    </div>
+
+    <div class="exercise-box reveal">
+      <div class="exercise-header">
+        <span class="ex-icon">🧪</span>
+        <h3>Quick Exercise</h3>
+      </div>
+      <ol>
+        <li>Start the two-service stack with <code>docker compose up -d</code>.</li>
+        <li>Change the host port from <code>8083</code> to <code>8084</code> in the YAML file.</li>
+        <li>Run <code>docker compose up -d</code> again — Compose should recreate only the <code>web</code> service.</li>
+        <li>Add a third service: <code>adminer</code> (lightweight DB GUI) with image <code>adminer:latest</code> on port <code>8085:8080</code>.</li>
+        <li>Run <code>docker compose ps</code> to confirm all three services are up.</li>
+        <li>Tear everything down with <code>docker compose down</code>.</li>
+      </ol>
+    </div>
+
+    <div class="chapter-nav">
+      <a href="07-postgres-python.html" class="nav-btn prev">
+        <span class="nav-arrow">←</span>
+        <div class="nav-text">
+          <span class="nav-label">Previous</span>
+          <span class="nav-title">PostgreSQL + Python</span>
+        </div>
+      </a>
+      <a href="09-compose-project.html" class="nav-btn next">
+        <div class="nav-text" style="text-align:right">
+          <span class="nav-label">Next Chapter</span>
+          <span class="nav-title">Compose Project</span>
+        </div>
+        <span class="nav-arrow">→</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
+<script src="../js/main.js"></script>
+</body>
+</html>

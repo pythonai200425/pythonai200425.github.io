@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 01 — Hello World Docker</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐳</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <a href="../index.html" class="topbar-logo">
+    <span class="whale">🐳</span>
+    <span>Docker<span class="brand-docker">Tutorial</span></span>
+  </a>
+  <div class="topbar-progress-wrap">
+    <div class="topbar-progress-bar" style="width:10%"></div>
+  </div>
+  <span class="topbar-chapter-label">Chapter 1 of 10</span>
+  <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-title">All Chapters</div>
+    <ul class="chapter-list">
+      <li class="chapter-item active"><a href="01-hello-world.html"><span class="ch-num">01</span><span class="ch-name">Hello World</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="02-simple-demo.html"><span class="ch-num">02</span><span class="ch-name">Simple Containers</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="03-files-and-volumes.html"><span class="ch-num">03</span><span class="ch-name">Files &amp; Volumes</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="04-build-image.html"><span class="ch-num">04</span><span class="ch-name">Build Images</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="05-env-and-network.html"><span class="ch-num">05</span><span class="ch-name">Env &amp; Networking</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="06-debug-and-lifecycle.html"><span class="ch-num">06</span><span class="ch-name">Debug &amp; Lifecycle</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="07-postgres-python.html"><span class="ch-num">07</span><span class="ch-name">PostgreSQL + Python</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="08-compose-basics.html"><span class="ch-num">08</span><span class="ch-name">Compose Basics</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="09-compose-project.html"><span class="ch-num">09</span><span class="ch-name">Compose Project</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="10-best-practices.html"><span class="ch-num">10</span><span class="ch-name">Best Practices</span><span class="ch-done">✓</span></a></li>
+    </ul>
+  </aside>
+
+  <main class="content">
+    <div class="chapter-badge">🌍 Chapter 01</div>
+    <h1 class="chapter-title">Hello World Docker</h1>
+    <p class="chapter-subtitle">Run your very first container and understand exactly what happens under the hood — from Docker Hub to your terminal screen.</p>
+
+    <div class="goal-box reveal">
+      <div class="goal-icon">🎯</div>
+      <div>
+        <div class="goal-label">Chapter Goal</div>
+        <div class="goal-text">Verify Docker is installed, run the classic <code>hello-world</code> container, and build a mental model of images, containers, and registries.</div>
+      </div>
+    </div>
+
+    <!-- ARCHITECTURE DIAGRAM -->
+    <div class="section reveal">
+      <h2 class="section-title">How Docker Works — Big Picture</h2>
+      <p>Before running a single command, let's understand the three moving parts you'll work with every day:</p>
+      <div class="concepts-grid">
+        <div class="concept-card">
+          <div class="concept-icon">🖼️</div>
+          <h4>Image</h4>
+          <p>A read-only template — like a recipe. It contains the OS, runtime, and your code, frozen in layers.</p>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">📦</div>
+          <h4>Container</h4>
+          <p>A running instance of an image. Isolated process with its own filesystem — start, stop, and delete freely.</p>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">☁️</div>
+          <h4>Registry</h4>
+          <p>A remote store for images. Docker Hub is the default — pull public images or push your own.</p>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">⚙️</div>
+          <h4>Docker Daemon</h4>
+          <p>The background service that actually builds, runs, and manages containers on your machine.</p>
+        </div>
+      </div>
+
+      <div class="diagram">
+<pre>
+  You (Terminal)          Docker Daemon           Docker Hub
+  ┌────────────┐          ┌────────────┐          ┌──────────┐
+  │ docker run │─────────▶│  Is image  │───Pull──▶│  hello-  │
+  │ hello-world│          │  cached?   │◀──────── │  world   │
+  └────────────┘          └─────┬──────┘          └──────────┘
+                                │
+                          ┌─────▼──────┐
+                          │  Container │
+                          │  (runs &   │
+                          │   exits)   │
+                          └────────────┘
+</pre>
+      </div>
+    </div>
+
+    <!-- STEP 1 -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">1</span> Check Docker is Running</h2>
+      <p>Open a terminal and confirm Docker is installed and the engine is active:</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker --version
+docker info</code></pre>
+      </div>
+      <div class="callout info">
+        <span class="callout-icon">ℹ️</span>
+        <div>
+          <div class="callout-title">What to expect</div>
+          <code>docker --version</code> prints the version number. <code>docker info</code> prints engine stats — if it shows <em>"Server: Docker Engine"</em> you're good to go. If it errors, start Docker Desktop first.
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">2</span> Run Your First Container</h2>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker run hello-world</code></pre>
+      </div>
+      <p>Watch what happens step-by-step:</p>
+      <ol style="margin-left:22px;color:var(--text-dim)">
+        <li style="margin-bottom:8px">Docker checks your local cache — is the <code>hello-world</code> image already downloaded?</li>
+        <li style="margin-bottom:8px">If not, it pulls from Docker Hub: <em>"Unable to find image locally… Pulling from library/hello-world"</em></li>
+        <li style="margin-bottom:8px">Docker creates a new container from the image</li>
+        <li style="margin-bottom:8px">The container runs, prints its greeting message, then <strong>exits</strong></li>
+      </ol>
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>
+          <div class="callout-title">Run it twice</div>
+          Run the command a second time. Notice it's instant — the image is cached locally. No network call needed.
+        </div>
+      </div>
+    </div>
+
+    <!-- BONUS: Fun Container -->
+    <div class="section reveal">
+      <h2 class="section-title">🎉 Bonus — A Really Cool One</h2>
+      <p>Now that you've seen a plain text greeting, try this animated ASCII aquarium that runs entirely inside a container:</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker run -it --rm danielkraic/asciiquarium</code></pre>
+      </div>
+      <p>You'll get a live, colorful aquarium right in your terminal. Press <kbd>q</kbd> or <kbd>Ctrl+C</kbd> to quit.</p>
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>
+          <div class="callout-title">Two new flags explained</div>
+          <code>-it</code> keeps the terminal interactive so you can see the animation. <code>--rm</code> automatically deletes the container the moment you exit — no cleanup needed.
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">3</span> Inspect Containers</h2>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker ps       # running containers only
+docker ps -a    # ALL containers (including stopped)</code></pre>
+      </div>
+      <p>You'll see <code>hello-world</code> listed in <code>docker ps -a</code> with status <em>Exited</em>. Exited containers are not deleted automatically — they linger until you remove them.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Column</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td>CONTAINER ID</td><td>Unique 12-char hex ID — you can use the first 3-4 chars in most commands</td></tr>
+            <tr><td>IMAGE</td><td>Which image this container was created from</td></tr>
+            <tr><td>STATUS</td><td>Up (running) or Exited with an exit code</td></tr>
+            <tr><td>NAMES</td><td>Docker auto-assigns a fun random name unless you use --name</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="section reveal">
+      <h2 class="section-title"><span class="step-num">4</span> Remove the Container</h2>
+      <p>Stopped containers still occupy disk space. Clean them up:</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash"># Remove by container ID (use your own ID from docker ps -a)
+docker rm &lt;container_id&gt;
+
+# Or remove ALL stopped containers at once
+docker container prune</code></pre>
+      </div>
+      <div class="callout warning">
+        <span class="callout-icon">⚠️</span>
+        <div>
+          <div class="callout-title">rm vs rmi</div>
+          <code>docker rm</code> removes a <strong>container</strong>. <code>docker rmi</code> removes an <strong>image</strong>. Common confusion — containers are instances, images are templates.
+        </div>
+      </div>
+    </div>
+
+    <!-- KEY CONCEPTS RECAP -->
+    <div class="section reveal">
+      <h2 class="section-title">Key Concepts Recap</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Term</th><th>Analogy</th><th>Command</th></tr></thead>
+          <tbody>
+            <tr><td>Image</td><td>Recipe / blueprint</td><td><code>docker images</code></td></tr>
+            <tr><td>Container</td><td>The dish you cooked</td><td><code>docker ps -a</code></td></tr>
+            <tr><td>Registry</td><td>Cookbook library</td><td><code>docker pull</code></td></tr>
+            <tr><td>Layer</td><td>Step in the recipe</td><td><code>docker history</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- EXERCISE -->
+    <div class="exercise-box reveal">
+      <div class="exercise-header">
+        <span class="ex-icon">🧪</span>
+        <h3>Quick Exercise</h3>
+      </div>
+      <ol>
+        <li>Run <code>hello-world</code> for the first time and note the download message.</li>
+        <li>Run it a second time — observe that there's no pull this time.</li>
+        <li>Use <code>docker ps -a</code> to find both stopped containers.</li>
+        <li>Run <code>docker images</code> and locate the <code>hello-world</code> image and its size.</li>
+        <li>Remove both containers with <code>docker rm</code>.</li>
+      </ol>
+    </div>
+
+    <!-- NAV -->
+    <div class="chapter-nav">
+      <span class="nav-btn disabled">
+        <span class="nav-arrow">←</span>
+        <div class="nav-text">
+          <span class="nav-label">Previous</span>
+          <span class="nav-title">No previous chapter</span>
+        </div>
+      </span>
+      <a href="02-simple-demo.html" class="nav-btn next">
+        <div class="nav-text" style="text-align:right">
+          <span class="nav-label">Next Chapter</span>
+          <span class="nav-title">Run Simple Containers</span>
+        </div>
+        <span class="nav-arrow">→</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
+<script src="../js/main.js"></script>
+</body>
+</html>

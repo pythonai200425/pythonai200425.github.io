@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 10 — Best Practices &amp; Next Steps</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐳</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <a href="../index.html" class="topbar-logo">
+    <span class="whale">🐳</span>
+    <span>Docker<span class="brand-docker">Tutorial</span></span>
+  </a>
+  <div class="topbar-progress-wrap">
+    <div class="topbar-progress-bar" style="width:100%"></div>
+  </div>
+  <span class="topbar-chapter-label">Chapter 10 of 10</span>
+  <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-title">All Chapters</div>
+    <ul class="chapter-list">
+      <li class="chapter-item"><a href="01-hello-world.html"><span class="ch-num">01</span><span class="ch-name">Hello World</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="02-simple-demo.html"><span class="ch-num">02</span><span class="ch-name">Simple Containers</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="03-files-and-volumes.html"><span class="ch-num">03</span><span class="ch-name">Files &amp; Volumes</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="04-build-image.html"><span class="ch-num">04</span><span class="ch-name">Build Images</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="05-env-and-network.html"><span class="ch-num">05</span><span class="ch-name">Env &amp; Networking</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="06-debug-and-lifecycle.html"><span class="ch-num">06</span><span class="ch-name">Debug &amp; Lifecycle</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="07-postgres-python.html"><span class="ch-num">07</span><span class="ch-name">PostgreSQL + Python</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="08-compose-basics.html"><span class="ch-num">08</span><span class="ch-name">Compose Basics</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item"><a href="09-compose-project.html"><span class="ch-num">09</span><span class="ch-name">Compose Project</span><span class="ch-done">✓</span></a></li>
+      <li class="chapter-item active"><a href="10-best-practices.html"><span class="ch-num">10</span><span class="ch-name">Best Practices</span><span class="ch-done">✓</span></a></li>
+    </ul>
+  </aside>
+
+  <main class="content">
+    <div class="chapter-badge">🏆 Chapter 10 — Final Chapter</div>
+    <h1 class="chapter-title">Best Practices &amp; Next Steps</h1>
+    <p class="chapter-subtitle">Production-ready habits, common troubleshooting patterns, a complete command cheat sheet, and a final challenge to cement everything you've learned.</p>
+
+    <div class="goal-box reveal">
+      <div class="goal-icon">🎯</div>
+      <div>
+        <div class="goal-label">Chapter Goal</div>
+        <div class="goal-text">Apply 10 key Docker best practices — slim images, .dockerignore, multi-stage builds, health checks — and complete a final challenge project using everything from this course.</div>
+      </div>
+    </div>
+
+    <!-- BEST PRACTICES -->
+    <div class="section reveal">
+      <h2 class="section-title">10 Best Practices</h2>
+
+      <div class="concepts-grid">
+        <div class="concept-card">
+          <div class="concept-icon">🪶</div>
+          <h4>1. Use Slim Images</h4>
+          <p>Prefer <code>python:3.12-slim</code> over <code>python:3.12</code>. Smaller = faster pulls, smaller attack surface.</p>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">📌</div>
+          <h4>2. Pin Versions</h4>
+          <p>Use <code>nginx:1.25</code> not <code>nginx:latest</code> in production. <code>latest</code> changes silently and breaks things.</p>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">🙈</div>
+          <h4>3. Use .dockerignore</h4>
+          <p>Exclude <code>.git</code>, <code>node_modules</code>, <code>*.pyc</code>, and <code>.env</code> to keep build context small and fast.</p>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">🔒</div>
+          <h4>4. No Hardcoded Secrets</h4>
+          <p>Never put passwords in a Dockerfile. Use <code>-e</code>, <code>--env-file</code>, or Docker secrets.</p>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">🔄</div>
+          <h4>5. One Process per Container</h4>
+          <p>Don't run nginx + postgres + your app in one container. Split them — it makes scaling and debugging far easier.</p>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">💾</div>
+          <h4>6. Use Volumes for Data</h4>
+          <p>Never store database files or uploads inside the container filesystem — use named volumes so data survives restarts.</p>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">❤️</div>
+          <h4>7. Add Health Checks</h4>
+          <p>Let Docker know when your service is actually ready — not just when the process started.</p>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">🏗️</div>
+          <h4>8. Multi-Stage Builds</h4>
+          <p>Use separate build and runtime stages to strip compilers, test dependencies, and build tools from the final image.</p>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">🔍</div>
+          <h4>9. Scan for Vulnerabilities</h4>
+          <p>Run <code>docker scout cves &lt;image&gt;</code> or integrate <code>trivy</code> into your CI pipeline.</p>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">🔁</div>
+          <h4>10. Keep Docker Updated</h4>
+          <p>Update Docker Desktop regularly. New versions include security patches, BuildKit improvements, and Compose features.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- .dockerignore -->
+    <div class="section reveal">
+      <h2 class="section-title">Example: .dockerignore</h2>
+      <p>Create a <code>.dockerignore</code> file next to your Dockerfile — it works like <code>.gitignore</code>:</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">.dockerignore</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">.git
+.gitignore
+__pycache__
+*.pyc
+*.pyo
+.env
+.env.*
+node_modules
+.pytest_cache
+*.log
+README.md</code></pre>
+      </div>
+    </div>
+
+    <!-- MULTI-STAGE BUILDS -->
+    <div class="section reveal">
+      <h2 class="section-title">Example: Multi-Stage Build</h2>
+      <p>For compiled languages or when you need build tools that shouldn't be in the final image:</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">dockerfile</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-dockerfile"># Stage 1: Build
+FROM python:3.12 AS builder
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --user --no-cache-dir -r requirements.txt
+
+# Stage 2: Runtime (smaller — no compiler, no pip cache)
+FROM python:3.12-slim AS runtime
+WORKDIR /app
+COPY --from=builder /root/.local /root/.local
+COPY app.py .
+ENV PATH=/root/.local/bin:$PATH
+CMD ["python", "app.py"]</code></pre>
+      </div>
+      <p>The final image only contains the slim runtime and the installed packages — not the full Python build toolchain.</p>
+    </div>
+
+    <!-- HEALTH CHECKS -->
+    <div class="section reveal">
+      <h2 class="section-title">Example: Health Check</h2>
+      <p>Tell Docker when your service is <em>actually ready</em>, not just started:</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">dockerfile</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-dockerfile">FROM nginx:1.25
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD curl -f http://localhost/ || exit 1</code></pre>
+      </div>
+      <p>Or in a Compose file for PostgreSQL:</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">yaml</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-yaml">services:
+  db:
+    image: postgres:16
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser -d appdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy   # waits for HEALTH, not just started!</code></pre>
+      </div>
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>
+          <div class="callout-title">The real solution to startup ordering</div>
+          <code>depends_on: condition: service_healthy</code> combined with a health check is the correct fix for the "database not ready" problem — better than a retry loop in application code.
+        </div>
+      </div>
+    </div>
+
+    <!-- CHEAT SHEET -->
+    <div class="section reveal">
+      <h2 class="section-title">Complete Command Cheat Sheet</h2>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash — containers</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker run -d --name web -p 8080:80 nginx   # start detached
+docker run -it ubuntu bash                  # interactive shell
+docker run --rm alpine echo hello           # auto-remove on exit
+docker ps                                   # running containers
+docker ps -a                                # all (including stopped)
+docker logs -f web                          # follow logs
+docker exec -it web sh                      # shell into container
+docker stop web / docker start web          # graceful stop/start
+docker rm -f web                            # force remove</code></pre>
+      </div>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash — images</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker build -t myapp:v1 .                  # build image
+docker images                               # list images
+docker pull nginx:latest                    # pull from hub
+docker rmi myapp:v1                         # remove image
+docker history myapp:v1                     # show layers</code></pre>
+      </div>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash — compose</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker compose up -d                        # start all services
+docker compose up --build                   # rebuild then start
+docker compose ps                           # list services
+docker compose logs -f                      # follow all logs
+docker compose exec web sh                  # shell into service
+docker compose down                         # stop and remove
+docker compose down -v                      # also remove volumes</code></pre>
+      </div>
+      <div class="code-wrap">
+        <div class="code-header"><span class="lang-tag">bash — cleanup</span><button class="copy-btn">⎘ Copy</button></div>
+        <pre><code class="language-bash">docker system df                            # disk usage
+docker container prune                      # remove stopped containers
+docker image prune -a                       # remove unused images
+docker volume prune                         # remove unused volumes
+docker system prune -a                      # EVERYTHING unused</code></pre>
+      </div>
+    </div>
+
+    <!-- COMMON PROBLEMS -->
+    <div class="section reveal">
+      <h2 class="section-title">Common Problems &amp; Fixes</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Problem</th><th>First Step</th><th>Common Fix</th></tr></thead>
+          <tbody>
+            <tr><td>Port already in use</td><td><code>docker ps</code></td><td>Change host port or stop the conflicting container</td></tr>
+            <tr><td>Container exits immediately</td><td><code>docker logs &lt;name&gt;</code></td><td>App crash — check logs for error message</td></tr>
+            <tr><td>DB connection refused</td><td>Check <code>docker ps</code></td><td>DB not ready yet — add retry logic or health check</td></tr>
+            <tr><td>Image not found</td><td><code>docker images</code></td><td>Build first or check image name/tag spelling</td></tr>
+            <tr><td>Disk full</td><td><code>docker system df</code></td><td><code>docker system prune</code> — free unused resources</td></tr>
+            <tr><td>Can't connect between containers</td><td><code>docker network ls</code></td><td>Ensure both are on the same user-defined network</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- FINAL CHALLENGE -->
+    <div class="exercise-box reveal">
+      <div class="exercise-header">
+        <span class="ex-icon">🏆</span>
+        <h3>Final Challenge — Build Your Own Stack</h3>
+      </div>
+      <p style="color:var(--text-dim);margin-bottom:14px;">Put everything together in one project:</p>
+      <ol>
+        <li>Create a <strong>Python Flask API</strong> with two endpoints: <code>POST /items</code> and <code>GET /items</code>.</li>
+        <li>Add <strong>PostgreSQL</strong> as the database, connected with psycopg.</li>
+        <li>Add <strong>Redis</strong> for caching the GET response.</li>
+        <li>Wire all three with a single <strong>docker-compose.yml</strong>.</li>
+        <li>Add a <strong>named volume</strong> for PostgreSQL data.</li>
+        <li>Add a <strong>health check</strong> to the db service and use <code>condition: service_healthy</code>.</li>
+        <li>Write a <strong>.dockerignore</strong> for the project.</li>
+        <li>Document in a README: how to start, stop, and reset data.</li>
+      </ol>
+      <p style="color:var(--text-muted);margin-top:14px;font-size:0.9rem">You now have all the tools to build this. Go for it. 🚀</p>
+    </div>
+
+    <!-- WHAT'S NEXT -->
+    <div class="section reveal" style="margin-top:40px">
+      <h2 class="section-title">What to Learn Next</h2>
+      <div class="concepts-grid">
+        <div class="concept-card">
+          <div class="concept-icon">☸️</div>
+          <h4>Kubernetes</h4>
+          <p>Orchestrate containers at scale — auto-scaling, rolling deployments, self-healing.</p>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">⚙️</div>
+          <h4>CI/CD with Docker</h4>
+          <p>Build and push images automatically in GitHub Actions, GitLab CI, or Jenkins.</p>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">🔐</div>
+          <h4>Docker Secrets</h4>
+          <p>Manage sensitive config like DB passwords securely in Swarm and Kubernetes.</p>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">📊</div>
+          <h4>Observability</h4>
+          <p>Add Prometheus, Grafana, and Loki to your Compose stack for metrics and logs.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONGRATS -->
+    <div style="text-align:center;padding:48px 0 32px;border-top:1px solid var(--border);margin-top:40px" class="reveal">
+      <div style="font-size:3rem;margin-bottom:14px">🎉</div>
+      <h2 style="font-size:1.8rem;font-weight:900;background:linear-gradient(135deg,#fff 30%,var(--accent2) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px">You Did It!</h2>
+      <p style="color:var(--text-dim);max-width:500px;margin:0 auto 24px">You've gone from <code>docker run hello-world</code> to building multi-service production-ready apps with Docker Compose. That's not nothing — that's everything.</p>
+      <a href="../index.html" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);text-decoration:none;color:var(--text-dim);transition:all var(--t);font-size:0.92rem" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-dim)'">← Back to Course Home</a>
+    </div>
+
+    <div class="chapter-nav">
+      <a href="09-compose-project.html" class="nav-btn prev">
+        <span class="nav-arrow">←</span>
+        <div class="nav-text">
+          <span class="nav-label">Previous</span>
+          <span class="nav-title">Compose Project</span>
+        </div>
+      </a>
+      <a href="../index.html" class="nav-btn next">
+        <div class="nav-text" style="text-align:right">
+          <span class="nav-label">Course Complete!</span>
+          <span class="nav-title">Back to Home</span>
+        </div>
+        <span class="nav-arrow">🏠</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
+<script src="../js/main.js"></script>
+</body>
+</html>
