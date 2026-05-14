@@ -1,0 +1,1530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Restaurant Chatbot — AI Advanced Lab</title>
+<style>
+  :root {
+    --bg:      #0c0a06;
+    --bg2:     #14100a;
+    --bg3:     #1e1810;
+    --accent:  #f97316;
+    --accent2: #fb923c;
+    --accent3: #fbbf24;
+    --text:    #f1ede8;
+    --text-dim:#a89880;
+    --card:    #1a1410;
+    --sidebar-w: 272px;
+    --nav-h:   56px;
+    --radius:  14px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── CANVAS BG ── */
+  canvas#bg {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  }
+
+  /* ── TOP NAV ── */
+  .topnav {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: var(--nav-h);
+    background: rgba(12,10,6,.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(249,115,22,.15);
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 20px;
+    z-index: 100;
+  }
+  .hamburger {
+    background: none; border: none; cursor: pointer;
+    display: flex; flex-direction: column; gap: 5px;
+    padding: 4px; flex-shrink: 0;
+  }
+  .hamburger span {
+    display: block; width: 22px; height: 2px;
+    background: var(--accent); border-radius: 2px;
+    transition: transform .25s, opacity .25s;
+  }
+  .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .hamburger.open span:nth-child(2) { opacity: 0; }
+  .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+  .nav-title {
+    font-size: 15px; font-weight: 800;
+    background: linear-gradient(90deg, var(--accent), var(--accent3));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .nav-subtitle { font-size: 12px; color: var(--text-dim); margin-left: 2px; }
+  .nav-home {
+    margin-left: auto;
+    font-size: 12px; color: var(--text-dim);
+    text-decoration: none;
+    border: 1px solid rgba(249,115,22,.2);
+    padding: 5px 12px; border-radius: 20px;
+    transition: border-color .2s, color .2s;
+  }
+  .nav-home:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── PROGRESS BAR ── */
+  .progress-bar {
+    position: fixed; top: var(--nav-h); left: 0; right: 0;
+    height: 3px; background: rgba(249,115,22,.1); z-index: 100;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent3));
+    width: 0%; transition: width .3s ease;
+  }
+
+  /* ── LAYOUT ── */
+  .layout {
+    display: flex;
+    margin-top: var(--nav-h);
+    flex: 1;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    position: fixed;
+    top: calc(var(--nav-h) + 3px);
+    left: 0; bottom: 0;
+    width: var(--sidebar-w);
+    background: var(--bg2);
+    border-right: 1px solid rgba(249,115,22,.12);
+    overflow-y: auto;
+    padding: 24px 0 40px;
+    transition: transform .3s ease;
+    z-index: 90;
+  }
+  .sidebar.hidden { transform: translateX(-100%); }
+  .sidebar-section {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 0 20px 8px;
+    margin-top: 16px;
+  }
+  .ch-btn {
+    display: flex; align-items: center; gap: 10px;
+    width: 100%; padding: 11px 20px;
+    background: none; border: none; cursor: pointer;
+    color: var(--text-dim);
+    font-size: 13px; text-align: left;
+    transition: background .2s, color .2s;
+    position: relative;
+  }
+  .ch-btn:hover { background: rgba(249,115,22,.07); color: var(--text); }
+  .ch-btn.active {
+    background: rgba(249,115,22,.12);
+    color: var(--accent);
+    border-right: 3px solid var(--accent);
+  }
+  .ch-num {
+    font-size: 11px; font-weight: 800;
+    min-width: 24px; height: 24px;
+    background: rgba(249,115,22,.1);
+    border: 1px solid rgba(249,115,22,.25);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: background .2s;
+  }
+  .ch-btn.active .ch-num {
+    background: rgba(249,115,22,.25);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .ch-btn.done .ch-num::after { content: ' ✓'; }
+  .ch-btn.done { color: #6b9952; }
+
+  /* ── OVERLAY (mobile) ── */
+  .overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.6);
+    z-index: 80;
+  }
+  .overlay.visible { display: block; }
+
+  /* ── MAIN CONTENT ── */
+  .content {
+    flex: 1;
+    margin-left: var(--sidebar-w);
+    padding: 48px 40px 80px;
+    max-width: 900px;
+    transition: margin-left .3s ease;
+  }
+  .content.full { margin-left: 0; }
+
+  /* ── CHAPTER PANEL ── */
+  .chapter { display: none; }
+  .chapter.active { display: block; }
+
+  .ch-header {
+    margin-bottom: 36px;
+    animation: fadeUp .5s ease both;
+  }
+  .ch-tag {
+    display: inline-block;
+    font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--accent);
+    background: rgba(249,115,22,.1);
+    border: 1px solid rgba(249,115,22,.25);
+    border-radius: 20px; padding: 4px 14px;
+    margin-bottom: 16px;
+  }
+  .ch-header h1 {
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 900; letter-spacing: -1px; line-height: 1.1;
+    background: linear-gradient(135deg, #fff 10%, var(--accent) 60%, var(--accent3) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .ch-header p {
+    margin-top: 12px; font-size: 16px; color: var(--text-dim); line-height: 1.7;
+    max-width: 640px;
+  }
+
+  /* ── SECTION ── */
+  .section { margin-bottom: 40px; animation: fadeUp .55s ease both; }
+  .section h2 {
+    font-size: 20px; font-weight: 800; margin-bottom: 14px;
+    color: var(--accent2);
+  }
+  .section h3 {
+    font-size: 16px; font-weight: 700; margin-bottom: 10px; color: var(--text);
+  }
+  .section p { font-size: 15px; color: var(--text-dim); line-height: 1.75; margin-bottom: 12px; }
+
+  /* ── CODE BLOCK ── */
+  .code-block {
+    background: var(--bg3);
+    border: 1px solid rgba(249,115,22,.12);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin: 16px 0;
+    position: relative;
+  }
+  .code-top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px;
+    background: rgba(249,115,22,.06);
+    border-bottom: 1px solid rgba(249,115,22,.1);
+  }
+  .code-lang {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: var(--accent);
+  }
+  .copy-btn {
+    font-size: 11px; font-weight: 700;
+    background: rgba(249,115,22,.1);
+    border: 1px solid rgba(249,115,22,.25);
+    color: var(--accent);
+    padding: 4px 12px; border-radius: 20px;
+    cursor: pointer; transition: background .2s;
+    letter-spacing: .5px;
+  }
+  .copy-btn:hover { background: rgba(249,115,22,.22); }
+  .copy-btn.copied { color: #4ade80; border-color: #4ade80; background: rgba(74,222,128,.1); }
+  pre {
+    padding: 20px;
+    overflow-x: auto;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 13px; line-height: 1.7;
+    color: #d4c9b8;
+    tab-size: 4;
+  }
+  /* syntax colours */
+  .k  { color: #fb923c; font-weight: 600; }    /* keyword */
+  .s  { color: #86efac; }                        /* string */
+  .c  { color: #6b7c9a; font-style: italic; }   /* comment */
+  .fn { color: #7dd3fc; }                        /* function */
+  .n  { color: #fcd34d; }                        /* number */
+  .env{ color: #c084fc; }                        /* env var / constant */
+  .cmt{ color: #556070; font-style: italic; }    /* inline hash comment */
+
+  /* ── CALLOUT ── */
+  .callout {
+    border-radius: var(--radius); padding: 16px 20px;
+    margin: 16px 0; font-size: 14px; line-height: 1.7;
+  }
+  .callout.tip  { background: rgba(74,222,128,.07); border: 1px solid rgba(74,222,128,.2); color: #86efac; }
+  .callout.warn { background: rgba(250,204,21,.07); border: 1px solid rgba(250,204,21,.2); color: #fde047; }
+  .callout.info { background: rgba(249,115,22,.07); border: 1px solid rgba(249,115,22,.2); color: var(--accent2); }
+  .callout strong { font-weight: 800; }
+
+  /* ── ARCHITECTURE DIAGRAM ── */
+  .arch {
+    display: flex; align-items: center; justify-content: center;
+    flex-wrap: wrap; gap: 8px;
+    margin: 24px 0; padding: 28px;
+    background: var(--bg3);
+    border: 1px solid rgba(249,115,22,.12);
+    border-radius: var(--radius);
+  }
+  .arch-box {
+    background: rgba(249,115,22,.08);
+    border: 1px solid rgba(249,115,22,.3);
+    border-radius: 10px;
+    padding: 12px 18px;
+    font-size: 13px; font-weight: 700;
+    color: var(--accent2);
+    text-align: center;
+    min-width: 110px;
+  }
+  .arch-box .sub { font-size: 10px; color: var(--text-dim); font-weight: 400; margin-top: 3px; }
+  .arch-arrow { font-size: 20px; color: var(--accent3); }
+
+  /* ── FILE TREE ── */
+  .file-tree {
+    background: var(--bg3);
+    border: 1px solid rgba(249,115,22,.12);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    font-family: 'Cascadia Code','Fira Code',monospace;
+    font-size: 13px; line-height: 2;
+    color: #d4c9b8;
+  }
+  .ft-folder { color: var(--accent3); font-weight: 700; }
+  .ft-file   { color: #7dd3fc; }
+  .ft-note   { color: #6b7c9a; font-style: italic; }
+
+  /* ── TABLE ── */
+  .data-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 13px; margin: 16px 0;
+  }
+  .data-table th {
+    background: rgba(249,115,22,.1);
+    color: var(--accent2); font-weight: 700;
+    padding: 10px 14px; text-align: left;
+    border-bottom: 1px solid rgba(249,115,22,.2);
+  }
+  .data-table td {
+    padding: 9px 14px; border-bottom: 1px solid rgba(249,115,22,.07);
+    color: var(--text-dim);
+  }
+  .data-table tr:hover td { background: rgba(249,115,22,.04); }
+
+  /* ── PREREQ GRID ── */
+  .prereq-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap: 14px; margin: 16px 0; }
+  .prereq-item {
+    background: var(--bg3); border: 1px solid rgba(249,115,22,.12);
+    border-radius: var(--radius); padding: 16px;
+  }
+  .prereq-item strong { display: block; color: var(--accent2); margin-bottom: 4px; font-size: 14px; }
+  .prereq-item span { font-size: 12px; color: var(--text-dim); }
+
+  /* ── NAV BUTTONS ── */
+  .nav-btns {
+    display: flex; gap: 12px; margin-top: 48px; padding-top: 32px;
+    border-top: 1px solid rgba(249,115,22,.1);
+  }
+  .nav-btn {
+    padding: 11px 24px; border-radius: 10px;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    border: 1px solid rgba(249,115,22,.3);
+    color: var(--accent); background: rgba(249,115,22,.06);
+    transition: background .2s, transform .15s;
+  }
+  .nav-btn:hover { background: rgba(249,115,22,.15); transform: translateY(-2px); }
+  .nav-btn.primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    color: #0c0a06; border-color: transparent; font-weight: 800;
+  }
+  .nav-btn.primary:hover { opacity: .9; }
+
+  /* ── ROUTE FLOW ── */
+  .route-flow {
+    display: flex; flex-direction: column; gap: 8px;
+    margin: 16px 0;
+  }
+  .route-row {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg3); border: 1px solid rgba(249,115,22,.1);
+    border-radius: 10px; padding: 12px 16px;
+    font-size: 13px;
+  }
+  .route-label {
+    font-weight: 800; min-width: 70px;
+    color: var(--accent3);
+  }
+  .route-desc { color: var(--text-dim); }
+  .route-badge {
+    margin-left: auto;
+    font-size: 10px; font-weight: 700;
+    padding: 3px 9px; border-radius: 20px;
+    background: rgba(249,115,22,.12);
+    color: var(--accent); border: 1px solid rgba(249,115,22,.2);
+  }
+
+  /* ── QUICK REF ── */
+  .qr-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap: 16px; }
+  .qr-card {
+    background: var(--bg3); border: 1px solid rgba(249,115,22,.12);
+    border-radius: var(--radius); padding: 18px;
+  }
+  .qr-card h3 { font-size: 14px; font-weight: 800; color: var(--accent2); margin-bottom: 10px; }
+  .qr-card code {
+    display: block; font-family: monospace; font-size: 12px;
+    background: rgba(249,115,22,.08); border-radius: 6px;
+    padding: 6px 10px; margin: 4px 0; color: #d4c9b8;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative; z-index: 1;
+    text-align: center; padding: 20px;
+    font-size: 12px; color: var(--text-dim);
+    border-top: 1px solid rgba(249,115,22,.1);
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.visible { transform: translateX(0); }
+    .content { margin-left: 0; padding: 32px 20px 60px; }
+    .arch { padding: 16px; }
+    .arch-box { min-width: 80px; font-size: 11px; padding: 8px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+
+<!-- ── TOP NAV ── -->
+<nav class="topnav">
+  <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+    <span></span><span></span><span></span>
+  </button>
+  <div>
+    <div class="nav-title">🍽️ Restaurant Chatbot</div>
+    <div class="nav-subtitle">LangChain · SQLite · Gradio</div>
+  </div>
+  <a class="nav-home" href="../index.html">← Home</a>
+</nav>
+
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+<!-- ── OVERLAY ── -->
+<div class="overlay" id="overlay"></div>
+
+<div class="layout">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-section">Chapters</div>
+
+    <button class="ch-btn active" data-chapter="0" onclick="goChapter(0)">
+      <div class="ch-num">01</div> How It Works
+    </button>
+    <button class="ch-btn" data-chapter="1" onclick="goChapter(1)">
+      <div class="ch-num">02</div> Project Structure
+    </button>
+    <button class="ch-btn" data-chapter="2" onclick="goChapter(2)">
+      <div class="ch-num">03</div> restaurant_db.py
+    </button>
+    <button class="ch-btn" data-chapter="3" onclick="goChapter(3)">
+      <div class="ch-num">04</div> restaurant_chatbot.py
+    </button>
+    <button class="ch-btn" data-chapter="4" onclick="goChapter(4)">
+      <div class="ch-num">05</div> Run: CLI
+    </button>
+    <button class="ch-btn" data-chapter="5" onclick="goChapter(5)">
+      <div class="ch-num">06</div> Run: Gradio UI
+    </button>
+    <button class="ch-btn" data-chapter="6" onclick="goChapter(6)">
+      <div class="ch-num">07</div> Smoke Test &amp; Ref
+    </button>
+  </aside>
+
+  <!-- ── MAIN CONTENT ── -->
+  <main class="content" id="content">
+
+    <!-- ══════════════════════════════════════════════
+         CHAPTER 1 — HOW IT WORKS
+    ══════════════════════════════════════════════ -->
+    <article class="chapter active" id="ch-0">
+      <div class="ch-header">
+        <div class="ch-tag">Chapter 01</div>
+        <h1>How It Works</h1>
+        <p>Build an AI-powered restaurant assistant that answers questions about the menu, prices, and opening hours — backed by a real SQLite database.</p>
+      </div>
+
+      <div class="section">
+        <h2>The Big Picture</h2>
+        <p>When a user asks a question, the chatbot does three things in sequence:</p>
+
+        <div class="arch">
+          <div class="arch-box">👤 User<div class="sub">types a question</div></div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-box">🔀 Classifier<div class="sub">menu / details / other</div></div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-box">🗄️ SQLite<div class="sub">fetches matching rows</div></div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-box">🤖 LLM<div class="sub">crafts the answer</div></div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-box">💬 Reply<div class="sub">shown to user</div></div>
+        </div>
+
+        <p>This pattern is called <strong>Retrieval-Augmented Generation (RAG)</strong>. Instead of asking the LLM to memorise the menu, we store facts in a database and hand the relevant rows to the LLM as context.</p>
+      </div>
+
+      <div class="section">
+        <h2>Smart Question Routing</h2>
+        <p>The classifier step is what makes the chatbot efficient — it reads only the data it needs:</p>
+
+        <div class="route-flow">
+          <div class="route-row">
+            <div class="route-label">menu</div>
+            <div class="route-desc">Questions about dishes, prices, ingredients, vegetarian options, drinks…</div>
+            <div class="route-badge">SQL LIKE search</div>
+          </div>
+          <div class="route-row">
+            <div class="route-label">details</div>
+            <div class="route-desc">Questions about opening hours, address, phone, email, website…</div>
+            <div class="route-badge">Full details fetch</div>
+          </div>
+          <div class="route-row">
+            <div class="route-label">other</div>
+            <div class="route-desc">Off-topic questions ("tell me a joke") — politely declined.</div>
+            <div class="route-badge">No DB hit</div>
+          </div>
+        </div>
+
+        <div class="callout tip">
+          <strong>Tip — Works without an API key!</strong><br>
+          The classifier uses keyword matching as a fallback, so the chatbot still routes correctly even without <code>OPENAI_API_KEY</code>. The LLM is only needed to compose the final answer text.
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Tech Stack</h2>
+        <table class="data-table">
+          <thead><tr><th>Tool</th><th>Why we use it</th></tr></thead>
+          <tbody>
+            <tr><td>LangChain</td><td>Prompt templates, output parsers, and chain composition</td></tr>
+            <tr><td>OpenAI gpt-4o-mini</td><td>Classifies questions &amp; generates friendly answers</td></tr>
+            <tr><td>SQLite</td><td>Zero-config database built into Python — no server needed</td></tr>
+            <tr><td>Gradio</td><td>One-function web UI with chat history, examples, and clear button</td></tr>
+            <tr><td>python-dotenv</td><td>Loads <code>OPENAI_API_KEY</code> from a <code>.env</code> file</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="nav-btns">
+        <button class="nav-btn primary" data-go="1">Next: Project Structure →</button>
+      </div>
+    </article>
+
+    <!-- ══════════════════════════════════════════════
+         CHAPTER 2 — PROJECT STRUCTURE
+    ══════════════════════════════════════════════ -->
+    <article class="chapter" id="ch-1">
+      <div class="ch-header">
+        <div class="ch-tag">Chapter 02</div>
+        <h1>Project Structure</h1>
+        <p>Five Python files, one <code>.env</code>, and one auto-created database file. That is the entire project.</p>
+      </div>
+
+      <div class="section">
+        <h2>File Layout</h2>
+        <div class="file-tree">
+<span class="ft-folder">chatbot-restaurant/</span>
+├── <span class="ft-file">restaurant_db.py</span>         <span class="ft-note"># SQLite tables + seed data + query helpers</span>
+├── <span class="ft-file">restaurant_chatbot.py</span>    <span class="ft-note"># RestaurantChatbot class — classify + answer</span>
+├── <span class="ft-file">restaurant_chatbot_app.py</span> <span class="ft-note"># CLI entry point (terminal chat)</span>
+├── <span class="ft-file">restaurant_chatbot_gradio.py</span> <span class="ft-note"># Gradio web UI entry point</span>
+├── <span class="ft-file">smoke_test_restaurant_chatbot.py</span> <span class="ft-note"># automated sanity check</span>
+├── <span class="ft-file">requirements.txt</span>         <span class="ft-note"># pip install -r requirements.txt</span>
+├── <span class="ft-file">.env</span>                     <span class="ft-note"># OPENAI_API_KEY=sk-... (you create this)</span>
+└── <span class="ft-file">restaurant.sqlite</span>        <span class="ft-note"># auto-created on first run</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Prerequisites</h2>
+        <div class="prereq-grid">
+          <div class="prereq-item"><strong>Python 3.11+</strong><span>Check with <code>python --version</code></span></div>
+          <div class="prereq-item"><strong>OpenAI API key</strong><span>Optional — app works without one</span></div>
+          <div class="prereq-item"><strong>No SQLite install</strong><span>sqlite3 is built into Python</span></div>
+          <div class="prereq-item"><strong>~50 MB disk</strong><span>Gradio + LangChain packages</span></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>1. Install dependencies</h2>
+        <div class="code-block">
+          <div class="code-top"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre>pip install -r requirements.txt</pre>
+        </div>
+
+        <div class="callout info">
+          <strong>requirements.txt includes:</strong><br>
+          <code>langchain-core</code> &nbsp;·&nbsp; <code>langchain-openai</code> &nbsp;·&nbsp; <code>gradio</code> &nbsp;·&nbsp; <code>python-dotenv</code>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>2. Create your .env file</h2>
+        <div class="code-block">
+          <div class="code-top"><span class="code-lang">.env</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre>OPENAI_API_KEY=sk-your-key-here</pre>
+        </div>
+
+        <div class="callout warn">
+          <strong>No key?</strong> Leave the file empty or skip creating it. The chatbot will still classify questions using keyword matching and return the raw database context as the answer. Perfect for testing without spending credits.
+        </div>
+      </div>
+
+      <div class="nav-btns">
+        <button class="nav-btn" data-go="0">← Back</button>
+        <button class="nav-btn primary" data-go="2">Next: restaurant_db.py →</button>
+      </div>
+    </article>
+
+    <!-- ══════════════════════════════════════════════
+         CHAPTER 3 — restaurant_db.py
+    ══════════════════════════════════════════════ -->
+    <article class="chapter" id="ch-2">
+      <div class="ch-header">
+        <div class="ch-tag">Chapter 03</div>
+        <h1>restaurant_db.py</h1>
+        <p>SQLite database setup, seed data, and the two query helpers the chatbot uses to answer questions.</p>
+      </div>
+
+      <div class="section">
+        <h2>The Three Tables</h2>
+        <table class="data-table">
+          <thead><tr><th>Table</th><th>What it stores</th></tr></thead>
+          <tbody>
+            <tr><td>menu_items</td><td>Dishes — name, category, description, price, vegetarian/spicy flags</td></tr>
+            <tr><td>restaurant_details</td><td>One row: name, address, phone, email, website</td></tr>
+            <tr><td>opening_hours</td><td>Seven rows, one per weekday — open/close times and notes</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>Full Code</h2>
+        <div class="code-block">
+          <div class="code-top"><span class="code-lang">python — restaurant_db.py</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><span class="cmt">"""SQLite setup and query helpers for the restaurant chatbot."""</span>
+
+<span class="k">import</span> sqlite3
+<span class="k">from</span> typing <span class="k">import</span> Any, Dict, List, Tuple, cast
+
+
+<span class="k">def</span> <span class="fn">initialize_database</span>(db_path: str = <span class="s">"restaurant.sqlite"</span>) -> None:
+    <span class="cmt">"""Create tables and seed starter data if this is a new database."""</span>
+    <span class="c"># 'with sqlite3.connect(...)' opens a connection and auto-commits on success.</span>
+    <span class="c"># The database file is created automatically if it does not exist yet.</span>
+    <span class="k">with</span> sqlite3.<span class="fn">connect</span>(db_path) <span class="k">as</span> conn:
+
+        <span class="c"># CREATE TABLE IF NOT EXISTS means this is safe to run multiple times —</span>
+        <span class="c"># it only creates the table the very first time.</span>
+        conn.<span class="fn">execute</span>(
+            <span class="s">"""
+            CREATE TABLE IF NOT EXISTS menu_items (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                item_name     TEXT NOT NULL,
+                category      TEXT NOT NULL,
+                description   TEXT NOT NULL,
+                price         REAL NOT NULL,
+                is_vegetarian INTEGER NOT NULL DEFAULT 0,
+                is_spicy      INTEGER NOT NULL DEFAULT 0,
+                is_available  INTEGER NOT NULL DEFAULT 1
+            )
+            """</span>
+        )
+
+        conn.<span class="fn">execute</span>(
+            <span class="s">"""
+            CREATE TABLE IF NOT EXISTS restaurant_details (
+                id      INTEGER PRIMARY KEY CHECK (id = 1),
+                name    TEXT NOT NULL,
+                address TEXT NOT NULL,
+                phone   TEXT NOT NULL,
+                email   TEXT NOT NULL,
+                website TEXT NOT NULL
+            )
+            """</span>
+            <span class="c"># id = 1 with a CHECK constraint guarantees there is only ever one row.</span>
+        )
+
+        conn.<span class="fn">execute</span>(
+            <span class="s">"""
+            CREATE TABLE IF NOT EXISTS opening_hours (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                day_of_week TEXT NOT NULL UNIQUE,
+                open_time   TEXT NOT NULL,
+                close_time  TEXT NOT NULL,
+                notes       TEXT
+            )
+            """</span>
+        )
+
+        <span class="c"># Seed the tables only when they are empty (first run).</span>
+        <span class="fn">_seed_if_empty</span>(conn)
+
+
+<span class="k">def</span> <span class="fn">_seed_if_empty</span>(conn: sqlite3.Connection) -> None:
+    <span class="cmt">"""Insert a small demo dataset once, keeping reruns idempotent."""</span>
+    <span class="c"># fetchone()[0] returns the integer count — if > 0, the table already has rows.</span>
+    has_menu    = conn.<span class="fn">execute</span>(<span class="s">"SELECT COUNT(*) FROM menu_items"</span>).<span class="fn">fetchone</span>()[<span class="n">0</span>] > <span class="n">0</span>
+    has_details = conn.<span class="fn">execute</span>(<span class="s">"SELECT COUNT(*) FROM restaurant_details"</span>).<span class="fn">fetchone</span>()[<span class="n">0</span>] > <span class="n">0</span>
+    has_hours   = conn.<span class="fn">execute</span>(<span class="s">"SELECT COUNT(*) FROM opening_hours"</span>).<span class="fn">fetchone</span>()[<span class="n">0</span>] > <span class="n">0</span>
+
+    <span class="k">if not</span> has_menu:
+        <span class="c"># Each tuple maps to: (item_name, category, description, price,</span>
+        <span class="c">#                     is_vegetarian, is_spicy, is_available)</span>
+        menu_rows = [
+            (<span class="s">"Margherita Pizza"</span>,   <span class="s">"Main"</span>,    <span class="s">"Tomato, mozzarella, basil"</span>,          <span class="n">10.50</span>, <span class="n">1</span>, <span class="n">0</span>, <span class="n">1</span>),
+            (<span class="s">"Spicy Chicken Burger"</span>,<span class="s">"Main"</span>,    <span class="s">"Grilled chicken, jalapeno mayo"</span>,     <span class="n">11.90</span>, <span class="n">0</span>, <span class="n">1</span>, <span class="n">1</span>),
+            (<span class="s">"Caesar Salad"</span>,        <span class="s">"Starter"</span>, <span class="s">"Romaine, parmesan, croutons"</span>,        <span class="n">7.25</span>,  <span class="n">0</span>, <span class="n">0</span>, <span class="n">1</span>),
+            (<span class="s">"Mushroom Risotto"</span>,    <span class="s">"Main"</span>,    <span class="s">"Creamy arborio rice with mushrooms"</span>, <span class="n">12.75</span>, <span class="n">1</span>, <span class="n">0</span>, <span class="n">1</span>),
+            (<span class="s">"Lemon Tart"</span>,          <span class="s">"Dessert"</span>, <span class="s">"House-made tart with lemon curd"</span>,    <span class="n">5.20</span>,  <span class="n">1</span>, <span class="n">0</span>, <span class="n">1</span>),
+            (<span class="s">"Iced Latte"</span>,          <span class="s">"Drinks"</span>, <span class="s">"Espresso with cold milk and ice"</span>,    <span class="n">4.60</span>,  <span class="n">1</span>, <span class="n">0</span>, <span class="n">1</span>),
+        ]
+        <span class="c"># executemany inserts all rows in a single transaction — much faster than</span>
+        <span class="c"># calling execute() six times separately.</span>
+        conn.<span class="fn">executemany</span>(
+            <span class="s">"""
+            INSERT INTO menu_items
+            (item_name, category, description, price, is_vegetarian, is_spicy, is_available)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """</span>,
+            menu_rows,
+        )
+
+    <span class="k">if not</span> has_details:
+        conn.<span class="fn">execute</span>(
+            <span class="s">"""INSERT INTO restaurant_details (id, name, address, phone, email, website)
+               VALUES (1, ?, ?, ?, ?, ?)"""</span>,
+            (
+                <span class="s">"Sunset Bistro"</span>,
+                <span class="s">"123 Market Street, Springfield"</span>,
+                <span class="s">"+1-555-0142"</span>,
+                <span class="s">"hello@sunsetbistro.example"</span>,
+                <span class="s">"www.sunsetbistro.example"</span>,
+            ),
+        )
+
+    <span class="k">if not</span> has_hours:
+        hours_rows = [
+            (<span class="s">"Monday"</span>,    <span class="s">"09:00"</span>, <span class="s">"21:00"</span>, <span class="s">""</span>),
+            (<span class="s">"Tuesday"</span>,   <span class="s">"09:00"</span>, <span class="s">"21:00"</span>, <span class="s">""</span>),
+            (<span class="s">"Wednesday"</span>, <span class="s">"09:00"</span>, <span class="s">"21:00"</span>, <span class="s">""</span>),
+            (<span class="s">"Thursday"</span>,  <span class="s">"09:00"</span>, <span class="s">"22:00"</span>, <span class="s">""</span>),
+            (<span class="s">"Friday"</span>,    <span class="s">"09:00"</span>, <span class="s">"23:00"</span>, <span class="s">""</span>),
+            (<span class="s">"Saturday"</span>,  <span class="s">"10:00"</span>, <span class="s">"23:00"</span>, <span class="s">"Brunch menu until 14:00"</span>),
+            (<span class="s">"Sunday"</span>,    <span class="s">"10:00"</span>, <span class="s">"20:00"</span>, <span class="s">"Family set menu available"</span>),
+        ]
+        conn.<span class="fn">executemany</span>(
+            <span class="s">"""INSERT INTO opening_hours (day_of_week, open_time, close_time, notes)
+               VALUES (?, ?, ?, ?)"""</span>,
+            hours_rows,
+        )
+
+
+<span class="k">def</span> <span class="fn">search_menu_items</span>(db_path: str, query: str) -> List[Dict[str, Any]]:
+    <span class="cmt">"""Simple LIKE-based search — returns only the rows relevant to the question."""</span>
+    <span class="c"># Split the question into individual words and keep only words ≥ 3 characters.</span>
+    <span class="c"># e.g. "What pizza do you have?" → ["What", "pizza", "you", "have"] → ["pizza", "you", "have"]</span>
+    tokens = [t.<span class="fn">strip</span>().<span class="fn">lower</span>() <span class="k">for</span> t <span class="k">in</span> query.<span class="fn">split</span>() <span class="k">if</span> <span class="fn">len</span>(t.<span class="fn">strip</span>()) >= <span class="n">3</span>]
+    <span class="k">if not</span> tokens:
+        <span class="k">return</span> <span class="fn">get_menu_items</span>(db_path)  <span class="c"># no useful words — return everything</span>
+
+    <span class="c"># Build one WHERE clause per token: item_name LIKE '%pizza%' OR ...</span>
+    where_clauses = []
+    params: List[str] = []
+    <span class="k">for</span> token <span class="k">in</span> tokens[:<span class="n">6</span>]:  <span class="c"># cap at 6 tokens to keep the SQL short</span>
+        where_clauses.<span class="fn">append</span>(<span class="s">"(LOWER(item_name) LIKE ? OR LOWER(description) LIKE ? OR LOWER(category) LIKE ?)"</span>)
+        wildcard = <span class="k">f</span><span class="s">"%{token}%"</span>
+        params.<span class="fn">extend</span>([wildcard, wildcard, wildcard])
+
+    sql = (
+        <span class="s">"SELECT item_name, category, description, price, is_vegetarian, is_spicy, is_available "</span>
+        <span class="s">"FROM menu_items WHERE "</span> + <span class="s">" OR "</span>.<span class="fn">join</span>(where_clauses) + <span class="s">" ORDER BY category, item_name"</span>
+    )
+
+    <span class="k">with</span> sqlite3.<span class="fn">connect</span>(db_path) <span class="k">as</span> conn:
+        <span class="c"># row_factory = sqlite3.Row lets us access columns by name: row["price"]</span>
+        conn.row_factory = sqlite3.Row
+        rows = conn.<span class="fn">execute</span>(sql, params).<span class="fn">fetchall</span>()
+
+    <span class="k">return</span> [<span class="fn">cast</span>(Dict[str, Any], <span class="fn">dict</span>(row)) <span class="k">for</span> row <span class="k">in</span> rows]
+
+
+<span class="k">def</span> <span class="fn">get_restaurant_details_and_hours</span>(db_path: str) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    <span class="cmt">"""Return the single restaurant details row and all opening-hours rows."""</span>
+    <span class="k">with</span> sqlite3.<span class="fn">connect</span>(db_path) <span class="k">as</span> conn:
+        conn.row_factory = sqlite3.Row
+        details_row = conn.<span class="fn">execute</span>(
+            <span class="s">"SELECT name, address, phone, email, website FROM restaurant_details WHERE id = 1"</span>
+        ).<span class="fn">fetchone</span>()
+        hours_rows = conn.<span class="fn">execute</span>(
+            <span class="s">"SELECT day_of_week, open_time, close_time, notes FROM opening_hours ORDER BY id"</span>
+        ).<span class="fn">fetchall</span>()
+
+    details = <span class="fn">cast</span>(Dict[str, Any], <span class="fn">dict</span>(details_row)) <span class="k">if</span> details_row <span class="k">else</span> {}
+    hours   = [<span class="fn">cast</span>(Dict[str, Any], <span class="fn">dict</span>(row)) <span class="k">for</span> row <span class="k">in</span> hours_rows]
+    <span class="k">return</span> details, hours</pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <strong>Why LIKE search?</strong><br>
+        A full-text index (FTS5) or vector search would be more powerful, but SQLite's <code>LIKE</code> search is perfectly fine for a small menu. It finds "pizza" in both item names and descriptions — no extra setup needed.
+      </div>
+
+      <div class="nav-btns">
+        <button class="nav-btn" data-go="1">← Back</button>
+        <button class="nav-btn primary" data-go="3">Next: restaurant_chatbot.py →</button>
+      </div>
+    </article>
+
+    <!-- ══════════════════════════════════════════════
+         CHAPTER 4 — restaurant_chatbot.py
+    ══════════════════════════════════════════════ -->
+    <article class="chapter" id="ch-3">
+      <div class="ch-header">
+        <div class="ch-tag">Chapter 04</div>
+        <h1>restaurant_chatbot.py</h1>
+        <p>The brain of the project. A single class that classifies every question, fetches the right data from SQLite, and calls the LLM to write a friendly answer.</p>
+      </div>
+
+      <div class="section">
+        <h2>Class Overview</h2>
+        <table class="data-table">
+          <thead><tr><th>Method</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td><code>__init__</code></td><td>Loads the LLM (if API key exists) and prepares both prompt templates</td></tr>
+            <tr><td><code>classify_question</code></td><td>Returns "menu", "details", or "other" — keyword first, LLM as fallback</td></tr>
+            <tr><td><code>_build_menu_context</code></td><td>Runs LIKE search on the DB and formats rows as plain text</td></tr>
+            <tr><td><code>_build_details_context</code></td><td>Fetches restaurant details + all opening hours</td></tr>
+            <tr><td><code>answer</code></td><td>The public method — routes, retrieves, then generates the final reply</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>Full Code</h2>
+        <div class="code-block">
+          <div class="code-top"><span class="code-lang">python — restaurant_chatbot.py</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><span class="cmt">"""LangChain chatbot that routes questions to menu/details/other."""</span>
+
+<span class="k">import</span> os
+<span class="k">from</span> typing <span class="k">import</span> List
+
+<span class="c"># StrOutputParser converts the LLM's response object into a plain Python string.</span>
+<span class="k">from</span> langchain_core.output_parsers <span class="k">import</span> StrOutputParser
+<span class="c"># ChatPromptTemplate builds the messages list we send to the LLM.</span>
+<span class="k">from</span> langchain_core.prompts <span class="k">import</span> ChatPromptTemplate
+<span class="c"># ChatOpenAI is the LangChain wrapper around the OpenAI chat models.</span>
+<span class="k">from</span> langchain_openai <span class="k">import</span> ChatOpenAI
+
+<span class="k">from</span> restaurant_db <span class="k">import</span> get_restaurant_details_and_hours, search_menu_items
+
+
+<span class="k">class</span> <span class="fn">RestaurantChatbot</span>:
+    <span class="cmt">"""RAG-style restaurant assistant backed by SQLite tables."""</span>
+
+    <span class="k">def</span> <span class="fn">__init__</span>(self, db_path: str, model_name: str = <span class="s">"gpt-4o-mini"</span>) -> None:
+        self.db_path = db_path
+        self.llm = None  <span class="c"># start as None — only set if we have an API key</span>
+
+        <span class="c"># os.getenv returns None if the variable is missing — safe to call always.</span>
+        <span class="k">if</span> os.<span class="fn">getenv</span>(<span class="s">"OPENAI_API_KEY"</span>):
+            <span class="c"># temperature=0 → deterministic answers (no random creativity).</span>
+            <span class="c"># Great for factual tasks like restaurant Q&A.</span>
+            self.llm = <span class="fn">ChatOpenAI</span>(model=model_name, temperature=<span class="n">0</span>)
+
+        <span class="c"># ── CLASSIFIER PROMPT ────────────────────────────────────────────</span>
+        <span class="c"># This prompt instructs the LLM to return exactly one word:</span>
+        <span class="c"># "menu", "details", or "other". The | pipe syntax chains the</span>
+        <span class="c"># prompt → LLM → parser together into a reusable "chain".</span>
+        self.classifier_prompt = ChatPromptTemplate.<span class="fn">from_messages</span>(
+            [
+                (
+                    <span class="s">"system"</span>,
+                    <span class="s">"You are a router. Classify each question as exactly one label: "</span>
+                    <span class="s">"menu, details, or other. Return only the label."</span>,
+                ),
+                (<span class="s">"human"</span>, <span class="s">"Question: {question}"</span>),
+            ]
+        )
+
+        <span class="c"># ── ANSWER PROMPT ────────────────────────────────────────────────</span>
+        <span class="c"># The {context} placeholder will be filled with the SQLite rows we</span>
+        <span class="c"># retrieved. Grounding the LLM in real data prevents hallucination.</span>
+        self.answer_prompt = ChatPromptTemplate.<span class="fn">from_messages</span>(
+            [
+                (
+                    <span class="s">"system"</span>,
+                    <span class="s">"You are a helpful restaurant assistant. Use only the provided context. "</span>
+                    <span class="s">"If context does not contain the answer, say you are not sure and ask a clarifying question. "</span>
+                    <span class="s">"Never ask which restaurant the user means."</span>,
+                ),
+                (<span class="s">"human"</span>, <span class="s">"Question: {question}\n\nContext:\n{context}"</span>),
+            ]
+        )
+
+    <span class="k">def</span> <span class="fn">classify_question</span>(self, question: str) -> str:
+        <span class="cmt">"""Classify into menu/details/other — keyword matching first, LLM as fallback."""</span>
+        lower_q = question.<span class="fn">lower</span>()
+
+        <span class="c"># ── FAST KEYWORD FALLBACK ────────────────────────────────────────</span>
+        <span class="c"># Before calling the LLM (which costs money and takes time),</span>
+        <span class="c"># check if the question contains obvious menu or details keywords.</span>
+        <span class="c"># This means the chatbot routes correctly even with no API key.</span>
+        <span class="k">if</span> <span class="fn">any</span>(k <span class="k">in</span> lower_q <span class="k">for</span> k <span class="k">in</span> [<span class="s">"menu"</span>, <span class="s">"dish"</span>, <span class="s">"food"</span>, <span class="s">"price"</span>,
+                                         <span class="s">"vegan"</span>, <span class="s">"vegetarian"</span>, <span class="s">"spicy"</span>, <span class="s">"drink"</span>]):
+            <span class="k">return</span> <span class="s">"menu"</span>
+
+        <span class="k">if</span> <span class="fn">any</span>(k <span class="k">in</span> lower_q <span class="k">for</span> k <span class="k">in</span> [<span class="s">"hour"</span>, <span class="s">"open"</span>, <span class="s">"close"</span>, <span class="s">"address"</span>,
+                                         <span class="s">"phone"</span>, <span class="s">"location"</span>, <span class="s">"email"</span>, <span class="s">"website"</span>]):
+            <span class="k">return</span> <span class="s">"details"</span>
+
+        <span class="c"># No keyword matched and no LLM available — default to "other".</span>
+        <span class="k">if not</span> self.llm:
+            <span class="k">return</span> <span class="s">"other"</span>
+
+        <span class="c"># ── LLM CLASSIFICATION ───────────────────────────────────────────</span>
+        <span class="c"># Build the chain: prompt → LLM → string parser, then invoke it.</span>
+        chain = self.classifier_prompt | self.llm | <span class="fn">StrOutputParser</span>()
+        label = chain.<span class="fn">invoke</span>({<span class="s">"question"</span>: question}).<span class="fn">strip</span>().<span class="fn">lower</span>()
+
+        <span class="c"># Guard against unexpected LLM output (safety net).</span>
+        <span class="k">if</span> label <span class="k">in</span> {<span class="s">"menu"</span>, <span class="s">"details"</span>, <span class="s">"other"</span>}:
+            <span class="k">return</span> label
+        <span class="k">return</span> <span class="s">"other"</span>
+
+    <span class="k">def</span> <span class="fn">_build_menu_context</span>(self, question: str) -> tuple[str, bool]:
+        <span class="c"># Search the database for items matching the question's keywords.</span>
+        rows = <span class="fn">search_menu_items</span>(self.db_path, question)
+        <span class="k">if not</span> rows:
+            <span class="k">return</span> <span class="s">"No menu records matched the question."</span>, <span class="env">False</span>
+
+        lines: List[str] = []
+        <span class="k">for</span> row <span class="k">in</span> rows:
+            <span class="c"># Convert SQLite integers (0/1) to human-readable labels.</span>
+            veg    = <span class="s">"vegetarian"</span>        <span class="k">if</span> row[<span class="s">"is_vegetarian"</span>] <span class="k">else</span> <span class="s">"non-vegetarian"</span>
+            spicy  = <span class="s">"spicy"</span>              <span class="k">if</span> row[<span class="s">"is_spicy"</span>]      <span class="k">else</span> <span class="s">"not spicy"</span>
+            status = <span class="s">"available"</span>          <span class="k">if</span> row[<span class="s">"is_available"</span>]  <span class="k">else</span> <span class="s">"currently unavailable"</span>
+            lines.<span class="fn">append</span>(
+                <span class="k">f</span><span class="s">"- {row['item_name']} ({row['category']}): {row['description']} | "</span>
+                <span class="k">f</span><span class="s">"${row['price']:.2f} | {veg}, {spicy}, {status}"</span>
+            )
+        <span class="k">return</span> <span class="s">"\n"</span>.<span class="fn">join</span>(lines), <span class="env">True</span>
+
+    <span class="k">def</span> <span class="fn">_build_details_context</span>(self) -> str:
+        details, hours = <span class="fn">get_restaurant_details_and_hours</span>(self.db_path)
+        <span class="k">if not</span> details:
+            <span class="k">return</span> <span class="s">"No restaurant details found."</span>
+
+        <span class="c"># Format the single restaurant row as readable key-value text.</span>
+        details_text = (
+            <span class="k">f</span><span class="s">"Name: {details['name']}\n"</span>
+            <span class="k">f</span><span class="s">"Address: {details['address']}\n"</span>
+            <span class="k">f</span><span class="s">"Phone: {details['phone']}\n"</span>
+            <span class="k">f</span><span class="s">"Email: {details['email']}\n"</span>
+            <span class="k">f</span><span class="s">"Website: {details['website']}"</span>
+        )
+
+        <span class="c"># Build one line per weekday, appending any notes in parentheses.</span>
+        hours_lines = [
+            <span class="k">f</span><span class="s">"- {h['day_of_week']}: {h['open_time']} to {h['close_time']}"</span>
+            + (<span class="k">f</span><span class="s">" ({h['notes']})"</span> <span class="k">if</span> h.<span class="fn">get</span>(<span class="s">"notes"</span>) <span class="k">else</span> <span class="s">""</span>)
+            <span class="k">for</span> h <span class="k">in</span> hours
+        ]
+        <span class="k">return</span> details_text + <span class="s">"\n\nOpening Hours:\n"</span> + <span class="s">"\n"</span>.<span class="fn">join</span>(hours_lines)
+
+    <span class="k">def</span> <span class="fn">answer</span>(self, question: str) -> str:
+        <span class="cmt">"""Route question, retrieve matching SQLite data, and generate an answer."""</span>
+        <span class="c"># Step 1: find out which data source we need.</span>
+        route = self.<span class="fn">classify_question</span>(question)
+
+        <span class="c"># Step 2: fetch the relevant rows from the database.</span>
+        <span class="k">if</span> route == <span class="s">"menu"</span>:
+            context, has_match = self.<span class="fn">_build_menu_context</span>(question)
+            <span class="k">if not</span> has_match:
+                <span class="k">return</span> (
+                    <span class="s">"I could not find that item in the current menu. "</span>
+                    <span class="s">"Ask me to list available mains, starters, desserts, or drinks."</span>
+                )
+        <span class="k">elif</span> route == <span class="s">"details"</span>:
+            context = self.<span class="fn">_build_details_context</span>()
+        <span class="k">else</span>:
+            <span class="c"># Off-topic — no database access needed, return a polite refusal.</span>
+            <span class="k">return</span> (
+                <span class="s">"I can help with menu items, prices, ingredients, and restaurant details "</span>
+                <span class="s">"like opening hours, phone, and address."</span>
+            )
+
+        <span class="c"># Step 3: if no LLM, return the raw context directly (free fallback mode).</span>
+        <span class="k">if not</span> self.llm:
+            <span class="k">return</span> <span class="k">f</span><span class="s">"(Local fallback, no OpenAI key configured)\n{context}"</span>
+
+        <span class="c"># Step 4: hand the context to the LLM and let it write a friendly answer.</span>
+        chain = self.answer_prompt | self.llm | <span class="fn">StrOutputParser</span>()
+        <span class="k">return</span> chain.<span class="fn">invoke</span>({<span class="s">"question"</span>: question, <span class="s">"context"</span>: context})</pre>
+        </div>
+      </div>
+
+      <div class="callout info">
+        <strong>The pipe operator <code>|</code></strong><br>
+        LangChain chains use <code>|</code> to connect steps: <code>prompt | llm | parser</code>. Each step passes its output to the next. It is the same idea as Unix pipes in a terminal.
+      </div>
+
+      <div class="nav-btns">
+        <button class="nav-btn" data-go="2">← Back</button>
+        <button class="nav-btn primary" data-go="4">Next: Run the CLI →</button>
+      </div>
+    </article>
+
+    <!-- ══════════════════════════════════════════════
+         CHAPTER 5 — CLI
+    ══════════════════════════════════════════════ -->
+    <article class="chapter" id="ch-4">
+      <div class="ch-header">
+        <div class="ch-tag">Chapter 05</div>
+        <h1>Run: CLI</h1>
+        <p>The simplest way to try the chatbot — a terminal chat loop with no UI dependencies.</p>
+      </div>
+
+      <div class="section">
+        <h2>restaurant_chatbot_app.py</h2>
+        <div class="code-block">
+          <div class="code-top"><span class="code-lang">python — restaurant_chatbot_app.py</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><span class="cmt">"""CLI entrypoint for the LangChain + SQLite restaurant chatbot."""</span>
+
+<span class="c"># load_dotenv() reads the .env file and adds its key=value pairs</span>
+<span class="c"># to the process environment so os.getenv("OPENAI_API_KEY") works.</span>
+<span class="k">from</span> dotenv <span class="k">import</span> load_dotenv
+
+<span class="k">from</span> restaurant_chatbot <span class="k">import</span> RestaurantChatbot
+<span class="k">from</span> restaurant_db      <span class="k">import</span> initialize_database
+
+
+<span class="k">def</span> <span class="fn">main</span>() -> None:
+    <span class="c"># Load OPENAI_API_KEY (or any other secrets) from the .env file.</span>
+    <span class="fn">load_dotenv</span>()
+
+    db_path = <span class="s">"restaurant.sqlite"</span>
+
+    <span class="c"># Creates the SQLite file + tables if they don't exist yet,</span>
+    <span class="c"># then seeds the demo menu and restaurant info on the very first run.</span>
+    <span class="fn">initialize_database</span>(db_path)
+
+    <span class="c"># The bot reads the API key from the environment automatically.</span>
+    bot = <span class="fn">RestaurantChatbot</span>(db_path=db_path)
+
+    <span class="fn">print</span>(<span class="s">"Restaurant chatbot is ready. Type 'exit' to quit."</span>)
+    <span class="fn">print</span>(<span class="s">"Try: 'What vegetarian dishes do you have?' or 'What are your opening hours?'\n"</span>)
+
+    <span class="k">while</span> <span class="env">True</span>:
+        <span class="c"># input() blocks until the user presses Enter.</span>
+        user_input = <span class="fn">input</span>(<span class="s">"You: "</span>).<span class="fn">strip</span>()
+
+        <span class="c"># Skip empty lines (user just pressed Enter without typing).</span>
+        <span class="k">if not</span> user_input:
+            <span class="k">continue</span>
+
+        <span class="c"># Graceful exit command.</span>
+        <span class="k">if</span> user_input.<span class="fn">lower</span>() <span class="k">in</span> {<span class="s">"exit"</span>, <span class="s">"quit"</span>}:
+            <span class="fn">print</span>(<span class="s">"Bot: Goodbye!"</span>)
+            <span class="k">break</span>
+
+        <span class="c"># This single call does classify → fetch DB → generate answer.</span>
+        reply = bot.<span class="fn">answer</span>(user_input)
+        <span class="fn">print</span>(<span class="k">f</span><span class="s">"Bot: {reply}\n"</span>)
+
+
+<span class="c"># Only run main() if this file is executed directly (not imported).</span>
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    <span class="fn">main</span>()</pre>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Start the CLI</h2>
+        <div class="code-block">
+          <div class="code-top"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre>python restaurant_chatbot_app.py</pre>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Example session</h2>
+        <div class="code-block">
+          <div class="code-top"><span class="code-lang">terminal</span></div>
+          <pre>Restaurant chatbot is ready. Type 'exit' to quit.
+Try: 'What vegetarian dishes do you have?' or 'What are your opening hours?'
+
+You: What vegetarian dishes do you have?
+Bot: We have several vegetarian options: Margherita Pizza ($10.50),
+     Mushroom Risotto ($12.75), Lemon Tart ($5.20), and Iced Latte ($4.60).
+
+You: What are your opening hours?
+Bot: We are open Monday–Wednesday 9am–9pm, Thursday 9am–10pm,
+     Friday 9am–11pm, Saturday 10am–11pm (Brunch until 2pm),
+     and Sunday 10am–8pm (Family set menu available).
+
+You: exit
+Bot: Goodbye!</pre>
+        </div>
+
+        <div class="callout tip">
+          <strong>Try these questions:</strong><br>
+          "What spicy dishes do you have?" · "Is the Lemon Tart vegetarian?" · "What's your phone number?" · "Do you have pasta?"
+        </div>
+      </div>
+
+      <div class="nav-btns">
+        <button class="nav-btn" data-go="3">← Back</button>
+        <button class="nav-btn primary" data-go="5">Next: Gradio UI →</button>
+      </div>
+    </article>
+
+    <!-- ══════════════════════════════════════════════
+         CHAPTER 6 — GRADIO UI
+    ══════════════════════════════════════════════ -->
+    <article class="chapter" id="ch-5">
+      <div class="ch-header">
+        <div class="ch-tag">Chapter 06</div>
+        <h1>Run: Gradio UI</h1>
+        <p>A proper web chat interface — conversation history, example questions, and a Clear button. Built with about 40 lines of Python.</p>
+      </div>
+
+      <div class="section">
+        <h2>restaurant_chatbot_gradio.py</h2>
+        <div class="code-block">
+          <div class="code-top"><span class="code-lang">python — restaurant_chatbot_gradio.py</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><span class="cmt">"""Gradio web UI for the SQLite + LangChain restaurant chatbot."""</span>
+
+<span class="k">from</span> dotenv <span class="k">import</span> load_dotenv
+<span class="k">import</span> gradio <span class="k">as</span> gr
+
+<span class="k">from</span> restaurant_chatbot <span class="k">import</span> RestaurantChatbot
+<span class="k">from</span> restaurant_db      <span class="k">import</span> initialize_database
+
+
+<span class="k">def</span> <span class="fn">create_bot</span>(db_path: str = <span class="s">"restaurant.sqlite"</span>) -> RestaurantChatbot:
+    <span class="cmt">"""Load environment variables, ensure DB exists, then build chatbot."""</span>
+    <span class="c"># Reads OPENAI_API_KEY from .env if the file exists.</span>
+    <span class="fn">load_dotenv</span>()
+
+    <span class="c"># Creates tables and seed rows before the very first user question.</span>
+    <span class="fn">initialize_database</span>(db_path)
+    <span class="k">return</span> <span class="fn">RestaurantChatbot</span>(db_path=db_path)
+
+
+<span class="k">def</span> <span class="fn">build_demo</span>(bot: RestaurantChatbot) -> gr.Blocks:
+    <span class="cmt">"""Construct the Gradio chat interface around the chatbot backend."""</span>
+
+    <span class="c"># chat_handler is an inner function — it captures `bot` from the outer scope.</span>
+    <span class="k">def</span> <span class="fn">chat_handler</span>(message: str, history: list[dict]) -> tuple[list[dict], str]:
+        <span class="cmt">"""Append the user question and bot answer in Gradio messages format."""</span>
+        history = history <span class="k">or</span> []
+        user_text = (message <span class="k">or</span> <span class="s">""</span>).<span class="fn">strip</span>()
+        <span class="k">if not</span> user_text:
+            <span class="k">return</span> history, <span class="s">""</span>  <span class="c"># nothing typed — return unchanged history</span>
+
+        answer = bot.<span class="fn">answer</span>(user_text)
+
+        <span class="c"># Gradio's chat format is a list of dicts with "role" and "content" keys.</span>
+        <span class="c"># We append both the user message and the bot reply, then return the new list.</span>
+        updated_history = history + [
+            {<span class="s">"role"</span>: <span class="s">"user"</span>,      <span class="s">"content"</span>: user_text},
+            {<span class="s">"role"</span>: <span class="s">"assistant"</span>, <span class="s">"content"</span>: answer},
+        ]
+        <span class="k">return</span> updated_history, <span class="s">""</span>  <span class="c"># second value clears the text box</span>
+
+    <span class="c"># gr.Blocks lets us arrange components freely (unlike gr.Interface).</span>
+    <span class="k">with</span> gr.<span class="fn">Blocks</span>(title=<span class="s">"Restaurant Chatbot"</span>) <span class="k">as</span> demo:
+        gr.<span class="fn">Markdown</span>(<span class="s">"## Restaurant Chatbot\nAsk about menu items, prices, or opening hours."</span>)
+
+        <span class="c"># gr.Chatbot renders the conversation with user/assistant bubbles.</span>
+        chatbot = gr.<span class="fn">Chatbot</span>(label=<span class="s">"Conversation"</span>, height=<span class="n">450</span>)
+
+        message_box = gr.<span class="fn">Textbox</span>(
+            label=<span class="s">"Your question"</span>,
+            placeholder=<span class="s">"e.g., What vegetarian dishes do you have?"</span>
+        )
+
+        <span class="c"># Place Send and Clear side by side with gr.Row().</span>
+        <span class="k">with</span> gr.<span class="fn">Row</span>():
+            send_btn  = gr.<span class="fn">Button</span>(<span class="s">"Send"</span>, variant=<span class="s">"primary"</span>)
+            clear_btn = gr.<span class="fn">Button</span>(<span class="s">"Clear"</span>)
+
+        <span class="c"># Wire up: clicking Send or pressing Enter both call chat_handler.</span>
+        send_btn.<span class="fn">click</span>(chat_handler,
+                       inputs=[message_box, chatbot],
+                       outputs=[chatbot, message_box])
+
+        message_box.<span class="fn">submit</span>(chat_handler,
+                            inputs=[message_box, chatbot],
+                            outputs=[chatbot, message_box])
+
+        <span class="c"># Clear resets the chatbot to an empty list, no loading state needed.</span>
+        clear_btn.<span class="fn">click</span>(<span class="k">lambda</span>: [], outputs=chatbot, queue=<span class="env">False</span>)
+
+        <span class="c"># Example questions the user can click to auto-fill the text box.</span>
+        gr.<span class="fn">Examples</span>(
+            examples=[
+                <span class="s">"What are your opening hours?"</span>,
+                <span class="s">"What spicy dishes are available?"</span>,
+                <span class="s">"What is your phone number and address?"</span>,
+            ],
+            inputs=message_box,
+        )
+
+    <span class="k">return</span> demo
+
+
+<span class="k">def</span> <span class="fn">main</span>() -> None:
+    <span class="cmt">"""Run the web app."""</span>
+    bot  = <span class="fn">create_bot</span>()
+    demo = <span class="fn">build_demo</span>(bot)
+    <span class="c"># Port 7861 avoids conflict with rag_pdf.py which defaults to 7860.</span>
+    demo.<span class="fn">launch</span>(server_port=<span class="n">7861</span>)
+
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    <span class="fn">main</span>()</pre>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Start the web UI</h2>
+        <div class="code-block">
+          <div class="code-top"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre>python restaurant_chatbot_gradio.py</pre>
+        </div>
+
+        <p>Then open <strong>http://localhost:7861</strong> in your browser.</p>
+
+        <div class="callout info">
+          <strong>Why port 7861?</strong><br>
+          Gradio defaults to 7860. If you also run the RAG PDF chatbot from the previous lab at the same time, they would clash. Using 7861 here keeps both running side by side.
+        </div>
+      </div>
+
+      <div class="nav-btns">
+        <button class="nav-btn" data-go="4">← Back</button>
+        <button class="nav-btn primary" data-go="6">Next: Smoke Test &amp; Ref →</button>
+      </div>
+    </article>
+
+    <!-- ══════════════════════════════════════════════
+         CHAPTER 7 — SMOKE TEST & QUICK REF
+    ══════════════════════════════════════════════ -->
+    <article class="chapter" id="ch-6">
+      <div class="ch-header">
+        <div class="ch-tag">Chapter 07</div>
+        <h1>Smoke Test &amp; Quick Reference</h1>
+        <p>Verify every route works without an API key, then keep this cheat sheet handy.</p>
+      </div>
+
+      <div class="section">
+        <h2>smoke_test_restaurant_chatbot.py</h2>
+        <p>Run this any time you change the code to make sure nothing is broken.</p>
+        <div class="code-block">
+          <div class="code-top"><span class="code-lang">python — smoke_test_restaurant_chatbot.py</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><span class="cmt">"""Smoke test for the SQLite-backed restaurant chatbot."""</span>
+
+<span class="k">import</span> os
+<span class="k">import</span> tempfile
+<span class="k">import</span> uuid
+
+<span class="k">from</span> restaurant_chatbot <span class="k">import</span> RestaurantChatbot
+<span class="k">from</span> restaurant_db      <span class="k">import</span> get_menu_items, get_restaurant_details_and_hours, initialize_database
+
+
+<span class="k">def</span> <span class="fn">run_smoke_test</span>() -> None:
+    <span class="c"># Use a unique temp file so the test never pollutes the real database.</span>
+    <span class="c"># uuid.uuid4().hex gives a random 32-character hex string.</span>
+    db_path = os.path.<span class="fn">join</span>(tempfile.<span class="fn">gettempdir</span>(), <span class="k">f</span><span class="s">"test_restaurant_{uuid.uuid4().hex}.sqlite"</span>)
+    <span class="fn">initialize_database</span>(db_path)
+
+    <span class="c"># ── VERIFY DATABASE CONTENTS ─────────────────────────────────────</span>
+    menu             = <span class="fn">get_menu_items</span>(db_path)
+    details, hours   = <span class="fn">get_restaurant_details_and_hours</span>(db_path)
+
+    <span class="c"># assert raises AssertionError and prints the message if the condition is False.</span>
+    <span class="k">assert</span> <span class="fn">len</span>(menu) >= <span class="n">3</span>,         <span class="s">"Menu should have seeded items"</span>
+    <span class="k">assert</span> details.<span class="fn">get</span>(<span class="s">"name"</span>),     <span class="s">"Restaurant details should be seeded"</span>
+    <span class="k">assert</span> <span class="fn">len</span>(hours) == <span class="n">7</span>,         <span class="s">"Opening hours should include all days"</span>
+
+    <span class="c"># ── FORCE OFFLINE MODE ───────────────────────────────────────────</span>
+    <span class="c"># Temporarily remove the API key from the environment.</span>
+    <span class="c"># This tests that keyword routing + fallback answers work with no OpenAI access.</span>
+    old_key = os.environ.<span class="fn">pop</span>(<span class="s">"OPENAI_API_KEY"</span>, None)
+    <span class="k">try</span>:
+        bot = <span class="fn">RestaurantChatbot</span>(db_path=db_path)
+
+        <span class="c"># Should route to "menu" via keyword "vegetarian".</span>
+        menu_reply         = bot.<span class="fn">answer</span>(<span class="s">"What vegetarian dishes are on the menu?"</span>)
+        <span class="c"># "fish" is not in the seed data → no match reply.</span>
+        missing_item_reply = bot.<span class="fn">answer</span>(<span class="s">"Do you have fish in the menu?"</span>)
+        <span class="c"># Should route to "details" via keywords "hours" and "address".</span>
+        details_reply      = bot.<span class="fn">answer</span>(<span class="s">"What are your opening hours and address?"</span>)
+        <span class="c"># Off-topic question → polite refusal.</span>
+        other_reply        = bot.<span class="fn">answer</span>(<span class="s">"Can you tell me a joke?"</span>)
+    <span class="k">finally</span>:
+        <span class="c"># Always restore the key so other tests in the same session still work.</span>
+        <span class="k">if</span> old_key <span class="k">is not</span> <span class="env">None</span>:
+            os.environ[<span class="s">"OPENAI_API_KEY"</span>] = old_key
+
+    <span class="c"># ── ASSERTIONS ───────────────────────────────────────────────────</span>
+    <span class="k">assert</span> <span class="s">"Margherita Pizza"</span>      <span class="k">in</span> menu_reply <span class="k">or</span> <span class="s">"Mushroom Risotto"</span> <span class="k">in</span> menu_reply
+    <span class="k">assert</span> <span class="s">"could not find that item"</span> <span class="k">in</span> missing_item_reply
+    <span class="k">assert</span> <span class="s">"Opening Hours"</span>           <span class="k">in</span> details_reply <span class="k">and</span> <span class="s">"Address"</span> <span class="k">in</span> details_reply
+    <span class="k">assert</span> <span class="s">"I can help with menu items"</span> <span class="k">in</span> other_reply
+
+    <span class="c"># Best-effort cleanup — on Windows the file may still be locked.</span>
+    <span class="k">try</span>:
+        os.<span class="fn">remove</span>(db_path)
+    <span class="k">except</span> OSError:
+        <span class="k">pass</span>
+
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    <span class="fn">run_smoke_test</span>()
+    <span class="fn">print</span>(<span class="s">"smoke_test_restaurant_chatbot.py: PASS"</span>)</pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-top"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre>python smoke_test_restaurant_chatbot.py</pre>
+        </div>
+
+        <div class="callout tip">
+          <strong>Expected output:</strong> <code>smoke_test_restaurant_chatbot.py: PASS</code><br>
+          No output means something failed — Python will print the AssertionError message to tell you which check broke.
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Quick Reference</h2>
+        <div class="qr-grid">
+          <div class="qr-card">
+            <h3>Install &amp; Run CLI</h3>
+            <code>pip install -r requirements.txt</code>
+            <code>python restaurant_chatbot_app.py</code>
+          </div>
+          <div class="qr-card">
+            <h3>Run Gradio UI</h3>
+            <code>python restaurant_chatbot_gradio.py</code>
+            <code># → http://localhost:7861</code>
+          </div>
+          <div class="qr-card">
+            <h3>Run Smoke Test</h3>
+            <code>python smoke_test_restaurant_chatbot.py</code>
+            <code># no OPENAI_API_KEY needed</code>
+          </div>
+          <div class="qr-card">
+            <h3>Reset the Database</h3>
+            <code>del restaurant.sqlite</code>
+            <code># re-seeded on next run</code>
+          </div>
+          <div class="qr-card">
+            <h3>Routing Keywords</h3>
+            <code>menu → dish, food, price, spicy…</code>
+            <code>details → hour, open, address…</code>
+          </div>
+          <div class="qr-card">
+            <h3>Add a Menu Item</h3>
+            <code>INSERT INTO menu_items (...)</code>
+            <code># edit _seed_if_empty() in db.py</code>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Ideas to Extend</h2>
+        <table class="data-table">
+          <thead><tr><th>Idea</th><th>Where to start</th></tr></thead>
+          <tbody>
+            <tr><td>Add conversation memory</td><td>Wrap <code>RestaurantChatbot</code> with <code>ConversationBufferMemory</code></td></tr>
+            <tr><td>Support multiple restaurants</td><td>Add a <code>restaurant_id</code> foreign key to all three tables</td></tr>
+            <tr><td>Live reservations</td><td>New <code>reservations</code> table + <code>answer()</code> route for "book"</td></tr>
+            <tr><td>Image thumbnails</td><td>Add an <code>image_url</code> column to <code>menu_items</code> and display in Gradio</td></tr>
+            <tr><td>Swap the LLM</td><td>Replace <code>ChatOpenAI</code> with <code>ChatOllama</code> for a fully local setup</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="nav-btns">
+        <button class="nav-btn" data-go="5">← Back</button>
+        <button class="nav-btn primary" onclick="window.location='../index.html'">← Back to Home</button>
+      </div>
+    </article>
+
+  </main>
+</div>
+
+<footer>Restaurant Chatbot Lab · LangChain · SQLite · Gradio · AI Advanced</footer>
+
+<script>
+// ── STATE ────────────────────────────────────────────────
+const TOTAL = 7;
+let current = 0;
+const visited = new Set([0]);
+
+// ── HELPERS ──────────────────────────────────────────────
+function goChapter(idx) {
+  if (idx < 0 || idx >= TOTAL) return;
+
+  // Hide current chapter
+  document.getElementById('ch-' + current).classList.remove('active');
+  document.querySelector('[data-chapter="' + current + '"]').classList.remove('active');
+
+  // Mark old as done
+  if (idx > current) {
+    document.querySelector('[data-chapter="' + current + '"]').classList.add('done');
+  }
+
+  current = idx;
+  visited.add(idx);
+
+  // Show new chapter
+  document.getElementById('ch-' + idx).classList.add('active');
+  document.querySelector('[data-chapter="' + idx + '"]').classList.add('active');
+
+  // Progress bar
+  document.getElementById('progress').style.width = ((idx + 1) / TOTAL * 100) + '%';
+
+  // Scroll to top
+  document.getElementById('content').scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Close sidebar on mobile
+  if (window.innerWidth <= 768) closeSidebar();
+}
+
+// Wire up data-go buttons
+document.addEventListener('click', e => {
+  const btn = e.target.closest('[data-go]');
+  if (btn) goChapter(+btn.dataset.go);
+});
+
+// ── SIDEBAR TOGGLE ────────────────────────────────────────
+const sidebar  = document.getElementById('sidebar');
+const hamburger= document.getElementById('hamburger');
+const overlay  = document.getElementById('overlay');
+const content  = document.getElementById('content');
+let sidebarOpen = true;
+
+function closeSidebar() {
+  sidebarOpen = false;
+  sidebar.classList.add('hidden');
+  sidebar.classList.remove('visible');
+  overlay.classList.remove('visible');
+  hamburger.classList.remove('open');
+  content.classList.add('full');
+}
+function openSidebar() {
+  sidebarOpen = true;
+  sidebar.classList.remove('hidden');
+  sidebar.classList.add('visible');
+  overlay.classList.add('visible');
+  hamburger.classList.add('open');
+  content.classList.remove('full');
+}
+hamburger.addEventListener('click', () => sidebarOpen ? closeSidebar() : openSidebar());
+overlay.addEventListener('click', closeSidebar);
+
+// On mobile default to closed
+if (window.innerWidth <= 768) {
+  sidebar.classList.remove('hidden');
+  sidebarOpen = false;
+}
+
+// ── COPY BUTTONS ─────────────────────────────────────────
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  // Strip HTML tags to get plain text
+  const text = pre.innerText || pre.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ── PARTICLE CANVAS ───────────────────────────────────────
+const canvas = document.getElementById('bg');
+const ctx    = canvas.getContext('2d');
+
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+resize();
+window.addEventListener('resize', resize);
+
+const COLORS = ['#f97316','#fb923c','#fbbf24','#fdba74'];
+const pts = Array.from({ length: 55 }, () => ({
+  x:  Math.random() * window.innerWidth,
+  y:  Math.random() * window.innerHeight,
+  vx: (Math.random() - .5) * .3,
+  vy: (Math.random() - .5) * .3,
+  r:  Math.random() * 1.8 + 0.8,
+  c:  COLORS[Math.floor(Math.random() * COLORS.length)],
+}));
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let i = 0; i < pts.length; i++) {
+    for (let j = i + 1; j < pts.length; j++) {
+      const dx = pts[i].x - pts[j].x;
+      const dy = pts[i].y - pts[j].y;
+      const d  = Math.sqrt(dx*dx + dy*dy);
+      if (d < 110) {
+        ctx.beginPath();
+        ctx.moveTo(pts[i].x, pts[i].y);
+        ctx.lineTo(pts[j].x, pts[j].y);
+        ctx.strokeStyle = '#f97316';
+        ctx.globalAlpha = (1 - d / 110) * 0.06;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+  }
+  pts.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = p.c;
+    ctx.globalAlpha = 0.15;
+    ctx.fill();
+    p.x += p.vx; p.y += p.vy;
+    if (p.x < 0 || p.x > canvas.width)  p.vx *= -1;
+    if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+  });
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>

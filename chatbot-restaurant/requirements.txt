@@ -1,0 +1,14 @@
+# ── Restaurant Chatbot ────────────────────────────────────────────────────────
+# Install: pip install -r requirements.txt
+# Requires: OPENAI_API_KEY set in .env
+# Note: sqlite3 is built into Python — no extra install needed.
+
+# LangChain components
+langchain-core>=0.2.0             # ChatPromptTemplate, StrOutputParser
+langchain-openai>=0.1.0           # ChatOpenAI (gpt-4o-mini)
+
+# Gradio web UI (only needed for restaurant_chatbot_gradio.py)
+gradio>=4.0.0
+
+# Environment variable loader
+python-dotenv>=1.0.0
