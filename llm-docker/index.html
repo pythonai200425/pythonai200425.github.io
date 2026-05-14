@@ -833,12 +833,15 @@ pre{
 
 <span class="cmt"># Step 3: Follow the model-puller logs to see download progress</span>
 <span class="cmt">#   Press Ctrl+C to stop watching (the containers keep running)</span>
-<span class="t-p">$</span> <span class="t-c">docker logs -f ollama-model-puller</span></pre>
+<span class="t-p">$</span> <span class="t-c">docker logs -f ollama-model-puller</span>
 
 <span class="cmt"># (Optional) Pull a different model version, e.g. llama3.1:8b</span>
 <span class="t-p">$</span> <span class="t-c">docker exec ollama ollama pull llama3.1:8b</span>
+
+<span class="cmt"># (Optional) Pull a different model version, e.g. llama2:7b</span>
+<span class="t-p">$</span> <span class="t-c">docker exec ollama ollama pull llama2:7b</span>
         </div>
-      </div>
+      </div></pre>
 
       <div class="block">
         <div class="block-explain">Expected output in your terminal while the model downloads:</div>
