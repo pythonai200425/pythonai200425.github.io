@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM with Docker — Run Llama 3 Locally</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦙</text></svg>">
+<style>
+:root {
+  --bg:       #080b14;
+  --bg2:      #0d1117;
+  --bg3:      #161b22;
+  --card:     #0d1117;
+  --border:   #21262d;
+  --accent:   #2496ed;
+  --accent2:  #a78bfa;
+  --accent3:  #38bdf8;
+  --pink:     #ff6ec7;
+  --green:    #3fb950;
+  --yellow:   #f0c000;
+  --text:     #e6edf3;
+  --dim:      #8b949e;
+  --code-bg:  #010409;
+  --sidebar-w: 272px;
+  --nav-h:    56px;
+  --r:        12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:'Segoe UI',system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── CANVAS ── */
+#bg-canvas{position:fixed;inset:0;pointer-events:none;z-index:0;}
+
+/* ── TOP NAV ── */
+.topnav{
+  position:fixed;top:0;left:0;right:0;
+  height:var(--nav-h);z-index:200;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;
+  background:rgba(8,11,20,.9);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+}
+.topnav-left{display:flex;align-items:center;gap:16px;}
+.hamburger{
+  display:none;
+  flex-direction:column;justify-content:center;gap:5px;
+  width:36px;height:36px;cursor:pointer;
+  background:none;border:1px solid var(--border);border-radius:8px;
+  padding:8px;
+}
+.hamburger span{display:block;height:2px;background:var(--dim);border-radius:2px;transition:all .3s;}
+.topnav-logo{
+  display:flex;align-items:center;gap:10px;
+  text-decoration:none;color:var(--text);
+  font-weight:800;font-size:15px;
+}
+.topnav-logo .ico{font-size:22px;}
+.topnav-right{display:flex;align-items:center;gap:10px;}
+.progress-bar{
+  width:160px;height:4px;border-radius:2px;
+  background:var(--border);overflow:hidden;
+}
+.progress-fill{
+  height:100%;border-radius:2px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  transition:width .4s ease;
+}
+.progress-label{font-size:11px;color:var(--dim);}
+.back-btn{
+  display:flex;align-items:center;gap:6px;
+  text-decoration:none;font-size:13px;color:var(--dim);
+  border:1px solid var(--border);border-radius:8px;
+  padding:6px 14px;
+  transition:color .2s,border-color .2s;
+}
+.back-btn:hover{color:var(--text);border-color:var(--accent);}
+
+/* ── LAYOUT ── */
+.layout{
+  display:flex;
+  padding-top:var(--nav-h);
+  min-height:100vh;
+  position:relative;z-index:1;
+}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:var(--sidebar-w);
+  flex-shrink:0;
+  position:fixed;
+  top:var(--nav-h);
+  bottom:0;
+  left:0;
+  overflow-y:auto;
+  background:rgba(13,17,23,.97);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  z-index:100;
+  transition:transform .3s ease;
+}
+.sidebar::-webkit-scrollbar{width:4px;}
+.sidebar::-webkit-scrollbar-track{background:transparent;}
+.sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+.sidebar-intro{
+  padding:24px 20px 16px;
+  border-bottom:1px solid var(--border);
+}
+.sidebar-title{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px;}
+.sidebar-desc{font-size:12px;color:var(--dim);line-height:1.6;}
+.sidebar-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+.sbadge{
+  font-size:10px;font-weight:700;
+  padding:2px 8px;border-radius:10px;
+  background:rgba(36,150,237,.1);
+  color:var(--accent);
+  border:1px solid rgba(36,150,237,.2);
+}
+
+.chapter-nav{padding:12px 0;flex:1;}
+.chapter-group-label{
+  font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  color:var(--dim);
+  padding:10px 20px 6px;
+}
+.chapter-item{
+  display:flex;align-items:center;gap:12px;
+  padding:11px 20px;
+  cursor:pointer;
+  transition:background .15s;
+  border-left:3px solid transparent;
+  text-decoration:none;
+  color:var(--dim);
+}
+.chapter-item:hover{background:rgba(255,255,255,.04);color:var(--text);}
+.chapter-item.active{
+  background:rgba(36,150,237,.08);
+  border-left-color:var(--accent);
+  color:var(--text);
+}
+.chapter-item.done .ch-num{
+  background:var(--green);color:#000;
+}
+.ch-num{
+  width:26px;height:26px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:800;
+  background:var(--bg3);
+  border:1px solid var(--border);
+  flex-shrink:0;
+  transition:background .2s,color .2s;
+  color:var(--dim);
+}
+.chapter-item.active .ch-num{
+  background:var(--accent);color:#fff;border-color:var(--accent);
+}
+.ch-label{
+  font-size:13px;font-weight:600;line-height:1.3;
+  flex:1;
+}
+.ch-check{font-size:14px;color:var(--green);flex-shrink:0;}
+
+.sidebar-footer{
+  padding:16px 20px;
+  border-top:1px solid var(--border);
+  font-size:11px;color:var(--dim);
+  display:flex;flex-direction:column;gap:6px;
+}
+.sidebar-footer a{color:var(--accent3);text-decoration:none;}
+.sidebar-footer a:hover{text-decoration:underline;}
+
+/* ── MAIN CONTENT ── */
+.main{
+  margin-left:var(--sidebar-w);
+  flex:1;
+  min-height:calc(100vh - var(--nav-h));
+  display:flex;flex-direction:column;
+}
+
+/* ── CHAPTER PANELS ── */
+.chapter-panel{
+  display:none;
+  flex:1;flex-direction:column;
+  padding:48px 56px 40px;
+  max-width:860px;
+  animation:fadeIn .3s ease;
+}
+.chapter-panel.active{display:flex;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+.panel-header{margin-bottom:36px;}
+.panel-step{
+  font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;
+  color:var(--accent);margin-bottom:8px;
+}
+.panel-title{
+  font-size:clamp(26px,3.5vw,38px);font-weight:900;letter-spacing:-1px;
+  margin-bottom:10px;
+}
+.panel-subtitle{font-size:15px;color:var(--dim);line-height:1.7;max-width:580px;}
+
+/* ── CONTENT BLOCKS ── */
+.block{margin-bottom:28px;}
+.block-explain{
+  font-size:14px;color:var(--dim);line-height:1.8;
+  padding:20px 24px;
+  background:var(--bg3);
+  border-radius:var(--r) var(--r) 0 0;
+  border:1px solid var(--border);
+  border-bottom:none;
+}
+.block-explain strong{color:var(--text);}
+.block-explain code{
+  background:rgba(36,150,237,.1);color:var(--accent3);
+  padding:1px 6px;border-radius:4px;font-size:13px;
+}
+.block-explain a{color:var(--accent3);text-decoration:none;}
+.block-explain a:hover{text-decoration:underline;}
+
+/* first block without explain */
+.block.no-explain .code-block{border-radius:var(--r);}
+
+/* ── CODE BLOCK ── */
+.code-block{
+  border:1px solid var(--border);
+  border-radius:0 0 var(--r) var(--r);
+  overflow:hidden;
+}
+.block.no-explain .code-block{
+  border-radius:var(--r);
+}
+.code-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 18px;
+  background:var(--code-bg);
+  border-bottom:1px solid #1c2128;
+}
+.code-dots{display:flex;gap:6px;align-items:center;}
+.dot{width:10px;height:10px;border-radius:50%;}
+.dot-r{background:#ff5f56;}.dot-y{background:#ffbd2e;}.dot-g{background:#27c93f;}
+.code-filename{font-size:12px;font-weight:600;color:var(--dim);margin-left:10px;}
+.code-right{display:flex;align-items:center;gap:8px;}
+.code-lang{
+  font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  color:var(--accent);
+  background:rgba(36,150,237,.1);
+  border:1px solid rgba(36,150,237,.15);
+  padding:2px 9px;border-radius:5px;
+}
+.copy-btn{
+  display:flex;align-items:center;gap:5px;
+  font-size:12px;font-weight:600;color:var(--dim);
+  background:rgba(255,255,255,.05);
+  border:1px solid var(--border);border-radius:6px;
+  padding:4px 11px;cursor:pointer;
+  transition:all .2s;user-select:none;
+}
+.copy-btn:hover{color:var(--text);background:rgba(255,255,255,.1);border-color:var(--accent2);}
+.copy-btn.copied{color:var(--green);border-color:var(--green);background:rgba(63,185,80,.1);}
+
+pre{
+  margin:0;padding:22px 24px;
+  background:var(--code-bg);
+  overflow-x:auto;
+  font-family:'Cascadia Code','Fira Code','Courier New',monospace;
+  font-size:13px;line-height:1.75;
+}
+
+/* Syntax */
+.k{color:#ff7b72;}.s{color:#a5d6ff;}.c{color:#6e7681;font-style:italic;}
+.n{color:#79c0ff;}.o{color:#ff7b72;}.m{color:#f2cc60;}
+.p{color:#e6edf3;}.fn{color:#d2a8ff;}.kw2{color:#ffa657;}
+.env{color:#7ee787;}.cmt{color:#6e7681;font-style:italic;}
+
+/* file tree */
+.file-tree{
+  padding:20px 24px;
+  font-family:'Cascadia Code','Fira Code',monospace;
+  font-size:13px;line-height:2;
+  background:var(--code-bg);
+}
+.ft-dir{color:var(--accent3);}.ft-yaml{color:var(--yellow);}
+.ft-py{color:#79c0ff;}.ft-env{color:var(--green);}.ft-txt{color:var(--dim);}
+.ft-c{color:#6e7681;font-style:italic;}
+
+/* terminal */
+.terminal{
+  padding:20px 24px;background:#000;
+  font-family:'Cascadia Code','Fira Code',monospace;
+  font-size:13px;line-height:1.85;
+}
+.t-p{color:#7ee787;}.t-c{color:#e6edf3;}.t-o{color:#8b949e;}
+.t-s{color:#3fb950;}.t-i{color:#79c0ff;}.t-w{color:#f0c000;}
+
+/* ── CALLOUTS ── */
+.callout{
+  display:flex;gap:13px;align-items:flex-start;
+  border-radius:10px;padding:15px 18px;
+  margin-bottom:16px;
+  font-size:13px;line-height:1.75;
+}
+.callout.tip{background:rgba(63,185,80,.07);border:1px solid rgba(63,185,80,.2);}
+.callout.warn{background:rgba(240,192,0,.07);border:1px solid rgba(240,192,0,.2);}
+.callout.info{background:rgba(36,150,237,.07);border:1px solid rgba(36,150,237,.2);}
+.callout-icon{font-size:18px;flex-shrink:0;margin-top:1px;}
+.callout p{color:var(--dim);}
+.callout.tip p strong{color:var(--green);}
+.callout.warn p strong{color:var(--yellow);}
+.callout.info p strong{color:var(--accent3);}
+.callout code{background:rgba(255,255,255,.07);padding:1px 6px;border-radius:4px;font-size:12px;}
+
+/* ── ARCH DIAGRAM ── */
+.arch{
+  display:flex;align-items:center;flex-wrap:wrap;gap:0;
+  margin-bottom:24px;
+}
+.arch-box{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:10px;padding:16px 22px;text-align:center;min-width:120px;
+  transition:border-color .2s,transform .2s;
+}
+.arch-box:hover{border-color:var(--accent);transform:translateY(-3px);}
+.arch-icon{font-size:28px;margin-bottom:6px;}
+.arch-label{font-size:12px;font-weight:700;}
+.arch-sub{font-size:10px;color:var(--dim);margin-top:3px;}
+.arch-arr{font-size:20px;color:var(--accent);padding:0 10px;flex-shrink:0;}
+
+/* ── PREREQ GRID ── */
+.prereq-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;}
+.prereq-card{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:10px;padding:16px 18px;
+  display:flex;gap:12px;align-items:flex-start;
+  transition:border-color .2s;
+}
+.prereq-card:hover{border-color:var(--accent2);}
+.prereq-icon{font-size:24px;flex-shrink:0;}
+.prereq-body h4{font-size:13px;font-weight:700;margin-bottom:4px;}
+.prereq-body p{font-size:12px;color:var(--dim);line-height:1.6;}
+.prereq-body code{font-size:11px;color:var(--accent3);}
+
+/* ── WHAT'S HAPPENING ── */
+.whats-box{
+  border-top:1px solid var(--border);
+  padding:16px 24px;
+  background:rgba(36,150,237,.04);
+  font-size:13px;color:var(--dim);line-height:1.75;
+  display:flex;gap:12px;
+}
+.whats-box strong{color:var(--accent3);}
+.whats-box code{background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;font-size:12px;}
+
+/* ── PANEL NAV ── */
+.panel-nav{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-top:auto;padding-top:40px;padding-bottom:12px;
+  border-top:1px solid var(--border);
+}
+.pnav-btn{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 22px;border-radius:10px;
+  font-size:14px;font-weight:700;
+  cursor:pointer;border:none;
+  transition:all .2s;text-decoration:none;
+}
+.pnav-prev{
+  background:var(--bg3);color:var(--dim);
+  border:1px solid var(--border);
+}
+.pnav-prev:hover{color:var(--text);border-color:var(--accent2);}
+.pnav-next{
+  background:linear-gradient(135deg,var(--accent),#1a7fd4);
+  color:#fff;
+  box-shadow:0 4px 18px rgba(36,150,237,.3);
+}
+.pnav-next:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(36,150,237,.45);}
+.pnav-placeholder{width:120px;}
+
+/* ── FINISH PANEL ── */
+.finish-card{
+  background:linear-gradient(135deg,rgba(36,150,237,.1),rgba(167,139,250,.1));
+  border:1px solid rgba(36,150,237,.2);
+  border-radius:16px;padding:48px 40px;text-align:center;
+  margin-bottom:32px;position:relative;overflow:hidden;
+}
+.finish-card::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(36,150,237,.12),transparent 65%);
+  pointer-events:none;
+}
+.finish-card h2{font-size:clamp(26px,3.5vw,38px);font-weight:900;letter-spacing:-1px;margin-bottom:12px;}
+.finish-card p{font-size:15px;color:var(--dim);max-width:460px;margin:0 auto 28px;line-height:1.75;}
+.finish-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.btn-primary{
+  display:inline-flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,var(--accent),#1a7fd4);
+  color:#fff;text-decoration:none;font-weight:700;font-size:14px;
+  padding:12px 26px;border-radius:10px;
+  box-shadow:0 4px 20px rgba(36,150,237,.3);
+  transition:transform .2s,box-shadow .2s;
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(36,150,237,.45);}
+.btn-outline{
+  display:inline-flex;align-items:center;gap:8px;
+  border:1px solid var(--border);color:var(--text);
+  text-decoration:none;font-weight:600;font-size:14px;
+  padding:12px 26px;border-radius:10px;
+  transition:border-color .2s,background .2s;
+}
+.btn-outline:hover{border-color:var(--accent2);background:rgba(167,139,250,.08);}
+
+/* quick-ref table */
+.ref-grid{display:flex;flex-direction:column;gap:2px;}
+.ref-row{
+  display:grid;grid-template-columns:1fr 1.4fr;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;overflow:hidden;margin-bottom:8px;
+}
+.ref-cmd{
+  font-family:'Cascadia Code','Fira Code',monospace;
+  font-size:12px;color:var(--accent3);
+  padding:12px 16px;background:var(--code-bg);
+  border-right:1px solid var(--border);
+}
+.ref-desc{font-size:12px;color:var(--dim);padding:12px 16px;line-height:1.5;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:820px){
+  .sidebar{transform:translateX(-100%);z-index:300;}
+  .sidebar.open{transform:translateX(0);}
+  .main{margin-left:0;}
+  .chapter-panel{padding:32px 24px 32px;}
+  .hamburger{display:flex;}
+  .progress-bar,.progress-label{display:none;}
+  .prereq-grid{grid-template-columns:1fr;}
+  .arch{flex-direction:column;}
+  .arch-arr{transform:rotate(90deg);}
+  .overlay{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:250;
+  }
+  .overlay.show{display:block;}
+}
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div class="overlay" id="overlay"></div>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <div class="topnav-left">
+    <button class="hamburger" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <a class="topnav-logo" href="../index.html">
+      <span class="ico">🦙</span>
+      <span>LLM with Docker</span>
+    </a>
+  </div>
+  <div class="topnav-right">
+    <span class="progress-label" id="progress-label">Step 1 of 6</span>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:16.6%"></div></div>
+    <a class="back-btn" href="../index.html">← Modules</a>
+  </div>
+</nav>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-intro">
+      <div class="sidebar-title">Lab Contents</div>
+      <div class="sidebar-desc">Run Llama 3.1 locally — zero cloud, zero cost.</div>
+      <div class="sidebar-badges">
+        <span class="sbadge">Ollama</span>
+        <span class="sbadge">Docker</span>
+        <span class="sbadge">Python</span>
+      </div>
+    </div>
+
+    <nav class="chapter-nav">
+      <div class="chapter-group-label">Setup</div>
+      <a class="chapter-item active" data-chapter="1" href="#ch1">
+        <div class="ch-num">1</div>
+        <div class="ch-label">Project Structure</div>
+      </a>
+      <a class="chapter-item" data-chapter="2" href="#ch2">
+        <div class="ch-num">2</div>
+        <div class="ch-label">Configure .env</div>
+      </a>
+      <a class="chapter-item" data-chapter="3" href="#ch3">
+        <div class="ch-num">3</div>
+        <div class="ch-label">docker-compose.yml</div>
+      </a>
+
+      <div class="chapter-group-label" style="margin-top:8px;">Running</div>
+      <a class="chapter-item" data-chapter="4" href="#ch4">
+        <div class="ch-num">4</div>
+        <div class="ch-label">Install &amp; Start Stack</div>
+      </a>
+      <a class="chapter-item" data-chapter="5" href="#ch5">
+        <div class="ch-num">5</div>
+        <div class="ch-label">chat.py — The Code</div>
+      </a>
+      <a class="chapter-item" data-chapter="6" href="#ch6">
+        <div class="ch-num">6</div>
+        <div class="ch-label">Chat with Your LLM</div>
+      </a>
+
+      <div class="chapter-group-label" style="margin-top:8px;">Reference</div>
+      <a class="chapter-item" data-chapter="7" href="#ch7">
+        <div class="ch-num">⚡</div>
+        <div class="ch-label">Quick Reference</div>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div>Powered by <a href="https://ollama.com" target="_blank">Ollama ↗</a> · <a href="https://ollama.com/library/llama3.1" target="_blank">Llama 3.1 ↗</a></div>
+      <div><a href="../index.html">← Back to AI Advanced</a></div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ═══════════════════════════════ CHAPTER 1 ═══════════════════════════ -->
+    <div class="chapter-panel active" id="ch1">
+      <div class="panel-header">
+        <div class="panel-step">Step 1 of 6</div>
+        <div class="panel-title">Project Structure</div>
+        <div class="panel-subtitle">Three files, one folder — that's the entire stack. Let's see what each file does before we write them.</div>
+      </div>
+
+      <!-- Architecture diagram -->
+      <div class="arch">
+        <div class="arch-box">
+          <div class="arch-icon">🐍</div>
+          <div class="arch-label">chat.py</div>
+          <div class="arch-sub">Python client</div>
+        </div>
+        <div class="arch-arr">→</div>
+        <div class="arch-box">
+          <div class="arch-icon">🐋</div>
+          <div class="arch-label">Docker Compose</div>
+          <div class="arch-sub">Orchestrator</div>
+        </div>
+        <div class="arch-arr">→</div>
+        <div class="arch-box">
+          <div class="arch-icon">🦙</div>
+          <div class="arch-label">Ollama API</div>
+          <div class="arch-sub">port 11434</div>
+        </div>
+        <div class="arch-arr">→</div>
+        <div class="arch-box">
+          <div class="arch-icon">🧠</div>
+          <div class="arch-label">Llama 3.1 8B</div>
+          <div class="arch-sub">~4.7 GB model</div>
+        </div>
+      </div>
+
+      <!-- File tree -->
+      <div class="block no-explain">
+        <div class="code-block">
+          <div class="code-header">
+            <div style="display:flex;align-items:center;">
+              <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+              <span class="code-filename">llm-docker/ — folder layout</span>
+            </div>
+            <div class="code-right">
+              <button class="copy-btn" data-target="tree-code"><span>⎘</span><span>Copy</span></button>
+            </div>
+          </div>
+          <div class="file-tree" id="tree-code"><span class="ft-dir">llm-docker/</span>
+├── <span class="ft-yaml">docker-compose.yml</span>   <span class="ft-c"># defines the Ollama service stack</span>
+├── <span class="ft-env">.env.example</span>           <span class="ft-c"># template → copy to .env</span>
+├── <span class="ft-txt">requirements.txt</span>       <span class="ft-c"># Python deps (just one: requests)</span>
+└── <span class="ft-py">chat.py</span>                <span class="ft-c"># interactive chat client</span></div>
+        </div>
+      </div>
+
+      <!-- prereqs -->
+      <div class="prereq-grid">
+        <div class="prereq-card">
+          <div class="prereq-icon">🐋</div>
+          <div class="prereq-body">
+            <h4>Docker Desktop</h4>
+            <p>Must be installed and running. Docker Compose is included automatically.</p>
+          </div>
+        </div>
+        <div class="prereq-card">
+          <div class="prereq-icon">🐍</div>
+          <div class="prereq-body">
+            <h4>Python 3.10+</h4>
+            <p>To run <code>chat.py</code>. Only one dependency: <code>requests</code>.</p>
+          </div>
+        </div>
+        <div class="prereq-card">
+          <div class="prereq-icon">💾</div>
+          <div class="prereq-body">
+            <h4>~6 GB free disk</h4>
+            <p>Llama 3.1 8B is ~4.7 GB. Docker image adds ~1.3 GB on top.</p>
+          </div>
+        </div>
+        <div class="prereq-card">
+          <div class="prereq-icon">⏱️</div>
+          <div class="prereq-body">
+            <h4>~10 min first run</h4>
+            <p>Model download happens once. Every restart after is instant.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout info">
+        <div class="callout-icon">💡</div>
+        <p><strong>Why so few files?</strong> Ollama handles everything heavy — model download, GPU/CPU detection, HTTP server. Your Python script just sends HTTP requests to it. All you manage is the Compose config.</p>
+      </div>
+
+      <div class="panel-nav">
+        <div class="pnav-placeholder"></div>
+        <button class="pnav-btn pnav-next" data-go="2">Configure .env →</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════ CHAPTER 2 ═══════════════════════════ -->
+    <div class="chapter-panel" id="ch2">
+      <div class="panel-header">
+        <div class="panel-step">Step 2 of 6</div>
+        <div class="panel-title">Configure the .env File</div>
+        <div class="panel-subtitle">Copy the template and optionally choose a different model. This is where your settings live.</div>
+      </div>
+
+      <div class="block">
+        <div class="block-explain">
+          The <strong>.env</strong> file stores configuration values. Copy <code>.env.example</code> to <code>.env</code> using the terminal command below. The defaults work out of the box — you only need to edit if you want a different model.
+        </div>
+        <div class="code-block">
+          <div class="code-header">
+            <div style="display:flex;align-items:center;">
+              <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+              <span class="code-filename">Terminal</span>
+            </div>
+            <div class="code-right">
+              <span class="code-lang">bash</span>
+              <button class="copy-btn" data-target="env-cmd"><span>⎘</span><span>Copy</span></button>
+            </div>
+          </div>
+          <pre id="env-cmd"><span class="t-p">$</span> <span class="t-c">cp .env.example .env</span></pre>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-explain">
+          Here is the full content of <strong>.env.example</strong>. Each line sets one variable that Python reads at startup.
+        </div>
+        <div class="code-block">
+          <div class="code-header">
+            <div style="display:flex;align-items:center;">
+              <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+              <span class="code-filename">.env.example</span>
+            </div>
+            <div class="code-right">
+              <span class="code-lang">env</span>
+              <button class="copy-btn" data-target="env-file"><span>⎘</span><span>Copy</span></button>
+            </div>
+          </div>
+          <pre id="env-file"><span class="cmt"># Where Python connects to reach the Ollama API</span>
+<span class="cmt"># Keep localhost:11434 — Docker maps that port for you</span>
+<span class="n">OLLAMA_BASE_URL</span>=<span class="env">http://localhost:11434</span>
+
+<span class="cmt"># The model tag to load. Change this to try other models.</span>
+<span class="cmt"># Examples: llama3.2:3b (faster), mistral, gemma2:2b</span>
+<span class="n">OLLAMA_MODEL</span>=<span class="env">llama3.1:8b</span></pre>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <div class="callout-icon">✅</div>
+        <p><strong>Tip:</strong> Always add <code>.env</code> to your <code>.gitignore</code> file. The <code>.env.example</code> is safe to commit — it's just a template with no real secrets.</p>
+      </div>
+      <div class="callout warn">
+        <div class="callout-icon">⚠️</div>
+        <p><strong>Smaller model?</strong> Swap <code>OLLAMA_MODEL=llama3.2:3b</code> for faster replies on a slow machine. You'll also need to update the model name in <code>docker-compose.yml</code> (next step).</p>
+      </div>
+
+      <div class="panel-nav">
+        <button class="pnav-btn pnav-prev" data-go="1">← Project Structure</button>
+        <button class="pnav-btn pnav-next" data-go="3">docker-compose.yml →</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════ CHAPTER 3 ═══════════════════════════ -->
+    <div class="chapter-panel" id="ch3">
+      <div class="panel-header">
+        <div class="panel-step">Step 3 of 6</div>
+        <div class="panel-title">docker-compose.yml</div>
+        <div class="panel-subtitle">Two containers working together: one serves the model, one downloads it. Comments explain every line.</div>
+      </div>
+
+      <div class="block">
+        <div class="block-explain">
+          This file is the heart of the project. Docker Compose reads it and spins up two containers automatically. You never have to type a long <code>docker run</code> command.
+        </div>
+        <div class="code-block">
+          <div class="code-header">
+            <div style="display:flex;align-items:center;">
+              <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+              <span class="code-filename">docker-compose.yml</span>
+            </div>
+            <div class="code-right">
+              <span class="code-lang">yaml</span>
+              <button class="copy-btn" data-target="compose-code"><span>⎘</span><span>Copy</span></button>
+            </div>
+          </div>
+          <pre id="compose-code"><span class="cmt"># docker-compose.yml
+# This file tells Docker Compose which containers to run and how to connect them.</span>
+
+<span class="n">services</span><span class="p">:</span>
+
+  <span class="cmt">  # ── SERVICE 1: Ollama ──────────────────────────────────────────────────────
+  # Ollama is an open-source LLM runner. It downloads models,
+  # loads them into memory, and exposes a simple HTTP API for chat.</span>
+  <span class="fn">ollama</span><span class="p">:</span>
+    <span class="n">image</span><span class="p">:</span> <span class="s">ollama/ollama:latest</span>   <span class="cmt"># official Ollama Docker image</span>
+    <span class="n">container_name</span><span class="p">:</span> <span class="s">ollama</span>         <span class="cmt"># gives the container a friendly name</span>
+    <span class="n">ports</span><span class="p">:</span>
+      <span class="p">-</span> <span class="s">"11434:11434"</span>               <span class="cmt"># host:container — exposes the API to your laptop</span>
+    <span class="n">volumes</span><span class="p">:</span>
+      <span class="p">-</span> <span class="s">ollama_data:/root/.ollama</span>   <span class="cmt"># persists downloaded models between restarts</span>
+    <span class="n">restart</span><span class="p">:</span> <span class="s">unless-stopped</span>         <span class="cmt"># auto-restart if it crashes (not on manual stop)</span>
+
+  <span class="cmt">  # ── SERVICE 2: Model Puller ────────────────────────────────────────────────
+  # A one-shot helper that waits for Ollama to be ready,
+  # then downloads llama3.1:8b into the shared volume.
+  # After first run it exits immediately (model already there).</span>
+  <span class="fn">model-puller</span><span class="p">:</span>
+    <span class="n">image</span><span class="p">:</span> <span class="s">ollama/ollama:latest</span>   <span class="cmt"># reuses the same image — no extra download</span>
+    <span class="n">container_name</span><span class="p">:</span> <span class="s">ollama-model-puller</span>
+    <span class="n">depends_on</span><span class="p">:</span>
+      <span class="p">-</span> <span class="s">ollama</span>                      <span class="cmt"># won't start until the ollama service is running</span>
+    <span class="n">environment</span><span class="p">:</span>
+      <span class="p">-</span> <span class="env">OLLAMA_HOST=http://ollama:11434</span>  <span class="cmt"># tells ollama CLI where the server is</span>
+                                               <span class="cmt"># "ollama" here is the service name above</span>
+    <span class="n">entrypoint</span><span class="p">:</span> <span class="p">[</span><span class="s">"/bin/sh"</span><span class="p">,</span> <span class="s">"-lc"</span><span class="p">]</span>  <span class="cmt"># run as a shell script</span>
+    <span class="n">command</span><span class="p">: |</span>
+      <span class="s">echo "Waiting for Ollama API...";</span>
+      <span class="cmt">      # Loop until the API responds (Ollama needs ~2-3 seconds to boot)</span>
+      <span class="s">until ollama list > /dev/null 2>&1; do sleep 2; done;</span>
+      <span class="s">echo "Pulling model llama3.1:8b (~4.7 GB)...";</span>
+      <span class="s">ollama pull llama3.1:8b;</span>      <span class="cmt"># skipped automatically if already downloaded</span>
+      <span class="s">echo "Model ready.";</span>
+    <span class="n">volumes</span><span class="p">:</span>
+      <span class="p">-</span> <span class="s">ollama_data:/root/.ollama</span>   <span class="cmt"># same volume → model lands where Ollama can find it</span>
+    <span class="n">restart</span><span class="p">:</span> <span class="s">"no"</span>                   <span class="cmt"># do NOT restart — it's a one-shot job</span>
+
+<span class="cmt"># Named volumes are managed by Docker.
+# Data survives "docker compose down" but is removed by "docker compose down -v".</span>
+<span class="n">volumes</span><span class="p">:</span>
+  <span class="fn">ollama_data</span><span class="p">:</span></pre>
+        </div>
+      </div>
+
+      <div class="callout info">
+        <div class="callout-icon">🔍</div>
+        <p>
+          <strong>How the two containers share the model:</strong> Both mount the same Docker volume (<code>ollama_data</code>). The puller downloads the model file there. Ollama reads it from there. No copying needed.
+        </p>
+      </div>
+
+      <div class="panel-nav">
+        <button class="pnav-btn pnav-prev" data-go="2">← Configure .env</button>
+        <button class="pnav-btn pnav-next" data-go="4">Install &amp; Start →</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════ CHAPTER 4 ═══════════════════════════ -->
+    <div class="chapter-panel" id="ch4">
+      <div class="panel-header">
+        <div class="panel-step">Step 4 of 6</div>
+        <div class="panel-title">Install Requirements &amp; Start the Stack</div>
+        <div class="panel-subtitle">One pip install, one compose command. The model downloads itself automatically.</div>
+      </div>
+
+      <div class="block">
+        <div class="block-explain">
+          <strong>requirements.txt</strong> lists the Python packages your script needs. This project uses only <code>requests</code> — the standard library for making HTTP calls in Python.
+        </div>
+        <div class="code-block">
+          <div class="code-header">
+            <div style="display:flex;align-items:center;">
+              <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+              <span class="code-filename">requirements.txt</span>
+            </div>
+            <div class="code-right">
+              <span class="code-lang">txt</span>
+              <button class="copy-btn" data-target="req-code"><span>⎘</span><span>Copy</span></button>
+            </div>
+          </div>
+          <pre id="req-code"><span class="cmt"># The only external library we need.
+# requests lets Python make HTTP calls — we use it to talk to the Ollama API.</span>
+<span class="s">requests</span><span class="p">>=</span><span class="m">2.31.0</span></pre>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-explain">
+          Run these three commands <strong>in order</strong>. The first installs the Python library. The second starts Docker Compose in the background. The third lets you watch the model download — wait for <strong>"Model ready."</strong> before moving on.
+        </div>
+        <div class="code-block">
+          <div class="code-header">
+            <div style="display:flex;align-items:center;">
+              <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+              <span class="code-filename">Terminal — run in order</span>
+            </div>
+            <div class="code-right">
+              <span class="code-lang">bash</span>
+              <button class="copy-btn" data-target="start-code"><span>⎘</span><span>Copy</span></button>
+            </div>
+          </div>
+          <pre id="start-code"><span class="cmt"># Step 1: Install the Python dependency into your active environment</span>
+<span class="t-p">$</span> <span class="t-c">pip install -r requirements.txt</span>
+
+<span class="cmt"># Step 2: Start both containers in the background (-d = detached mode)</span>
+<span class="t-p">$</span> <span class="t-c">docker compose up -d</span>
+
+<span class="cmt"># Step 3: Follow the model-puller logs to see download progress</span>
+<span class="cmt">#   Press Ctrl+C to stop watching (the containers keep running)</span>
+<span class="t-p">$</span> <span class="t-c">docker logs -f ollama-model-puller</span></pre>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-explain">Expected output in your terminal while the model downloads:</div>
+        <div class="code-block">
+          <div class="code-header">
+            <div style="display:flex;align-items:center;">
+              <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+              <span class="code-filename">Expected log output</span>
+            </div>
+          </div>
+          <div class="terminal">
+<span class="t-o">Waiting for Ollama API...</span>
+<span class="t-i">Pulling model llama3.1:8b (~4.7 GB)...</span>
+<span class="t-o">pulling manifest</span>
+<span class="t-o">pulling 667b0c1932bc... 100% ▕████████████████████▏ 4.7 GB</span>
+<span class="t-o">pulling 0ba8f0e314b4... 100% ▕████████████████████▏  12 KB</span>
+<span class="t-s">Model ready.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <div class="callout-icon">⚠️</div>
+        <p><strong>First run only:</strong> the 4.7 GB download happens once. After that, <code>docker compose up -d</code> starts in under 5 seconds and the model loads from the local volume.</p>
+      </div>
+
+      <div class="panel-nav">
+        <button class="pnav-btn pnav-prev" data-go="3">← docker-compose.yml</button>
+        <button class="pnav-btn pnav-next" data-go="5">chat.py — The Code →</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════ CHAPTER 5 ═══════════════════════════ -->
+    <div class="chapter-panel" id="ch5">
+      <div class="panel-header">
+        <div class="panel-step">Step 5 of 6</div>
+        <div class="panel-title">chat.py — The Code</div>
+        <div class="panel-subtitle">Read through the full script. Every section is commented to explain what it does and why.</div>
+      </div>
+
+      <div class="block no-explain">
+        <div class="code-block">
+          <div class="code-header">
+            <div style="display:flex;align-items:center;">
+              <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+              <span class="code-filename">chat.py</span>
+            </div>
+            <div class="code-right">
+              <span class="code-lang">python</span>
+              <button class="copy-btn" data-target="chat-code"><span>⎘</span><span>Copy</span></button>
+            </div>
+          </div>
+          <pre id="chat-code"><span class="cmt"># ─────────────────────────────────────────────────────────────────────────────
+# chat.py  —  Interactive CLI chat client for a local Ollama LLM
+#
+# HOW IT WORKS (big picture):
+#   1. We wait until the Ollama HTTP API is reachable on localhost:11434
+#   2. We enter a loop: read user input → send to API → print the reply
+#   3. We keep all messages in a list so the model remembers the conversation
+# ─────────────────────────────────────────────────────────────────────────────</span>
+
+<span class="cmt"># Standard library imports — no installation needed</span>
+<span class="k">import</span> <span class="n">argparse</span>    <span class="cmt"># reads command-line flags like --model, --max-tokens</span>
+<span class="k">import</span> <span class="n">json</span>        <span class="cmt"># converts Python dicts ↔ JSON strings for the HTTP API</span>
+<span class="k">import</span> <span class="n">sys</span>         <span class="cmt"># used to print errors to stderr instead of stdout</span>
+<span class="k">import</span> <span class="n">threading</span>   <span class="cmt"># runs the spinner animation in the background while waiting</span>
+<span class="k">import</span> <span class="n">time</span>        <span class="cmt"># used for the polling loop (sleep 1 second between retries)</span>
+<span class="k">from</span> <span class="n">typing</span> <span class="k">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span>  <span class="cmt"># type hints — not required, but makes code readable</span>
+
+<span class="cmt"># The only external library (installed via requirements.txt)</span>
+<span class="k">import</span> <span class="n">requests</span>    <span class="cmt"># makes HTTP GET/POST requests — same library used for any web API</span>
+
+<span class="cmt"># ── DEFAULT VALUES ────────────────────────────────────────────────────────────
+# These are used when the user does NOT pass command-line flags.
+# They can all be overridden: python chat.py --model mistral --max-tokens 200</span>
+<span class="n">DEFAULT_BASE_URL</span>   <span class="o">=</span> <span class="s">"http://localhost:11434"</span>  <span class="cmt"># Ollama's HTTP server address</span>
+<span class="n">DEFAULT_MODEL</span>      <span class="o">=</span> <span class="s">"llama3.1:8b"</span>              <span class="cmt"># model name as registered in Ollama</span>
+<span class="n">DEFAULT_MAX_TOKENS</span> <span class="o">=</span> <span class="m">120</span>                        <span class="cmt"># max words in one reply (keep short on CPU)</span>
+<span class="n">DEFAULT_CONTEXT</span>    <span class="o">=</span> <span class="m">1024</span>                       <span class="cmt"># how many tokens the model can "see" back</span>
+
+
+<span class="cmt"># ── FUNCTION: wait_for_ollama ─────────────────────────────────────────────────
+# Before we can chat, the Ollama server must be running AND the model loaded.
+# This function polls /api/tags every second until it gets a 200 OK response.
+# If Ollama isn't ready after `timeout_seconds`, we give up and return False.</span>
+<span class="k">def</span> <span class="fn">wait_for_ollama</span><span class="p">(</span><span class="n">base_url</span><span class="p">:</span> <span class="n">str</span><span class="p">,</span> <span class="n">timeout_seconds</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="m">120</span><span class="p">)</span> <span class="o">-></span> <span class="n">bool</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="k">in</span> <span class="fn">range</span><span class="p">(</span><span class="n">timeout_seconds</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="cmt">            # GET /api/tags → Ollama returns a list of downloaded models</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="p">.</span><span class="fn">get</span><span class="p">(</span><span class="s">f"<span class="p">{</span><span class="n">base_url</span><span class="p">}</span>/api/tags"</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="m">2</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">r</span><span class="p">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="m">200</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">True</span>     <span class="cmt"># server is up!</span>
+        <span class="k">except</span> <span class="n">requests</span><span class="p">.</span><span class="n">RequestException</span><span class="p">:</span>
+            <span class="k">pass</span>                <span class="cmt"># connection refused — server not up yet, try again</span>
+        <span class="n">time</span><span class="p">.</span><span class="fn">sleep</span><span class="p">(</span><span class="m">1</span><span class="p">)</span>           <span class="cmt"># wait 1 second before next attempt</span>
+    <span class="k">return</span> <span class="n">False</span>                <span class="cmt"># timed out</span>
+
+
+<span class="cmt"># ── FUNCTION: chat_once ───────────────────────────────────────────────────────
+# Sends one turn of conversation to the Ollama API and returns the reply text.
+#
+# messages is a list of dicts, like:
+#   [{"role": "system",    "content": "You are a helpful assistant."},
+#    {"role": "user",      "content": "What is Docker?"},
+#    {"role": "assistant", "content": "Docker is a containerisation tool..."},
+#    {"role": "user",      "content": "Can you give an example?"}]  ← latest turn
+#
+# Sending the full history every time is how the model "remembers" context.</span>
+<span class="k">def</span> <span class="fn">chat_once</span><span class="p">(</span>
+    <span class="n">base_url</span><span class="p">:</span> <span class="n">str</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">str</span><span class="p">,</span>
+    <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="n">str</span><span class="p">,</span> <span class="n">str</span><span class="p">]],</span>
+    <span class="n">max_tokens</span><span class="p">:</span> <span class="n">int</span><span class="p">,</span>
+    <span class="n">context_size</span><span class="p">:</span> <span class="n">int</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-></span> <span class="n">str</span><span class="p">:</span>
+    <span class="cmt">    # Build the JSON body that Ollama's /api/chat endpoint expects</span>
+    <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s">"model"</span><span class="p">:</span>    <span class="n">model</span><span class="p">,</span>       <span class="cmt"># which model to use</span>
+        <span class="s">"messages"</span><span class="p">:</span> <span class="n">messages</span><span class="p">,</span>   <span class="cmt"># full conversation history</span>
+        <span class="s">"stream"</span><span class="p">:</span>   <span class="n">False</span><span class="p">,</span>      <span class="cmt"># False = wait for full reply, True = stream tokens</span>
+        <span class="s">"options"</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s">"num_predict"</span><span class="p">:</span> <span class="n">max_tokens</span><span class="p">,</span>    <span class="cmt"># stop generating after this many tokens</span>
+            <span class="s">"num_ctx"</span><span class="p">:</span>     <span class="n">context_size</span><span class="p">,</span>  <span class="cmt"># context window (smaller = faster, less memory)</span>
+        <span class="p">},</span>
+    <span class="p">}</span>
+
+    <span class="cmt">    # POST /api/chat — sends the conversation, receives the reply</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="p">.</span><span class="fn">post</span><span class="p">(</span>
+        <span class="s">f"<span class="p">{</span><span class="n">base_url</span><span class="p">}</span>/api/chat"</span><span class="p">,</span>
+        <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s">"Content-Type"</span><span class="p">:</span> <span class="s">"application/json"</span><span class="p">},</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">json</span><span class="p">.</span><span class="fn">dumps</span><span class="p">(</span><span class="n">payload</span><span class="p">),</span>  <span class="cmt"># convert Python dict → JSON string</span>
+        <span class="n">timeout</span><span class="o">=</span><span class="m">600</span><span class="p">,</span>               <span class="cmt"># 10 min timeout — CPU inference can be slow</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">r</span><span class="p">.</span><span class="n">status_code</span> <span class="o">!=</span> <span class="m">200</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">RuntimeError</span><span class="p">(</span><span class="s">f"Ollama error <span class="p">{</span><span class="n">r</span><span class="p">.</span><span class="n">status_code</span><span class="p">}</span>: <span class="p">{</span><span class="n">r</span><span class="p">.</span><span class="n">text</span><span class="p">}</span>"</span><span class="p">)</span>
+
+    <span class="cmt">    # The response JSON looks like: {"message": {"role": "assistant", "content": "..."}}
+    # We extract just the content string.</span>
+    <span class="k">return</span> <span class="n">r</span><span class="p">.</span><span class="fn">json</span><span class="p">()[</span><span class="s">"message"</span><span class="p">][</span><span class="s">"content"</span><span class="p">]</span>
+
+
+<span class="cmt"># ── FUNCTION: show_wait_spinner ───────────────────────────────────────────────
+# Prints a spinning animation while the model generates a response.
+# Runs in a separate thread so the main thread can block on the HTTP request.
+# stop_event.set() from the main thread signals it to stop.</span>
+<span class="k">def</span> <span class="fn">show_wait_spinner</span><span class="p">(</span><span class="n">stop_event</span><span class="p">:</span> <span class="n">threading</span><span class="p">.</span><span class="n">Event</span><span class="p">)</span> <span class="o">-></span> <span class="n">None</span><span class="p">:</span>
+    <span class="n">frames</span> <span class="o">=</span> <span class="p">[</span><span class="s">"|"</span><span class="p">,</span> <span class="s">"/"</span><span class="p">,</span> <span class="s">"-"</span><span class="p">,</span> <span class="s">"\\"</span><span class="p">]</span>   <span class="cmt"># four frames make a rotation illusion</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="m">0</span>
+    <span class="k">while</span> <span class="k">not</span> <span class="n">stop_event</span><span class="p">.</span><span class="fn">is_set</span><span class="p">():</span>    <span class="cmt"># keep looping until main thread says stop</span>
+        <span class="fn">print</span><span class="p">(</span><span class="s">f"\rAssistant is thinking <span class="p">{</span><span class="n">frames</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="m">4</span><span class="p">]}</span>"</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s">""</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="n">True</span><span class="p">)</span>
+        <span class="cmt">        # \r moves cursor to start of line — overwrites previous frame</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="m">1</span>
+        <span class="n">time</span><span class="p">.</span><span class="fn">sleep</span><span class="p">(</span><span class="m">0.2</span><span class="p">)</span>                 <span class="cmt"># update 5 times per second</span>
+    <span class="cmt">    # Clear the spinner line before the reply is printed</span>
+    <span class="fn">print</span><span class="p">(</span><span class="s">"\r"</span> <span class="o">+</span> <span class="s">" "</span> <span class="o">*</span> <span class="m">40</span> <span class="o">+</span> <span class="s">"\r"</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s">""</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="n">True</span><span class="p">)</span>
+
+
+<span class="cmt"># ── FUNCTION: interactive_chat ────────────────────────────────────────────────
+# The main chat loop. Reads user input, calls chat_once(), prints the reply.
+# Appends every message to `messages` so the model keeps track of context.</span>
+<span class="k">def</span> <span class="fn">interactive_chat</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">max_tokens</span><span class="p">,</span> <span class="n">context_size</span><span class="p">)</span> <span class="o">-></span> <span class="n">None</span><span class="p">:</span>
+    <span class="fn">print</span><span class="p">(</span><span class="s">f"Connected to <span class="p">{</span><span class="n">base_url</span><span class="p">}</span>  |  model: <span class="p">{</span><span class="n">model</span><span class="p">}</span>"</span><span class="p">)</span>
+    <span class="fn">print</span><span class="p">(</span><span class="s">"Type 'exit' to quit.\n"</span><span class="p">)</span>
+
+    <span class="cmt">    # The conversation history — starts with a system message that sets behaviour.
+    # Every user + assistant turn gets appended here so the model sees the full chat.</span>
+    <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="n">str</span><span class="p">,</span> <span class="n">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">{</span><span class="s">"role"</span><span class="p">:</span> <span class="s">"system"</span><span class="p">,</span> <span class="s">"content"</span><span class="p">:</span> <span class="s">"You are a helpful assistant."</span><span class="p">}</span>
+    <span class="p">]</span>
+
+    <span class="k">while</span> <span class="n">True</span><span class="p">:</span>
+        <span class="n">user_input</span> <span class="o">=</span> <span class="fn">input</span><span class="p">(</span><span class="s">"You: "</span><span class="p">).</span><span class="fn">strip</span><span class="p">()</span>   <span class="cmt"># strip() removes leading/trailing whitespace</span>
+
+        <span class="k">if</span> <span class="n">user_input</span><span class="p">.</span><span class="fn">lower</span><span class="p">()</span> <span class="k">in</span> <span class="p">{</span><span class="s">"exit"</span><span class="p">,</span> <span class="s">"quit"</span><span class="p">}:</span>
+            <span class="fn">print</span><span class="p">(</span><span class="s">"Goodbye."</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="k">not</span> <span class="n">user_input</span><span class="p">:</span>
+            <span class="k">continue</span>   <span class="cmt"># skip empty input — go back to "You: " prompt</span>
+
+        <span class="cmt">        # Add the user's message to the history before sending</span>
+        <span class="n">messages</span><span class="p">.</span><span class="fn">append</span><span class="p">({</span><span class="s">"role"</span><span class="p">:</span> <span class="s">"user"</span><span class="p">,</span> <span class="s">"content"</span><span class="p">:</span> <span class="n">user_input</span><span class="p">})</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="cmt">            # Start spinner in a background thread, then make the blocking HTTP call</span>
+            <span class="n">stop_event</span> <span class="o">=</span> <span class="n">threading</span><span class="p">.</span><span class="fn">Event</span><span class="p">()</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">threading</span><span class="p">.</span><span class="fn">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">show_wait_spinner</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">stop_event</span><span class="p">,),</span> <span class="n">daemon</span><span class="o">=</span><span class="n">True</span><span class="p">)</span>
+            <span class="n">t</span><span class="p">.</span><span class="fn">start</span><span class="p">()</span>
+            <span class="n">reply</span> <span class="o">=</span> <span class="fn">chat_once</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">messages</span><span class="p">,</span> <span class="n">max_tokens</span><span class="p">,</span> <span class="n">context_size</span><span class="p">)</span>
+            <span class="n">stop_event</span><span class="p">.</span><span class="fn">set</span><span class="p">()</span>    <span class="cmt"># signal spinner to stop</span>
+            <span class="n">t</span><span class="p">.</span><span class="fn">join</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="m">1</span><span class="p">)</span>    <span class="cmt"># wait for spinner thread to finish cleaning up</span>
+        <span class="k">except</span> <span class="n">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+            <span class="n">stop_event</span><span class="p">.</span><span class="fn">set</span><span class="p">();</span> <span class="n">t</span><span class="p">.</span><span class="fn">join</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="m">1</span><span class="p">)</span>
+            <span class="fn">print</span><span class="p">(</span><span class="s">f"Error: <span class="p">{</span><span class="n">exc</span><span class="p">}</span>"</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="p">.</span><span class="n">stderr</span><span class="p">)</span>   <span class="cmt"># print to stderr, not stdout</span>
+            <span class="n">messages</span><span class="p">.</span><span class="fn">pop</span><span class="p">()</span>     <span class="cmt"># remove the failed user message from history</span>
+            <span class="k">continue</span>
+
+        <span class="fn">print</span><span class="p">(</span><span class="s">f"Assistant: <span class="p">{</span><span class="n">reply</span><span class="p">}</span>\n"</span><span class="p">)</span>
+
+        <span class="cmt">        # Add assistant reply to history — model sees this in the next turn</span>
+        <span class="n">messages</span><span class="p">.</span><span class="fn">append</span><span class="p">({</span><span class="s">"role"</span><span class="p">:</span> <span class="s">"assistant"</span><span class="p">,</span> <span class="s">"content"</span><span class="p">:</span> <span class="n">reply</span><span class="p">})</span>
+
+
+<span class="cmt"># ── FUNCTION: parse_args ──────────────────────────────────────────────────────
+# Defines the command-line interface. argparse handles --flag parsing for us.</span>
+<span class="k">def</span> <span class="fn">parse_args</span><span class="p">()</span> <span class="o">-></span> <span class="n">argparse</span><span class="p">.</span><span class="n">Namespace</span><span class="p">:</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="p">.</span><span class="fn">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s">"Chat with a local Ollama model"</span><span class="p">)</span>
+    <span class="n">parser</span><span class="p">.</span><span class="fn">add_argument</span><span class="p">(</span><span class="s">"--base-url"</span><span class="p">,</span>      <span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_BASE_URL</span><span class="p">)</span>
+    <span class="n">parser</span><span class="p">.</span><span class="fn">add_argument</span><span class="p">(</span><span class="s">"--model"</span><span class="p">,</span>         <span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_MODEL</span><span class="p">)</span>
+    <span class="n">parser</span><span class="p">.</span><span class="fn">add_argument</span><span class="p">(</span><span class="s">"--max-tokens"</span><span class="p">,</span>    <span class="n">type</span><span class="o">=</span><span class="n">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_MAX_TOKENS</span><span class="p">)</span>
+    <span class="n">parser</span><span class="p">.</span><span class="fn">add_argument</span><span class="p">(</span><span class="s">"--context-size"</span><span class="p">,</span>  <span class="n">type</span><span class="o">=</span><span class="n">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_CONTEXT</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">parser</span><span class="p">.</span><span class="fn">parse_args</span><span class="p">()</span>
+
+
+<span class="cmt"># ── ENTRY POINT ───────────────────────────────────────────────────────────────
+# Python runs this block when you execute: python chat.py
+# It does NOT run when another file imports this module.</span>
+<span class="k">def</span> <span class="fn">main</span><span class="p">()</span> <span class="o">-></span> <span class="n">None</span><span class="p">:</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="fn">parse_args</span><span class="p">()</span>
+
+    <span class="cmt">    # Block here until Ollama responds (or timeout)</span>
+    <span class="k">if</span> <span class="k">not</span> <span class="fn">wait_for_ollama</span><span class="p">(</span><span class="n">args</span><span class="p">.</span><span class="n">base_url</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="fn">SystemExit</span><span class="p">(</span><span class="s">"Ollama not reachable — run 'docker compose up -d' first."</span><span class="p">)</span>
+
+    <span class="fn">interactive_chat</span><span class="p">(</span><span class="n">args</span><span class="p">.</span><span class="n">base_url</span><span class="p">,</span> <span class="n">args</span><span class="p">.</span><span class="n">model</span><span class="p">,</span> <span class="n">args</span><span class="p">.</span><span class="n">max_tokens</span><span class="p">,</span> <span class="n">args</span><span class="p">.</span><span class="n">context_size</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">"__main__"</span><span class="p">:</span>
+    <span class="fn">main</span><span class="p">()</span></pre>
+        </div>
+      </div>
+
+      <div class="panel-nav">
+        <button class="pnav-btn pnav-prev" data-go="4">← Install &amp; Start</button>
+        <button class="pnav-btn pnav-next" data-go="6">Run it! →</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════ CHAPTER 6 ═══════════════════════════ -->
+    <div class="chapter-panel" id="ch6">
+      <div class="panel-header">
+        <div class="panel-step">Step 6 of 6</div>
+        <div class="panel-title">Chat with Your Local LLM</div>
+        <div class="panel-subtitle">Run chat.py and start a conversation. No internet needed from this point on.</div>
+      </div>
+
+      <div class="block">
+        <div class="block-explain">
+          Make sure <code>docker compose up -d</code> is running and you saw <strong>"Model ready."</strong> in the logs (Step 4). Then run one of these commands:
+        </div>
+        <div class="code-block">
+          <div class="code-header">
+            <div style="display:flex;align-items:center;">
+              <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+              <span class="code-filename">Terminal</span>
+            </div>
+            <div class="code-right">
+              <span class="code-lang">bash</span>
+              <button class="copy-btn" data-target="run-code"><span>⎘</span><span>Copy</span></button>
+            </div>
+          </div>
+          <pre id="run-code"><span class="cmt"># Default run — uses llama3.1:8b with 120 token limit</span>
+<span class="t-p">$</span> <span class="t-c">python chat.py</span>
+
+<span class="cmt"># Faster on slow machines — shorter replies, smaller context window</span>
+<span class="t-p">$</span> <span class="t-c">python chat.py --max-tokens 60 --context-size 512</span>
+
+<span class="cmt"># Use a different model (must already be pulled in Ollama)</span>
+<span class="t-p">$</span> <span class="t-c">python chat.py --model llama3.2:3b</span></pre>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-explain">What a typical session looks like:</div>
+        <div class="code-block">
+          <div class="code-header">
+            <div style="display:flex;align-items:center;">
+              <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+              <span class="code-filename">Sample conversation</span>
+            </div>
+          </div>
+          <div class="terminal">
+<span class="t-s">Connected to http://localhost:11434  |  model: llama3.1:8b</span>
+<span class="t-o">Type 'exit' to quit.</span>
+&nbsp;
+<span class="t-i">You:</span> <span class="t-c">What is a Docker volume?</span>
+<span class="t-o">Assistant is thinking /</span>
+&nbsp;
+<span class="t-o">Assistant: A Docker volume is a persistent storage mechanism managed by Docker</span>
+<span class="t-o">that exists outside the container filesystem. Unlike bind mounts, volumes</span>
+<span class="t-o">survive container removal and are managed with docker volume commands...</span>
+&nbsp;
+<span class="t-i">You:</span> <span class="t-c">Give me a docker-compose example using one</span>
+<span class="t-o">Assistant is thinking -</span>
+&nbsp;
+<span class="t-o">Assistant: Here's a simple example:  services:  web:  image: nginx</span>
+<span class="t-o">  volumes:  - mydata:/usr/share/nginx/html  volumes:  mydata:</span>
+&nbsp;
+<span class="t-i">You:</span> <span class="t-c">exit</span>
+<span class="t-o">Goodbye.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout info">
+        <div class="callout-icon">🧠</div>
+        <p><strong>Why does the model remember what you said?</strong> Every turn, <code>chat.py</code> sends the <em>entire conversation</em> to Ollama — not just the latest message. The model reads from the start each time, which gives it "memory" of the session.</p>
+      </div>
+      <div class="callout warn">
+        <div class="callout-icon">⚠️</div>
+        <p><strong>First reply is slow</strong> — Llama 3.1 8B loads into RAM on the first inference. Replies after that are noticeably faster within the same session.</p>
+      </div>
+
+      <div class="panel-nav">
+        <button class="pnav-btn pnav-prev" data-go="5">← chat.py Code</button>
+        <button class="pnav-btn pnav-next" data-go="7">Quick Reference →</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════ CHAPTER 7 ═══════════════════════════ -->
+    <div class="chapter-panel" id="ch7">
+      <div class="panel-header">
+        <div class="panel-step">Reference</div>
+        <div class="panel-title">Quick Reference</div>
+        <div class="panel-subtitle">Keep this open while you work — the most useful docker and ollama commands.</div>
+      </div>
+
+      <div class="block no-explain">
+        <div class="code-block">
+          <div class="code-header">
+            <div style="display:flex;align-items:center;">
+              <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+              <span class="code-filename">docker &amp; ollama commands</span>
+            </div>
+            <div class="code-right">
+              <span class="code-lang">bash</span>
+              <button class="copy-btn" data-target="ref-code"><span>⎘</span><span>Copy</span></button>
+            </div>
+          </div>
+          <pre id="ref-code"><span class="cmt"># ── Start / Stop ──────────────────────────────────────────────────────────────</span>
+<span class="t-p">$</span> <span class="t-c">docker compose up -d</span>          <span class="cmt"># start all containers in background</span>
+<span class="t-p">$</span> <span class="t-c">docker compose down</span>            <span class="cmt"># stop containers (models stay in volume)</span>
+<span class="t-p">$</span> <span class="t-c">docker compose down -v</span>         <span class="cmt"># stop AND delete volume (re-downloads model!)</span>
+
+<span class="cmt"># ── Logs ──────────────────────────────────────────────────────────────────────</span>
+<span class="t-p">$</span> <span class="t-c">docker logs -f ollama</span>          <span class="cmt"># follow Ollama server logs</span>
+<span class="t-p">$</span> <span class="t-c">docker logs ollama-model-puller</span> <span class="cmt"># check if model downloaded</span>
+
+<span class="cmt"># ── Model Management ──────────────────────────────────────────────────────────</span>
+<span class="t-p">$</span> <span class="t-c">docker exec ollama ollama list</span>  <span class="cmt"># list all downloaded models</span>
+<span class="t-p">$</span> <span class="t-c">docker exec ollama ollama pull mistral</span>   <span class="cmt"># pull a different model</span>
+<span class="t-p">$</span> <span class="t-c">docker exec ollama ollama rm llama3.1:8b</span> <span class="cmt"># delete a model to free disk</span>
+
+<span class="cmt"># ── Test the API directly ─────────────────────────────────────────────────────</span>
+<span class="t-p">$</span> <span class="t-c">curl http://localhost:11434/api/tags</span>       <span class="cmt"># list models via HTTP</span>
+<span class="t-p">$</span> <span class="t-c">curl http://localhost:11434/api/version</span>    <span class="cmt"># check Ollama version</span></pre>
+        </div>
+      </div>
+
+      <div class="ref-grid">
+        <div class="ref-row">
+          <div class="ref-cmd">docker compose up -d</div>
+          <div class="ref-desc">Start everything. Use this every time you open a new coding session.</div>
+        </div>
+        <div class="ref-row">
+          <div class="ref-cmd">docker compose down</div>
+          <div class="ref-desc">Stop containers cleanly. Models stay saved — next start is instant.</div>
+        </div>
+        <div class="ref-row">
+          <div class="ref-cmd">docker exec ollama ollama list</div>
+          <div class="ref-desc">Verify which models are downloaded and available to use.</div>
+        </div>
+        <div class="ref-row">
+          <div class="ref-cmd">python chat.py --model X</div>
+          <div class="ref-desc">Switch to any model you've pulled. Try <code>mistral</code> or <code>gemma2:2b</code>.</div>
+        </div>
+      </div>
+
+      <!-- Finish card -->
+      <div class="finish-card" style="margin-top:32px;">
+        <div style="font-size:44px;margin-bottom:14px;">🎉</div>
+        <h2>Lab Complete!</h2>
+        <p>You've built a fully local LLM stack — zero cloud, zero API key, zero cost per token. Llama 3.1 runs entirely on your machine.</p>
+        <div class="finish-actions">
+          <a class="btn-primary" href="../index.html">← Back to Modules</a>
+          <a class="btn-outline" href="../vector-db.html">Next: Vector DB &amp; RAG →</a>
+        </div>
+      </div>
+
+      <div class="panel-nav">
+        <button class="pnav-btn pnav-prev" data-go="6">← Run the Chat</button>
+        <div class="pnav-placeholder"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ── PARTICLE CANVAS ───────────────────────────────────────────────────────────
+(function() {
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
+  resize(); window.addEventListener('resize', resize);
+  const COLORS = ['#2496ed','#a78bfa','#38bdf8'];
+  const pts = Array.from({ length: 60 }, () => ({
+    x: Math.random() * innerWidth, y: Math.random() * innerHeight,
+    vx: (Math.random() - .5) * .25, vy: (Math.random() - .5) * .25,
+    r: Math.random() * 1.5 + .6, c: COLORS[Math.floor(Math.random() * 3)],
+  }));
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < pts.length; i++)
+      for (let j = i + 1; j < pts.length; j++) {
+        const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
+        const d = Math.sqrt(dx*dx + dy*dy);
+        if (d < 120) {
+          ctx.beginPath(); ctx.moveTo(pts[i].x, pts[i].y); ctx.lineTo(pts[j].x, pts[j].y);
+          ctx.strokeStyle = '#2496ed'; ctx.globalAlpha = (1 - d/120) * .05;
+          ctx.lineWidth = 1; ctx.stroke();
+        }
+      }
+    pts.forEach(p => {
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = p.c; ctx.globalAlpha = .13; ctx.fill();
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0 || p.x > canvas.width)  p.vx *= -1;
+      if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+    });
+    ctx.globalAlpha = 1; requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ── CHAPTER NAVIGATION ────────────────────────────────────────────────────────
+const TOTAL = 7;
+let current = 1;
+
+function goTo(n) {
+  if (n < 1 || n > TOTAL) return;
+  // hide current panel
+  document.getElementById('ch' + current)?.classList.remove('active');
+  document.querySelectorAll('.chapter-item').forEach(el => el.classList.remove('active'));
+
+  current = n;
+
+  // show new panel
+  document.getElementById('ch' + current)?.classList.add('active');
+  document.querySelectorAll('.chapter-item[data-chapter="' + current + '"]').forEach(el => {
+    el.classList.add('active');
+  });
+
+  // mark previous chapters done
+  document.querySelectorAll('.chapter-item').forEach(el => {
+    const ch = parseInt(el.dataset.chapter);
+    if (!isNaN(ch) && ch < current) el.classList.add('done');
+    else el.classList.remove('done');
+  });
+
+  // update progress bar
+  const pct = (current / TOTAL * 100).toFixed(1);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  const stepNum = current <= 6 ? `Step ${current} of 6` : 'Reference';
+  document.getElementById('progress-label').textContent = stepNum;
+
+  // scroll main to top
+  document.querySelector('.main').scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // close sidebar on mobile
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+// sidebar chapter links
+document.querySelectorAll('.chapter-item[data-chapter]').forEach(el => {
+  el.addEventListener('click', e => {
+    e.preventDefault();
+    goTo(parseInt(el.dataset.chapter));
+  });
+});
+
+// prev/next buttons
+document.querySelectorAll('.pnav-btn[data-go]').forEach(btn => {
+  btn.addEventListener('click', () => goTo(parseInt(btn.dataset.go)));
+});
+
+// ── HAMBURGER (mobile) ────────────────────────────────────────────────────────
+const hamburger = document.getElementById('hamburger');
+const sidebar   = document.getElementById('sidebar');
+const overlay   = document.getElementById('overlay');
+hamburger.addEventListener('click', () => {
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('show');
+});
+overlay.addEventListener('click', () => {
+  sidebar.classList.remove('open');
+  overlay.classList.remove('show');
+});
+
+// ── COPY BUTTONS ──────────────────────────────────────────────────────────────
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const el = document.getElementById(btn.dataset.target);
+    if (!el) return;
+    navigator.clipboard.writeText(el.innerText).then(() => {
+      const label = btn.querySelector('span:last-child');
+      const orig = label.textContent;
+      label.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { label.textContent = orig; btn.classList.remove('copied'); }, 2000);
+    });
+  });
+});
+</script>
+</body>
+</html>
