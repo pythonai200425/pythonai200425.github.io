@@ -8,7 +8,7 @@ from typing import List, Dict
 import requests
 
 DEFAULT_BASE_URL = "http://localhost:11434"
-DEFAULT_MODEL = "llama3.1:8b"
+DEFAULT_MODEL = "llama2:7b"
 DEFAULT_MAX_TOKENS = 120
 DEFAULT_CONTEXT = 1024
 

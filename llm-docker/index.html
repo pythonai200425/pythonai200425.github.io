@@ -524,7 +524,7 @@ pre{
     </nav>
 
     <div class="sidebar-footer">
-      <div>Powered by <a href="https://ollama.com" target="_blank">Ollama ↗</a> · <a href="https://ollama.com/library/llama3.1" target="_blank">Llama 3.1 ↗</a></div>
+      <div>Powered by <a href="https://ollama.com" target="_blank">Ollama ↗</a> · <a href="https://ollama.com/library/llama2" target="_blank">Llama 2 ↗</a></div>
       <div><a href="../index.html">← Back to AI Advanced</a></div>
     </div>
   </aside>
@@ -677,8 +677,8 @@ pre{
 <span class="n">OLLAMA_BASE_URL</span>=<span class="env">http://localhost:11434</span>
 
 <span class="cmt"># The model tag to load. Change this to try other models.</span>
-<span class="cmt"># Examples: llama3.2:3b (faster), mistral, gemma2:2b</span>
-<span class="n">OLLAMA_MODEL</span>=<span class="env">llama3.1:8b</span></pre>
+<span class="cmt"># Examples: llama2:7b, llama3.2:3b (faster), mistral</span>
+<span class="n">OLLAMA_MODEL</span>=<span class="env">llama2:7b</span></pre>
         </div>
       </div>
 
@@ -739,7 +739,7 @@ pre{
 
   <span class="cmt">  # ── SERVICE 2: Model Puller ────────────────────────────────────────────────
   # A one-shot helper that waits for Ollama to be ready,
-  # then downloads llama3.1:8b into the shared volume.
+  # then downloads llama2:7b into the shared volume.
   # After first run it exits immediately (model already there).</span>
   <span class="fn">model-puller</span><span class="p">:</span>
     <span class="n">image</span><span class="p">:</span> <span class="s">ollama/ollama:latest</span>   <span class="cmt"># reuses the same image — no extra download</span>
@@ -754,8 +754,8 @@ pre{
       <span class="s">echo "Waiting for Ollama API...";</span>
       <span class="cmt">      # Loop until the API responds (Ollama needs ~2-3 seconds to boot)</span>
       <span class="s">until ollama list > /dev/null 2>&1; do sleep 2; done;</span>
-      <span class="s">echo "Pulling model llama3.1:8b (~4.7 GB)...";</span>
-      <span class="s">ollama pull llama3.1:8b;</span>      <span class="cmt"># skipped automatically if already downloaded</span>
+      <span class="s">echo "Pulling model llama2:7b...";</span>
+      <span class="s">ollama pull llama2:7b;</span>      <span class="cmt"># skipped automatically if already downloaded</span>
       <span class="s">echo "Model ready.";</span>
     <span class="n">volumes</span><span class="p">:</span>
       <span class="p">-</span> <span class="s">ollama_data:/root/.ollama</span>   <span class="cmt"># same volume → model lands where Ollama can find it</span>
@@ -848,7 +848,7 @@ pre{
           </div>
           <div class="terminal">
 <span class="t-o">Waiting for Ollama API...</span>
-<span class="t-i">Pulling model llama3.1:8b (~4.7 GB)...</span>
+<span class="t-i">Pulling model llama2:7b...</span>
 <span class="t-o">pulling manifest</span>
 <span class="t-o">pulling 667b0c1932bc... 100% ▕████████████████████▏ 4.7 GB</span>
 <span class="t-o">pulling 0ba8f0e314b4... 100% ▕████████████████████▏  12 KB</span>
@@ -859,7 +859,7 @@ pre{
 
       <div class="callout warn">
         <div class="callout-icon">⚠️</div>
-        <p><strong>First run only:</strong> the 4.7 GB download happens once. After that, <code>docker compose up -d</code> starts in under 5 seconds and the model loads from the local volume.</p>
+        <p><strong>First run only:</strong> the model download happens once. After that, <code>docker compose up -d</code> starts in under 5 seconds and the model loads from the local volume.</p>
       </div>
 
       <div class="panel-nav">
@@ -912,7 +912,7 @@ pre{
 # These are used when the user does NOT pass command-line flags.
 # They can all be overridden: python chat.py --model mistral --max-tokens 200</span>
 <span class="n">DEFAULT_BASE_URL</span>   <span class="o">=</span> <span class="s">"http://localhost:11434"</span>  <span class="cmt"># Ollama's HTTP server address</span>
-<span class="n">DEFAULT_MODEL</span>      <span class="o">=</span> <span class="s">"llama3.1:8b"</span>              <span class="cmt"># model name as registered in Ollama</span>
+<span class="n">DEFAULT_MODEL</span>      <span class="o">=</span> <span class="s">"llama2:7b"</span>                <span class="cmt"># model name as registered in Ollama</span>
 <span class="n">DEFAULT_MAX_TOKENS</span> <span class="o">=</span> <span class="m">120</span>                        <span class="cmt"># max words in one reply (keep short on CPU)</span>
 <span class="n">DEFAULT_CONTEXT</span>    <span class="o">=</span> <span class="m">1024</span>                       <span class="cmt"># how many tokens the model can "see" back</span>
 
@@ -1098,7 +1098,7 @@ pre{
               <button class="copy-btn" data-target="run-code"><span>⎘</span><span>Copy</span></button>
             </div>
           </div>
-          <pre id="run-code"><span class="cmt"># Default run — uses llama3.1:8b with 120 token limit</span>
+          <pre id="run-code"><span class="cmt"># Default run — uses llama2:7b with 120 token limit</span>
 <span class="t-p">$</span> <span class="t-c">python chat.py</span>
 
 <span class="cmt"># Faster on slow machines — shorter replies, smaller context window</span>
@@ -1119,7 +1119,7 @@ pre{
             </div>
           </div>
           <div class="terminal">
-<span class="t-s">Connected to http://localhost:11434  |  model: llama3.1:8b</span>
+<span class="t-s">Connected to http://localhost:11434  |  model: llama2:7b</span>
 <span class="t-o">Type 'exit' to quit.</span>
 &nbsp;
 <span class="t-i">You:</span> <span class="t-c">What is a Docker volume?</span>
@@ -1147,7 +1147,7 @@ pre{
       </div>
       <div class="callout warn">
         <div class="callout-icon">⚠️</div>
-        <p><strong>First reply is slow</strong> — Llama 3.1 8B loads into RAM on the first inference. Replies after that are noticeably faster within the same session.</p>
+        <p><strong>First reply is slow</strong> — Llama 2 7B loads into RAM on the first inference. Replies after that are noticeably faster within the same session.</p>
       </div>
 
       <div class="panel-nav">
@@ -1188,7 +1188,7 @@ pre{
 <span class="cmt"># ── Model Management ──────────────────────────────────────────────────────────</span>
 <span class="t-p">$</span> <span class="t-c">docker exec ollama ollama list</span>  <span class="cmt"># list all downloaded models</span>
 <span class="t-p">$</span> <span class="t-c">docker exec ollama ollama pull mistral</span>   <span class="cmt"># pull a different model</span>
-<span class="t-p">$</span> <span class="t-c">docker exec ollama ollama rm llama3.1:8b</span> <span class="cmt"># delete a model to free disk</span>
+<span class="t-p">$</span> <span class="t-c">docker exec ollama ollama rm llama2:7b</span> <span class="cmt"># delete a model to free disk</span>
 
 <span class="cmt"># ── Test the API directly ─────────────────────────────────────────────────────</span>
 <span class="t-p">$</span> <span class="t-c">curl http://localhost:11434/api/tags</span>       <span class="cmt"># list models via HTTP</span>
