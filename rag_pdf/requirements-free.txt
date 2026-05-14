@@ -1,0 +1,23 @@
+# ── rag_pdf_free.py — free local version ─────────────────────────────────────
+# Install: pip install -r requirements-free.txt
+# No API key needed. Models download from HuggingFace on first run (~500 MB).
+
+# Web UI
+gradio>=4.0.0
+
+# PDF loading
+pypdf>=4.0.0
+
+# LangChain components
+langchain-community>=0.2.0        # PyPDFLoader
+langchain-text-splitters>=0.2.0   # RecursiveCharacterTextSplitter
+langchain-chroma>=0.1.0           # Chroma vector store
+langchain-huggingface>=0.1.0      # HuggingFaceEmbeddings
+
+# Vector store backend
+chromadb>=0.5.0
+
+# Local model inference
+transformers>=4.40.0              # HuggingFace pipeline (flan-t5-base)
+sentence-transformers>=3.0.0      # all-MiniLM-L6-v2 embedding model
+torch>=2.0.0                      # required by transformers and sentence-transformers

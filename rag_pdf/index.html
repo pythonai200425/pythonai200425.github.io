@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAG — Chat with Your PDF</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📄</text></svg>">
+<style>
+:root {
+  --bg:      #0a080f;
+  --bg2:     #100d1a;
+  --bg3:     #18132a;
+  --card:    #100d1a;
+  --border:  #2a2040;
+  --accent:  #a78bfa;
+  --accent2: #ff6ec7;
+  --accent3: #38bdf8;
+  --green:   #3fb950;
+  --yellow:  #f0c000;
+  --text:    #e6edf3;
+  --dim:     #8b7eb8;
+  --code-bg: #060409;
+  --sidebar-w: 272px;
+  --nav-h:   56px;
+  --r:       12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+#bg-canvas{position:fixed;inset:0;pointer-events:none;z-index:0;}
+
+/* NAV */
+.topnav{
+  position:fixed;top:0;left:0;right:0;height:var(--nav-h);z-index:200;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;
+  background:rgba(10,8,15,.92);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+}
+.topnav-left{display:flex;align-items:center;gap:14px;}
+.hamburger{display:none;flex-direction:column;justify-content:center;gap:5px;width:36px;height:36px;cursor:pointer;background:none;border:1px solid var(--border);border-radius:8px;padding:8px;}
+.hamburger span{display:block;height:2px;background:var(--dim);border-radius:2px;}
+.topnav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);font-weight:800;font-size:15px;}
+.topnav-right{display:flex;align-items:center;gap:10px;}
+.progress-bar{width:160px;height:4px;border-radius:2px;background:var(--border);overflow:hidden;}
+.progress-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .4s ease;}
+.progress-label{font-size:11px;color:var(--dim);}
+.back-btn{display:flex;align-items:center;gap:6px;text-decoration:none;font-size:13px;color:var(--dim);border:1px solid var(--border);border-radius:8px;padding:6px 14px;transition:color .2s,border-color .2s;}
+.back-btn:hover{color:var(--text);border-color:var(--accent);}
+
+/* LAYOUT */
+.layout{display:flex;padding-top:var(--nav-h);min-height:100vh;position:relative;z-index:1;}
+
+/* SIDEBAR */
+.sidebar{
+  width:var(--sidebar-w);flex-shrink:0;
+  position:fixed;top:var(--nav-h);bottom:0;left:0;
+  overflow-y:auto;
+  background:rgba(16,13,26,.97);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;z-index:100;
+  transition:transform .3s ease;
+}
+.sidebar::-webkit-scrollbar{width:4px;}
+.sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.sidebar-intro{padding:22px 20px 14px;border-bottom:1px solid var(--border);}
+.sidebar-title{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:7px;}
+.sidebar-desc{font-size:12px;color:var(--dim);line-height:1.6;}
+.sidebar-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px;}
+.sbadge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(167,139,250,.1);color:var(--accent);border:1px solid rgba(167,139,250,.2);}
+.sbadge.free{background:rgba(63,185,80,.1);color:var(--green);border-color:rgba(63,185,80,.2);}
+
+.chapter-nav{padding:10px 0;flex:1;}
+.chapter-group-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);padding:10px 20px 5px;}
+.chapter-item{display:flex;align-items:center;gap:11px;padding:10px 20px;cursor:pointer;transition:background .15s;border-left:3px solid transparent;text-decoration:none;color:var(--dim);}
+.chapter-item:hover{background:rgba(167,139,250,.05);color:var(--text);}
+.chapter-item.active{background:rgba(167,139,250,.08);border-left-color:var(--accent);color:var(--text);}
+.chapter-item.done .ch-num{background:var(--green);color:#000;border-color:var(--green);}
+.ch-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;background:var(--bg3);border:1px solid var(--border);flex-shrink:0;transition:background .2s,color .2s;color:var(--dim);}
+.chapter-item.active .ch-num{background:var(--accent);color:#fff;border-color:var(--accent);}
+.ch-num.bonus{background:rgba(63,185,80,.15);color:var(--green);border-color:rgba(63,185,80,.3);font-size:9px;}
+.chapter-item.active .ch-num.bonus{background:var(--green);color:#000;}
+.ch-label{font-size:13px;font-weight:600;line-height:1.3;flex:1;}
+.sidebar-footer{padding:14px 20px;border-top:1px solid var(--border);font-size:11px;color:var(--dim);}
+.sidebar-footer a{color:var(--accent3);text-decoration:none;}
+.sidebar-footer a:hover{text-decoration:underline;}
+
+/* MAIN */
+.main{margin-left:var(--sidebar-w);flex:1;min-height:calc(100vh - var(--nav-h));display:flex;flex-direction:column;}
+
+/* PANELS */
+.chapter-panel{display:none;flex:1;flex-direction:column;padding:48px 56px 40px;max-width:880px;animation:fadeIn .3s ease;}
+.chapter-panel.active{display:flex;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+.panel-header{margin-bottom:34px;}
+.panel-step{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:8px;}
+.panel-step.bonus-label{color:var(--green);}
+.panel-title{font-size:clamp(26px,3.5vw,38px);font-weight:900;letter-spacing:-1px;margin-bottom:10px;}
+.panel-subtitle{font-size:15px;color:var(--dim);line-height:1.75;max-width:600px;}
+
+/* BLOCKS */
+.block{margin-bottom:26px;}
+.block-explain{font-size:14px;color:var(--dim);line-height:1.8;padding:18px 22px;background:var(--bg3);border-radius:var(--r) var(--r) 0 0;border:1px solid var(--border);border-bottom:none;}
+.block-explain strong{color:var(--text);}
+.block-explain code{background:rgba(167,139,250,.12);color:var(--accent3);padding:1px 6px;border-radius:4px;font-size:13px;}
+.block-explain a{color:var(--accent3);text-decoration:none;}
+.block-explain a:hover{text-decoration:underline;}
+.block.no-explain .code-block{border-radius:var(--r);}
+
+/* CODE */
+.code-block{border:1px solid var(--border);border-radius:0 0 var(--r) var(--r);overflow:hidden;}
+.block.no-explain .code-block{border-radius:var(--r);}
+.code-header{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:var(--code-bg);border-bottom:1px solid #1a0f2e;}
+.code-dots{display:flex;gap:6px;align-items:center;}
+.dot{width:10px;height:10px;border-radius:50%;}
+.dot-r{background:#ff5f56;}.dot-y{background:#ffbd2e;}.dot-g{background:#27c93f;}
+.code-filename{font-size:12px;font-weight:600;color:var(--dim);margin-left:10px;}
+.code-right{display:flex;align-items:center;gap:8px;}
+.code-lang{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.15);padding:2px 9px;border-radius:5px;}
+.code-lang.green{color:var(--green);background:rgba(63,185,80,.1);border-color:rgba(63,185,80,.2);}
+.copy-btn{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--dim);background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:6px;padding:4px 11px;cursor:pointer;transition:all .2s;user-select:none;}
+.copy-btn:hover{color:var(--text);background:rgba(255,255,255,.1);border-color:var(--accent2);}
+.copy-btn.copied{color:var(--green);border-color:var(--green);background:rgba(63,185,80,.1);}
+
+pre{margin:0;padding:22px 24px;background:var(--code-bg);overflow-x:auto;font-family:'Cascadia Code','Fira Code','Courier New',monospace;font-size:13px;line-height:1.75;}
+.file-tree{padding:18px 24px;font-family:'Cascadia Code','Fira Code',monospace;font-size:13px;line-height:2.1;background:var(--code-bg);}
+.terminal{padding:18px 24px;background:#000;font-family:'Cascadia Code','Fira Code',monospace;font-size:13px;line-height:1.85;}
+
+/* Syntax */
+.k{color:#ff7b72;}.s{color:#a5d6ff;}.c{color:#554d78;font-style:italic;}
+.n{color:#79c0ff;}.o{color:#ff7b72;}.m{color:#f2cc60;}
+.p{color:#e6edf3;}.fn{color:#d2a8ff;}.kw2{color:#ffa657;}
+.env{color:#7ee787;}.cmt{color:#554d78;font-style:italic;}
+.ft-dir{color:var(--accent3);}.ft-py{color:#d2a8ff;}.ft-env{color:var(--green);}
+.ft-txt{color:var(--dim);}.ft-c{color:#554d78;font-style:italic;}
+.t-p{color:#7ee787;}.t-c{color:#e6edf3;}.t-o{color:#8b949e;}.t-s{color:#3fb950;}.t-i{color:#79c0ff;}
+
+/* CALLOUTS */
+.callout{display:flex;gap:12px;align-items:flex-start;border-radius:10px;padding:14px 18px;margin-bottom:14px;font-size:13px;line-height:1.75;}
+.callout.tip{background:rgba(63,185,80,.07);border:1px solid rgba(63,185,80,.2);}
+.callout.warn{background:rgba(240,192,0,.07);border:1px solid rgba(240,192,0,.2);}
+.callout.info{background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.2);}
+.callout.bonus{background:rgba(63,185,80,.06);border:1px solid rgba(63,185,80,.25);}
+.callout-icon{font-size:17px;flex-shrink:0;margin-top:1px;}
+.callout p{color:var(--dim);}
+.callout.tip p strong{color:var(--green);}
+.callout.warn p strong{color:var(--yellow);}
+.callout.info p strong{color:var(--accent);}
+.callout.bonus p strong{color:var(--green);}
+.callout code{background:rgba(255,255,255,.07);padding:1px 6px;border-radius:4px;font-size:12px;}
+
+/* ARCH */
+.arch{display:flex;align-items:center;flex-wrap:wrap;gap:0;margin-bottom:24px;}
+.arch-box{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:15px 20px;text-align:center;min-width:110px;transition:border-color .2s,transform .2s;}
+.arch-box:hover{border-color:var(--accent);transform:translateY(-3px);}
+.arch-icon{font-size:26px;margin-bottom:5px;}
+.arch-label{font-size:12px;font-weight:700;}
+.arch-sub{font-size:10px;color:var(--dim);margin-top:3px;}
+.arch-arr{font-size:18px;color:var(--accent);padding:0 8px;flex-shrink:0;}
+
+/* PREREQ GRID */
+.prereq-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px;}
+.prereq-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:15px 17px;display:flex;gap:11px;align-items:flex-start;transition:border-color .2s;}
+.prereq-card:hover{border-color:var(--accent);}
+.prereq-icon{font-size:22px;flex-shrink:0;}
+.prereq-body h4{font-size:13px;font-weight:700;margin-bottom:3px;}
+.prereq-body p{font-size:12px;color:var(--dim);line-height:1.55;}
+.prereq-body code{font-size:11px;color:var(--accent3);}
+
+/* COMPARE TABLE */
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
+.compare-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:22px 24px;}
+.compare-card.paid{border-color:rgba(167,139,250,.3);}
+.compare-card.free{border-color:rgba(63,185,80,.3);}
+.compare-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.compare-icon{font-size:24px;}
+.compare-title{font-size:15px;font-weight:800;}
+.compare-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:auto;}
+.paid .compare-badge{background:rgba(167,139,250,.15);color:var(--accent);border:1px solid rgba(167,139,250,.25);}
+.free .compare-badge{background:rgba(63,185,80,.15);color:var(--green);border:1px solid rgba(63,185,80,.25);}
+.compare-rows{display:flex;flex-direction:column;gap:8px;}
+.compare-row{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--dim);}
+.compare-row .icon{flex-shrink:0;font-size:14px;}
+
+/* PANEL NAV */
+.panel-nav{display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:36px;padding-bottom:8px;border-top:1px solid var(--border);}
+.pnav-btn{display:flex;align-items:center;gap:8px;padding:10px 22px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all .2s;text-decoration:none;}
+.pnav-prev{background:var(--bg3);color:var(--dim);border:1px solid var(--border);}
+.pnav-prev:hover{color:var(--text);border-color:var(--accent);}
+.pnav-next{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 4px 18px rgba(167,139,250,.3);}
+.pnav-next:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(167,139,250,.45);}
+.pnav-next.green-btn{background:linear-gradient(135deg,var(--green),#2ea043);box-shadow:0 4px 18px rgba(63,185,80,.3);}
+.pnav-next.green-btn:hover{box-shadow:0 8px 28px rgba(63,185,80,.45);}
+.pnav-placeholder{width:120px;}
+
+/* FINISH */
+.finish-card{background:linear-gradient(135deg,rgba(167,139,250,.1),rgba(255,110,199,.08));border:1px solid rgba(167,139,250,.2);border-radius:16px;padding:44px 38px;text-align:center;margin-bottom:28px;position:relative;overflow:hidden;}
+.finish-card::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(167,139,250,.1),transparent 65%);pointer-events:none;}
+.finish-card h2{font-size:clamp(24px,3.5vw,36px);font-weight:900;letter-spacing:-1px;margin-bottom:12px;}
+.finish-card p{font-size:15px;color:var(--dim);max-width:460px;margin:0 auto 26px;line-height:1.75;}
+.finish-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.btn-primary{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 24px;border-radius:10px;box-shadow:0 4px 18px rgba(167,139,250,.3);transition:transform .2s,box-shadow .2s;}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(167,139,250,.45);}
+.btn-outline{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);color:var(--text);text-decoration:none;font-weight:600;font-size:14px;padding:12px 24px;border-radius:10px;transition:border-color .2s,background .2s;}
+.btn-outline:hover{border-color:var(--accent);background:rgba(167,139,250,.08);}
+
+/* BONUS BANNER */
+.bonus-banner{background:linear-gradient(135deg,rgba(63,185,80,.1),rgba(63,185,80,.05));border:1px solid rgba(63,185,80,.25);border-radius:12px;padding:18px 22px;margin-bottom:24px;display:flex;gap:14px;align-items:center;}
+.bonus-banner-icon{font-size:32px;}
+.bonus-banner-body h3{font-size:16px;font-weight:800;color:var(--green);margin-bottom:4px;}
+.bonus-banner-body p{font-size:13px;color:var(--dim);line-height:1.6;}
+
+/* RESPONSIVE */
+@media(max-width:820px){
+  .sidebar{transform:translateX(-100%);z-index:300;}
+  .sidebar.open{transform:translateX(0);}
+  .main{margin-left:0;}
+  .chapter-panel{padding:28px 20px 28px;}
+  .hamburger{display:flex;}
+  .progress-bar,.progress-label{display:none;}
+  .prereq-grid,.compare{grid-template-columns:1fr;}
+  .arch{flex-direction:column;}
+  .arch-arr{transform:rotate(90deg);}
+  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:250;}
+  .overlay.show{display:block;}
+}
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div class="overlay" id="overlay"></div>
+
+<!-- NAV -->
+<nav class="topnav">
+  <div class="topnav-left">
+    <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+    <a class="topnav-logo" href="../index.html">
+      <span style="font-size:20px;">📄</span>
+      <span>RAG — Chat with PDF</span>
+    </a>
+  </div>
+  <div class="topnav-right">
+    <span class="progress-label" id="progress-label">Step 1 of 7</span>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:12.5%"></div></div>
+    <a class="back-btn" href="../index.html">← Modules</a>
+  </div>
+</nav>
+
+<div class="layout">
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-intro">
+    <div class="sidebar-title">Lab Contents</div>
+    <div class="sidebar-desc">Build a full RAG pipeline — chunk, embed, retrieve, answer.</div>
+    <div class="sidebar-badges">
+      <span class="sbadge">LangChain</span>
+      <span class="sbadge">ChromaDB</span>
+      <span class="sbadge">Gradio</span>
+      <span class="sbadge free">Free Version ✓</span>
+    </div>
+  </div>
+  <nav class="chapter-nav">
+    <div class="chapter-group-label">Concepts</div>
+    <a class="chapter-item active" data-chapter="1" href="#ch1">
+      <div class="ch-num">1</div><div class="ch-label">What is RAG?</div>
+    </a>
+    <a class="chapter-item" data-chapter="2" href="#ch2">
+      <div class="ch-num">2</div><div class="ch-label">Project Setup</div>
+    </a>
+
+    <div class="chapter-group-label" style="margin-top:6px;">Paid Version (OpenAI)</div>
+    <a class="chapter-item" data-chapter="3" href="#ch3">
+      <div class="ch-num">3</div><div class="ch-label">Configure .env</div>
+    </a>
+    <a class="chapter-item" data-chapter="4" href="#ch4">
+      <div class="ch-num">4</div><div class="ch-label">rag_pdf.py — The Code</div>
+    </a>
+    <a class="chapter-item" data-chapter="5" href="#ch5">
+      <div class="ch-num">5</div><div class="ch-label">Run the App</div>
+    </a>
+
+    <div class="chapter-group-label" style="margin-top:6px;">Bonus — Free Version</div>
+    <a class="chapter-item" data-chapter="6" href="#ch6">
+      <div class="ch-num bonus">★</div><div class="ch-label">rag_pdf_free.py</div>
+    </a>
+    <a class="chapter-item" data-chapter="7" href="#ch7">
+      <div class="ch-num bonus">⚡</div><div class="ch-label">Quick Reference</div>
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div><a href="https://python.langchain.com" target="_blank">LangChain Docs ↗</a> · <a href="https://www.trychroma.com" target="_blank">ChromaDB ↗</a></div>
+    <div style="margin-top:4px;"><a href="../index.html">← AI Advanced</a></div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+<!-- ══════════════════════════════ CH 1 — WHAT IS RAG ══════════════════════════ -->
+<div class="chapter-panel active" id="ch1">
+  <div class="panel-header">
+    <div class="panel-step">Step 1 of 7 — Concepts</div>
+    <div class="panel-title">What is RAG?</div>
+    <div class="panel-subtitle">Retrieval-Augmented Generation — teach an LLM about documents it was never trained on, without fine-tuning.</div>
+  </div>
+
+  <div class="arch">
+    <div class="arch-box"><div class="arch-icon">📄</div><div class="arch-label">Your PDF</div><div class="arch-sub">any document</div></div>
+    <div class="arch-arr">→</div>
+    <div class="arch-box"><div class="arch-icon">✂️</div><div class="arch-label">Chunking</div><div class="arch-sub">split into pieces</div></div>
+    <div class="arch-arr">→</div>
+    <div class="arch-box"><div class="arch-icon">🔢</div><div class="arch-label">Embeddings</div><div class="arch-sub">text → numbers</div></div>
+    <div class="arch-arr">→</div>
+    <div class="arch-box"><div class="arch-icon">🗄️</div><div class="arch-label">ChromaDB</div><div class="arch-sub">vector store</div></div>
+    <div class="arch-arr">→</div>
+    <div class="arch-box"><div class="arch-icon">🔍</div><div class="arch-label">Retrieve</div><div class="arch-sub">top-k search</div></div>
+    <div class="arch-arr">→</div>
+    <div class="arch-box"><div class="arch-icon">🤖</div><div class="arch-label">LLM</div><div class="arch-sub">generates answer</div></div>
+  </div>
+
+  <div class="block no-explain">
+    <div class="code-block" style="border-radius:var(--r);">
+      <div class="code-header">
+        <div style="display:flex;align-items:center;"><div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div><span class="code-filename">The RAG pipeline — step by step</span></div>
+      </div>
+      <div class="file-tree">
+<span class="cmt" style="color:#554d78;font-style:italic;">Step 1 — INDEX (done once when PDF is uploaded)</span>
+  PDF pages  →  split into 500-char chunks  →  embed each chunk  →  store in ChromaDB
+
+<span class="cmt" style="color:#554d78;font-style:italic;">Step 2 — QUERY (done on every question)</span>
+  User question  →  embed the question  →  vector similarity search
+                →  top 4 matching chunks  →  inject into LLM prompt
+                →  LLM reads chunks + question  →  generates answer
+</div>
+    </div>
+  </div>
+
+  <div class="compare">
+    <div class="compare-card paid">
+      <div class="compare-header">
+        <div class="compare-icon">💳</div>
+        <div class="compare-title">rag_pdf.py</div>
+        <span class="compare-badge">OpenAI</span>
+      </div>
+      <div class="compare-rows">
+        <div class="compare-row"><span class="icon">🔢</span>Embeddings: <strong style="color:var(--text)">text-embedding-3-small</strong></div>
+        <div class="compare-row"><span class="icon">🤖</span>LLM: <strong style="color:var(--text)">gpt-4o-mini</strong></div>
+        <div class="compare-row"><span class="icon">🔑</span>Requires OPENAI_API_KEY</div>
+        <div class="compare-row"><span class="icon">💬</span>Full conversation memory</div>
+        <div class="compare-row"><span class="icon">⚡</span>Fast, high-quality answers</div>
+      </div>
+    </div>
+    <div class="compare-card free">
+      <div class="compare-header">
+        <div class="compare-icon">🆓</div>
+        <div class="compare-title">rag_pdf_free.py</div>
+        <span class="compare-badge">Local / Free</span>
+      </div>
+      <div class="compare-rows">
+        <div class="compare-row"><span class="icon">🔢</span>Embeddings: <strong style="color:var(--text)">all-MiniLM-L6-v2</strong></div>
+        <div class="compare-row"><span class="icon">🤖</span>LLM: <strong style="color:var(--text)">flan-t5-base</strong></div>
+        <div class="compare-row"><span class="icon">✅</span>No API key needed</div>
+        <div class="compare-row"><span class="icon">💾</span>Runs fully on your machine</div>
+        <div class="compare-row"><span class="icon">🐢</span>Slower, shorter answers</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout info">
+    <div class="callout-icon">💡</div>
+    <p><strong>Why not just paste the PDF into ChatGPT?</strong> Context windows have limits (~128K tokens = ~100 pages). RAG lets you query thousand-page documents, keeps answers grounded to source text, and cites exact pages.</p>
+  </div>
+
+  <div class="panel-nav">
+    <div class="pnav-placeholder"></div>
+    <button class="pnav-btn pnav-next" data-go="2">Project Setup →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ CH 2 — SETUP ════════════════════════════════ -->
+<div class="chapter-panel" id="ch2">
+  <div class="panel-header">
+    <div class="panel-step">Step 2 of 7 — Setup</div>
+    <div class="panel-title">Project Setup</div>
+    <div class="panel-subtitle">Two Python files, one .env. Here's the structure and what you need installed.</div>
+  </div>
+
+  <div class="block no-explain">
+    <div class="code-block">
+      <div class="code-header">
+        <div style="display:flex;align-items:center;"><div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div><span class="code-filename">Project layout</span></div>
+        <div class="code-right"><button class="copy-btn" data-target="tree-code"><span>⎘</span><span>Copy</span></button></div>
+      </div>
+      <div class="file-tree" id="tree-code"><span class="ft-dir">rag_pdf/</span>
+├── <span class="ft-py">rag_pdf.py</span>             <span class="ft-c"># OpenAI version — needs API key</span>
+├── <span class="ft-py">rag_pdf_free.py</span>        <span class="ft-c"># free version — runs fully local</span>
+├── <span class="ft-txt">requirements.txt</span>       <span class="ft-c"># deps for rag_pdf.py (OpenAI)</span>
+├── <span class="ft-txt">requirements-free.txt</span>  <span class="ft-c"># deps for rag_pdf_free.py (local)</span>
+└── <span class="ft-env">.env</span>                   <span class="ft-c"># stores your OPENAI_API_KEY</span></div>
+    </div>
+  </div>
+
+  <div class="block">
+    <div class="block-explain">Install dependencies for the <strong>OpenAI version</strong> using the included requirements file:</div>
+    <div class="code-block">
+      <div class="code-header">
+        <div style="display:flex;align-items:center;"><div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div><span class="code-filename">Terminal — paid version</span></div>
+        <div class="code-right"><span class="code-lang">bash</span><button class="copy-btn" data-target="pip-paid"><span>⎘</span><span>Copy</span></button></div>
+      </div>
+      <pre id="pip-paid"><span class="t-p">$</span> <span class="t-c">pip install -r requirements.txt</span></pre>
+    </div>
+  </div>
+
+  <div class="block">
+    <div class="block-explain">Contents of <strong>requirements.txt</strong> — one package per line, with comments explaining each:</div>
+    <div class="code-block">
+      <div class="code-header">
+        <div style="display:flex;align-items:center;"><div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div><span class="code-filename">requirements.txt</span></div>
+        <div class="code-right"><span class="code-lang">txt</span><button class="copy-btn" data-target="req-paid-content"><span>⎘</span><span>Copy</span></button></div>
+      </div>
+      <pre id="req-paid-content"><span class="cmt"># Web UI</span>
+<span class="s">gradio</span><span class="p">>=</span><span class="m">4.0.0</span>
+
+<span class="cmt"># PDF loading</span>
+<span class="s">pypdf</span><span class="p">>=</span><span class="m">4.0.0</span>
+
+<span class="cmt"># LangChain components</span>
+<span class="s">langchain-community</span><span class="p">>=</span><span class="m">0.2.0</span>        <span class="cmt"># PyPDFLoader</span>
+<span class="s">langchain-text-splitters</span><span class="p">>=</span><span class="m">0.2.0</span>   <span class="cmt"># RecursiveCharacterTextSplitter</span>
+<span class="s">langchain-chroma</span><span class="p">>=</span><span class="m">0.1.0</span>           <span class="cmt"># Chroma vector store</span>
+<span class="s">langchain-openai</span><span class="p">>=</span><span class="m">0.1.0</span>           <span class="cmt"># OpenAIEmbeddings, ChatOpenAI</span>
+<span class="s">langchain-classic</span><span class="p">>=</span><span class="m">0.1.0</span>          <span class="cmt"># ConversationalRetrievalChain, ConversationBufferMemory</span>
+
+<span class="cmt"># Vector store backend</span>
+<span class="s">chromadb</span><span class="p">>=</span><span class="m">0.5.0</span>
+
+<span class="cmt"># Environment variable loader</span>
+<span class="s">python-dotenv</span><span class="p">>=</span><span class="m">1.0.0</span></pre>
+    </div>
+  </div>
+
+  <div class="block">
+    <div class="block-explain">Install dependencies for the <strong>free local version</strong> (larger download — includes PyTorch):</div>
+    <div class="code-block">
+      <div class="code-header">
+        <div style="display:flex;align-items:center;"><div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div><span class="code-filename">Terminal — free version</span></div>
+        <div class="code-right"><span class="code-lang green">bash</span><button class="copy-btn" data-target="pip-free"><span>⎘</span><span>Copy</span></button></div>
+      </div>
+      <pre id="pip-free"><span class="t-p">$</span> <span class="t-c">pip install -r requirements-free.txt</span></pre>
+    </div>
+  </div>
+
+  <div class="block">
+    <div class="block-explain">Contents of <strong>requirements-free.txt</strong>:</div>
+    <div class="code-block">
+      <div class="code-header">
+        <div style="display:flex;align-items:center;"><div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div><span class="code-filename">requirements-free.txt</span></div>
+        <div class="code-right"><span class="code-lang green">txt</span><button class="copy-btn" data-target="req-free-content"><span>⎘</span><span>Copy</span></button></div>
+      </div>
+      <pre id="req-free-content"><span class="cmt"># Web UI</span>
+<span class="s">gradio</span><span class="p">>=</span><span class="m">4.0.0</span>
+
+<span class="cmt"># PDF loading</span>
+<span class="s">pypdf</span><span class="p">>=</span><span class="m">4.0.0</span>
+
+<span class="cmt"># LangChain components</span>
+<span class="s">langchain-community</span><span class="p">>=</span><span class="m">0.2.0</span>        <span class="cmt"># PyPDFLoader</span>
+<span class="s">langchain-text-splitters</span><span class="p">>=</span><span class="m">0.2.0</span>   <span class="cmt"># RecursiveCharacterTextSplitter</span>
+<span class="s">langchain-chroma</span><span class="p">>=</span><span class="m">0.1.0</span>           <span class="cmt"># Chroma vector store</span>
+<span class="s">langchain-huggingface</span><span class="p">>=</span><span class="m">0.1.0</span>      <span class="cmt"># HuggingFaceEmbeddings</span>
+
+<span class="cmt"># Vector store backend</span>
+<span class="s">chromadb</span><span class="p">>=</span><span class="m">0.5.0</span>
+
+<span class="cmt"># Local model inference</span>
+<span class="s">transformers</span><span class="p">>=</span><span class="m">4.40.0</span>              <span class="cmt"># HuggingFace pipeline (flan-t5-base)</span>
+<span class="s">sentence-transformers</span><span class="p">>=</span><span class="m">3.0.0</span>      <span class="cmt"># all-MiniLM-L6-v2 embedding model</span>
+<span class="s">torch</span><span class="p">>=</span><span class="m">2.0.0</span>                      <span class="cmt"># required by transformers &amp; sentence-transformers</span></pre>
+    </div>
+  </div>
+
+  <div class="prereq-grid">
+    <div class="prereq-card"><div class="prereq-icon">🐍</div><div class="prereq-body"><h4>Python 3.10+</h4><p>Both scripts require at least Python 3.10. Check with <code>python --version</code>.</p></div></div>
+    <div class="prereq-card"><div class="prereq-icon">🔑</div><div class="prereq-body"><h4>OpenAI API Key</h4><p>Only for <code>rag_pdf.py</code>. Get one at platform.openai.com. The free version needs no key.</p></div></div>
+    <div class="prereq-card"><div class="prereq-icon">💾</div><div class="prereq-body"><h4>~3 GB disk (free ver.)</h4><p>HuggingFace downloads the embedding + generation models on first run.</p></div></div>
+    <div class="prereq-card"><div class="prereq-icon">🌐</div><div class="prereq-body"><h4>Gradio UI</h4><p>Both apps open a browser tab at <code>http://localhost:7860</code> automatically.</p></div></div>
+  </div>
+
+  <div class="panel-nav">
+    <button class="pnav-btn pnav-prev" data-go="1">← What is RAG?</button>
+    <button class="pnav-btn pnav-next" data-go="3">Configure .env →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ CH 3 — ENV ══════════════════════════════════ -->
+<div class="chapter-panel" id="ch3">
+  <div class="panel-header">
+    <div class="panel-step">Step 3 of 7 — Paid Version</div>
+    <div class="panel-title">Configure the .env File</div>
+    <div class="panel-subtitle">One line — your OpenAI API key. The code reads it automatically at startup.</div>
+  </div>
+
+  <div class="block">
+    <div class="block-explain">Create a file called <strong>.env</strong> in the <code>rag_pdf/</code> folder with this content:</div>
+    <div class="code-block">
+      <div class="code-header">
+        <div style="display:flex;align-items:center;"><div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div><span class="code-filename">.env</span></div>
+        <div class="code-right"><span class="code-lang">env</span><button class="copy-btn" data-target="env-code"><span>⎘</span><span>Copy</span></button></div>
+      </div>
+      <pre id="env-code"><span class="cmt"># Paste your key from https://platform.openai.com/api-keys</span>
+<span class="n">OPENAI_API_KEY</span>=<span class="env">sk-proj-your-key-here</span></pre>
+    </div>
+  </div>
+
+  <div class="block">
+    <div class="block-explain">How the code reads the key — <code>load_dotenv()</code> does it in one call:</div>
+    <div class="code-block">
+      <div class="code-header">
+        <div style="display:flex;align-items:center;"><div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div><span class="code-filename">rag_pdf.py — top of file</span></div>
+        <div class="code-right"><span class="code-lang">python</span></div>
+      </div>
+      <pre><span class="k">from</span> <span class="n">dotenv</span> <span class="k">import</span> <span class="n">load_dotenv</span>
+
+<span class="cmt"># Reads the .env file and injects its variables into os.environ
+# Must be called before any code that reads environment variables</span>
+<span class="fn">load_dotenv</span><span class="p">()</span>
+
+<span class="cmt"># Later, when building the client, LangChain reads this automatically:
+# OpenAIEmbeddings() → looks for os.environ["OPENAI_API_KEY"]
+# ChatOpenAI()       → same key</span></pre>
+    </div>
+  </div>
+
+  <div class="callout tip">
+    <div class="callout-icon">✅</div>
+    <p><strong>Always add .env to .gitignore.</strong> Never commit your API key. Add this line to <code>.gitignore</code>: <code>.env</code></p>
+  </div>
+  <div class="callout warn">
+    <div class="callout-icon">💰</div>
+    <p><strong>Cost estimate:</strong> text-embedding-3-small costs ~$0.02 per 1M tokens. A typical 100-page PDF ≈ 50,000 tokens ≈ <strong>$0.001 to index</strong>. Querying with gpt-4o-mini is also very cheap (~$0.15/1M input tokens).</p>
+  </div>
+
+  <div class="panel-nav">
+    <button class="pnav-btn pnav-prev" data-go="2">← Project Setup</button>
+    <button class="pnav-btn pnav-next" data-go="4">rag_pdf.py →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ CH 4 — CODE (PAID) ═════════════════════════ -->
+<div class="chapter-panel" id="ch4">
+  <div class="panel-header">
+    <div class="panel-step">Step 4 of 7 — Paid Version</div>
+    <div class="panel-title">rag_pdf.py — The Code</div>
+    <div class="panel-subtitle">Full source with beginner comments explaining every function, import, and LangChain concept.</div>
+  </div>
+
+  <div class="block no-explain">
+    <div class="code-block">
+      <div class="code-header">
+        <div style="display:flex;align-items:center;"><div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div><span class="code-filename">rag_pdf.py</span></div>
+        <div class="code-right"><span class="code-lang">python</span><button class="copy-btn" data-target="paid-code"><span>⎘</span><span>Copy</span></button></div>
+      </div>
+      <pre id="paid-code"><span class="cmt"># ─────────────────────────────────────────────────────────────────────────────
+# rag_pdf.py  —  Chat with any PDF using OpenAI + LangChain + ChromaDB
+#
+# WHAT THIS APP DOES:
+#   1. You upload a PDF through a Gradio web UI
+#   2. The PDF is split into small chunks and embedded (converted to numbers)
+#   3. Those embeddings are stored in ChromaDB (an in-memory vector database)
+#   4. When you ask a question, ChromaDB finds the most relevant chunks
+#   5. Those chunks + your question are sent to GPT-4o-mini to generate an answer
+# ─────────────────────────────────────────────────────────────────────────────</span>
+
+<span class="k">import</span> <span class="n">os</span>       <span class="cmt"># reads environment variables (the API key)</span>
+<span class="k">import</span> <span class="n">gradio</span> <span class="k">as</span> <span class="n">gr</span>  <span class="cmt"># builds the web UI — no HTML needed</span>
+
+<span class="cmt"># LangChain components — each does one specific job in the pipeline:</span>
+<span class="k">from</span> <span class="n">langchain_community.document_loaders</span> <span class="k">import</span> <span class="n">PyPDFLoader</span>
+<span class="cmt"># ↑ reads a PDF file and returns a list of Document objects (one per page)</span>
+
+<span class="k">from</span> <span class="n">langchain_text_splitters</span> <span class="k">import</span> <span class="n">RecursiveCharacterTextSplitter</span>
+<span class="cmt"># ↑ splits long pages into smaller chunks that fit in the LLM context window
+#   "Recursive" means it tries to split on paragraphs first, then sentences, then words</span>
+
+<span class="k">from</span> <span class="n">langchain_chroma</span> <span class="k">import</span> <span class="n">Chroma</span>
+<span class="cmt"># ↑ ChromaDB integration — stores and searches embedding vectors</span>
+
+<span class="k">from</span> <span class="n">langchain_openai</span> <span class="k">import</span> <span class="n">OpenAIEmbeddings</span><span class="p">,</span> <span class="n">ChatOpenAI</span>
+<span class="cmt"># ↑ OpenAIEmbeddings: converts text → 1536-dimension float vectors via OpenAI API
+#   ChatOpenAI: the GPT model client (here we use gpt-4o-mini)</span>
+
+<span class="k">from</span> <span class="n">langchain_classic.chains</span> <span class="k">import</span> <span class="n">ConversationalRetrievalChain</span>
+<span class="cmt"># ↑ a pre-built LangChain chain that:
+#   - reformulates the question using chat history
+#   - retrieves relevant documents
+#   - passes everything to the LLM</span>
+
+<span class="k">from</span> <span class="n">langchain_classic.memory</span> <span class="k">import</span> <span class="n">ConversationBufferMemory</span>
+<span class="cmt"># ↑ stores the full conversation (all Q&A turns) and injects it into each prompt
+#   so the model remembers what was said earlier in the chat</span>
+
+<span class="k">from</span> <span class="n">dotenv</span> <span class="k">import</span> <span class="n">load_dotenv</span>
+<span class="cmt"># ↑ reads the .env file and sets environment variables</span>
+
+<span class="fn">load_dotenv</span><span class="p">()</span>  <span class="cmt"># must be called early — before any OpenAI clients are created</span>
+
+
+<span class="cmt"># ── FUNCTION: load_and_index ──────────────────────────────────────────────────
+# Takes a PDF file path, runs the full indexing pipeline, returns a retriever.
+# This is called once when the user uploads a PDF.
+#
+# PIPELINE:  PDF → pages → chunks → embeddings → ChromaDB → retriever</span>
+<span class="k">def</span> <span class="fn">load_and_index</span><span class="p">(</span><span class="n">pdf_path</span><span class="p">:</span> <span class="n">str</span><span class="p">):</span>
+
+    <span class="k">if</span> <span class="k">not</span> <span class="n">os</span><span class="p">.</span><span class="fn">getenv</span><span class="p">(</span><span class="s">"OPENAI_API_KEY"</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">ValueError</span><span class="p">(</span><span class="s">"OPENAI_API_KEY is not set. Add it to .env"</span><span class="p">)</span>
+
+    <span class="cmt">    # STEP 1 — Load PDF
+    # PyPDFLoader reads the file and returns one Document object per page.
+    # Each Document has .page_content (text) and .metadata ({"page": 0, ...})</span>
+    <span class="n">loader</span> <span class="o">=</span> <span class="n">PyPDFLoader</span><span class="p">(</span><span class="n">pdf_path</span><span class="p">)</span>
+    <span class="n">pages</span> <span class="o">=</span> <span class="n">loader</span><span class="p">.</span><span class="fn">load</span><span class="p">()</span>
+    <span class="fn">print</span><span class="p">(</span><span class="s">f"Loaded <span class="p">{</span><span class="fn">len</span><span class="p">(</span><span class="n">pages</span><span class="p">)</span><span class="p">}</span> pages"</span><span class="p">)</span>
+
+    <span class="cmt">    # STEP 2 — Chunk the text
+    # chunk_size=500 means each chunk is at most 500 characters.
+    # chunk_overlap=50 means chunks share 50 characters at their edges.
+    # Overlap helps the LLM see context that might span two chunks.</span>
+    <span class="n">splitter</span> <span class="o">=</span> <span class="n">RecursiveCharacterTextSplitter</span><span class="p">(</span>
+        <span class="n">chunk_size</span><span class="o">=</span><span class="m">500</span><span class="p">,</span>
+        <span class="n">chunk_overlap</span><span class="o">=</span><span class="m">50</span>
+    <span class="p">)</span>
+    <span class="n">chunks</span> <span class="o">=</span> <span class="n">splitter</span><span class="p">.</span><span class="fn">split_documents</span><span class="p">(</span><span class="n">pages</span><span class="p">)</span>
+    <span class="fn">print</span><span class="p">(</span><span class="s">f"Split into <span class="p">{</span><span class="fn">len</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span><span class="p">}</span> chunks"</span><span class="p">)</span>
+
+    <span class="cmt">    # STEP 3 — Embed and store in ChromaDB
+    # OpenAIEmbeddings calls the OpenAI API for each chunk and gets back a vector.
+    # Chroma.from_documents() stores all (chunk, vector) pairs in memory.
+    # This creates a searchable vector index — the "database" of our PDF.</span>
+    <span class="n">embeddings</span> <span class="o">=</span> <span class="n">OpenAIEmbeddings</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s">"text-embedding-3-small"</span><span class="p">)</span>
+    <span class="n">vectorstore</span> <span class="o">=</span> <span class="n">Chroma</span><span class="p">.</span><span class="fn">from_documents</span><span class="p">(</span><span class="n">chunks</span><span class="p">,</span> <span class="n">embedding</span><span class="o">=</span><span class="n">embeddings</span><span class="p">)</span>
+
+    <span class="cmt">    # STEP 4 — Return a retriever
+    # A retriever is an object with a .invoke(question) method.
+    # k=4 means: return the 4 chunks most similar to the question.</span>
+    <span class="k">return</span> <span class="n">vectorstore</span><span class="p">.</span><span class="fn">as_retriever</span><span class="p">(</span><span class="n">search_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s">"k"</span><span class="p">:</span> <span class="m">4</span><span class="p">})</span>
+
+
+<span class="cmt"># ── FUNCTION: build_chain ─────────────────────────────────────────────────────
+# Wraps the retriever in a LangChain conversational RAG chain.
+# This is called once after indexing — the chain is reused for every question.</span>
+<span class="k">def</span> <span class="fn">build_chain</span><span class="p">(</span><span class="n">retriever</span><span class="p">):</span>
+
+    <span class="cmt">    # The LLM that generates the final answer.
+    # temperature=0 → deterministic (same question = same answer each time)</span>
+    <span class="n">llm</span> <span class="o">=</span> <span class="n">ChatOpenAI</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s">"gpt-4o-mini"</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="m">0</span><span class="p">)</span>
+
+    <span class="cmt">    # ConversationBufferMemory stores every (question, answer) pair.
+    # memory_key="chat_history" tells LangChain where to inject it in the prompt.
+    # return_messages=True keeps them as message objects (not plain strings).
+    # output_key="answer" tells memory which field in the chain output to save.</span>
+    <span class="n">memory</span> <span class="o">=</span> <span class="n">ConversationBufferMemory</span><span class="p">(</span>
+        <span class="n">memory_key</span><span class="o">=</span><span class="s">"chat_history"</span><span class="p">,</span>
+        <span class="n">return_messages</span><span class="o">=</span><span class="n">True</span><span class="p">,</span>
+        <span class="n">output_key</span><span class="o">=</span><span class="s">"answer"</span>
+    <span class="p">)</span>
+
+    <span class="cmt">    # ConversationalRetrievalChain combines three things:
+    #   1. Memory — injects chat history so the model understands follow-up questions
+    #   2. Retriever — finds relevant PDF chunks for each question
+    #   3. LLM — reads the chunks + question + history and writes the answer
+    # return_source_documents=True means we also get which chunks were used.</span>
+    <span class="n">chain</span> <span class="o">=</span> <span class="n">ConversationalRetrievalChain</span><span class="p">.</span><span class="fn">from_llm</span><span class="p">(</span>
+        <span class="n">llm</span><span class="o">=</span><span class="n">llm</span><span class="p">,</span>
+        <span class="n">retriever</span><span class="o">=</span><span class="n">retriever</span><span class="p">,</span>
+        <span class="n">memory</span><span class="o">=</span><span class="n">memory</span><span class="p">,</span>
+        <span class="n">return_source_documents</span><span class="o">=</span><span class="n">True</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="n">False</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">chain</span>
+
+
+<span class="cmt"># Global variable — stores the chain between Gradio events.
+# None means no PDF has been uploaded yet.</span>
+<span class="n">chain</span> <span class="o">=</span> <span class="n">None</span>
+
+
+<span class="cmt"># ── FUNCTION: upload_pdf ──────────────────────────────────────────────────────
+# Triggered when the user uploads a PDF in the Gradio UI.
+# pdf_file is a Gradio UploadedFile object — .name gives the temp file path.</span>
+<span class="k">def</span> <span class="fn">upload_pdf</span><span class="p">(</span><span class="n">pdf_file</span><span class="p">):</span>
+    <span class="k">global</span> <span class="n">chain</span>    <span class="cmt"># we modify the global chain variable</span>
+    <span class="k">if</span> <span class="n">pdf_file</span> <span class="k">is</span> <span class="n">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s">"No file uploaded."</span><span class="p">,</span> <span class="p">[]</span>
+
+    <span class="n">retriever</span> <span class="o">=</span> <span class="fn">load_and_index</span><span class="p">(</span><span class="n">pdf_file</span><span class="p">.</span><span class="n">name</span><span class="p">)</span>  <span class="cmt"># index the PDF</span>
+    <span class="n">chain</span> <span class="o">=</span> <span class="fn">build_chain</span><span class="p">(</span><span class="n">retriever</span><span class="p">)</span>             <span class="cmt"># build the RAG chain</span>
+    <span class="k">return</span> <span class="s">"✅ PDF indexed! Ask me anything about it."</span><span class="p">,</span> <span class="p">[]</span>
+    <span class="cmt">    # returns: (status text, empty chat history)</span>
+
+
+<span class="cmt"># ── FUNCTION: ask_question ────────────────────────────────────────────────────
+# Triggered when the user types a question and presses Enter.
+# history is a list of {"role": "user"/"assistant", "content": "..."} dicts.</span>
+<span class="k">def</span> <span class="fn">ask_question</span><span class="p">(</span><span class="n">question</span><span class="p">,</span> <span class="n">history</span><span class="p">):</span>
+    <span class="k">global</span> <span class="n">chain</span>
+    <span class="n">history</span> <span class="o">=</span> <span class="n">history</span> <span class="k">or</span> <span class="p">[]</span>
+
+    <span class="k">if</span> <span class="n">chain</span> <span class="k">is</span> <span class="n">None</span><span class="p">:</span>  <span class="cmt"># PDF not uploaded yet</span>
+        <span class="k">return</span> <span class="n">history</span> <span class="o">+</span> <span class="p">[</span>
+            <span class="p">{</span><span class="s">"role"</span><span class="p">:</span> <span class="s">"user"</span><span class="p">,</span>      <span class="s">"content"</span><span class="p">:</span> <span class="n">question</span><span class="p">},</span>
+            <span class="p">{</span><span class="s">"role"</span><span class="p">:</span> <span class="s">"assistant"</span><span class="p">,</span> <span class="s">"content"</span><span class="p">:</span> <span class="s">"Please upload a PDF first."</span><span class="p">},</span>
+        <span class="p">]</span>
+
+    <span class="cmt">    # chain.invoke() runs the full pipeline:
+    # 1. Reformulates question with memory context
+    # 2. Retrieves top-4 relevant chunks from ChromaDB
+    # 3. Calls GPT-4o-mini with chunks + question + history
+    # Returns: {"answer": "...", "source_documents": [...]}</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">chain</span><span class="p">.</span><span class="fn">invoke</span><span class="p">({</span><span class="s">"question"</span><span class="p">:</span> <span class="n">question</span><span class="p">})</span>
+    <span class="n">answer</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s">"answer"</span><span class="p">]</span>
+
+    <span class="cmt">    # Append source page numbers to the answer for transparency</span>
+    <span class="n">sources</span> <span class="o">=</span> <span class="n">result</span><span class="p">.</span><span class="fn">get</span><span class="p">(</span><span class="s">"source_documents"</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="k">if</span> <span class="n">sources</span><span class="p">:</span>
+        <span class="cmt">        # .metadata["page"] is 0-indexed, so we add 1 for human-readable page numbers</span>
+        <span class="n">pages</span> <span class="o">=</span> <span class="fn">set</span><span class="p">(</span><span class="n">doc</span><span class="p">.</span><span class="n">metadata</span><span class="p">.</span><span class="fn">get</span><span class="p">(</span><span class="s">"page"</span><span class="p">,</span> <span class="s">"?"</span><span class="p">)</span> <span class="k">for</span> <span class="n">doc</span> <span class="k">in</span> <span class="n">sources</span><span class="p">)</span>
+        <span class="n">answer</span> <span class="o">+=</span> <span class="s">f"\n\n_Sources: pages <span class="p">{</span><span class="s">', '</span><span class="p">.</span><span class="fn">join</span><span class="p">(</span><span class="fn">str</span><span class="p">(</span><span class="n">p</span><span class="o">+</span><span class="m">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="k">in</span> <span class="fn">sorted</span><span class="p">(</span><span class="n">pages</span><span class="p">))</span><span class="p">}</span>_"</span>
+
+    <span class="k">return</span> <span class="n">history</span> <span class="o">+</span> <span class="p">[</span>
+        <span class="p">{</span><span class="s">"role"</span><span class="p">:</span> <span class="s">"user"</span><span class="p">,</span>      <span class="s">"content"</span><span class="p">:</span> <span class="n">question</span><span class="p">},</span>
+        <span class="p">{</span><span class="s">"role"</span><span class="p">:</span> <span class="s">"assistant"</span><span class="p">,</span> <span class="s">"content"</span><span class="p">:</span> <span class="n">answer</span><span class="p">},</span>
+    <span class="p">]</span>
+
+
+<span class="cmt"># ── GRADIO UI ─────────────────────────────────────────────────────────────────
+# gr.Blocks() lets you compose custom layouts.
+# Each gr.* component maps to an HTML element — no frontend code needed.</span>
+<span class="k">with</span> <span class="n">gr</span><span class="p">.</span><span class="fn">Blocks</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s">"Chat with Your PDF"</span><span class="p">)</span> <span class="k">as</span> <span class="n">demo</span><span class="p">:</span>
+    <span class="n">gr</span><span class="p">.</span><span class="fn">Markdown</span><span class="p">(</span><span class="s">"## 📄 Chat with Your PDF\nUpload a PDF, then ask questions."</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">gr</span><span class="p">.</span><span class="fn">Row</span><span class="p">():</span>  <span class="cmt"># puts components side-by-side</span>
+        <span class="n">pdf_input</span> <span class="o">=</span> <span class="n">gr</span><span class="p">.</span><span class="fn">File</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s">"Upload PDF"</span><span class="p">,</span> <span class="n">file_types</span><span class="o">=</span><span class="p">[</span><span class="s">".pdf"</span><span class="p">])</span>
+        <span class="n">status</span>    <span class="o">=</span> <span class="n">gr</span><span class="p">.</span><span class="fn">Textbox</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s">"Status"</span><span class="p">,</span> <span class="n">interactive</span><span class="o">=</span><span class="n">False</span><span class="p">)</span>
+
+    <span class="n">chatbot</span>        <span class="o">=</span> <span class="n">gr</span><span class="p">.</span><span class="fn">Chatbot</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s">"Conversation"</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="m">400</span><span class="p">)</span>
+    <span class="n">question_input</span> <span class="o">=</span> <span class="n">gr</span><span class="p">.</span><span class="fn">Textbox</span><span class="p">(</span><span class="n">placeholder</span><span class="o">=</span><span class="s">"Ask about your PDF..."</span><span class="p">)</span>
+
+    <span class="cmt">    # .change() fires when the file input changes (PDF is uploaded)
+    # fn=upload_pdf  → the function to call
+    # inputs=pdf_input → what to pass as the argument
+    # outputs=[status, chatbot] → what the function returns updates these components</span>
+    <span class="n">pdf_input</span><span class="p">.</span><span class="fn">change</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">upload_pdf</span><span class="p">,</span> <span class="n">inputs</span><span class="o">=</span><span class="n">pdf_input</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="p">[</span><span class="n">status</span><span class="p">,</span> <span class="n">chatbot</span><span class="p">])</span>
+
+    <span class="cmt">    # .submit() fires when user presses Enter in the textbox</span>
+    <span class="n">question_input</span><span class="p">.</span><span class="fn">submit</span><span class="p">(</span>
+        <span class="n">fn</span><span class="o">=</span><span class="n">ask_question</span><span class="p">,</span>
+        <span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="n">question_input</span><span class="p">,</span> <span class="n">chatbot</span><span class="p">],</span>
+        <span class="n">outputs</span><span class="o">=</span><span class="n">chatbot</span>
+    <span class="p">)</span>
+
+    <span class="cmt">    # Pre-filled example questions the user can click</span>
+    <span class="n">gr</span><span class="p">.</span><span class="fn">Examples</span><span class="p">(</span>
+        <span class="n">examples</span><span class="o">=</span><span class="p">[[</span><span class="s">"What is this document about?"</span><span class="p">],</span> <span class="p">[</span><span class="s">"Summarize the main points."</span><span class="p">]],</span>
+        <span class="n">inputs</span><span class="o">=</span><span class="n">question_input</span>
+    <span class="p">)</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">"__main__"</span><span class="p">:</span>
+    <span class="n">demo</span><span class="p">.</span><span class="fn">launch</span><span class="p">()</span>  <span class="cmt"># opens http://localhost:7860 in your browser</span></pre>
+    </div>
+  </div>
+
+  <div class="panel-nav">
+    <button class="pnav-btn pnav-prev" data-go="3">← Configure .env</button>
+    <button class="pnav-btn pnav-next" data-go="5">Run the App →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ CH 5 — RUN ══════════════════════════════════ -->
+<div class="chapter-panel" id="ch5">
+  <div class="panel-header">
+    <div class="panel-step">Step 5 of 7 — Paid Version</div>
+    <div class="panel-title">Run the App</div>
+    <div class="panel-subtitle">One command opens a full chat UI in your browser. Upload a PDF and start asking questions.</div>
+  </div>
+
+  <div class="block">
+    <div class="block-explain">Start the Gradio app from your terminal:</div>
+    <div class="code-block">
+      <div class="code-header">
+        <div style="display:flex;align-items:center;"><div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div><span class="code-filename">Terminal</span></div>
+        <div class="code-right"><span class="code-lang">bash</span><button class="copy-btn" data-target="run-paid"><span>⎘</span><span>Copy</span></button></div>
+      </div>
+      <pre id="run-paid"><span class="t-p">$</span> <span class="t-c">python rag_pdf.py</span></pre>
+    </div>
+  </div>
+
+  <div class="block">
+    <div class="block-explain">Expected output — Gradio prints the local URL:</div>
+    <div class="code-block">
+      <div class="code-header"><div style="display:flex;align-items:center;"><div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div><span class="code-filename">Expected output</span></div></div>
+      <div class="terminal">
+<span class="t-o">Running on local URL:  </span><span class="t-s">http://127.0.0.1:7860</span>
+<span class="t-o">To create a public link, set `share=True` in `launch()`.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="block">
+    <div class="block-explain">After uploading a PDF and asking a question:</div>
+    <div class="code-block">
+      <div class="code-header"><div style="display:flex;align-items:center;"><div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div><span class="code-filename">Terminal — indexing log</span></div></div>
+      <div class="terminal">
+<span class="t-o">Loaded 24 pages from /tmp/report.pdf</span>
+<span class="t-o">Split into 187 chunks</span>
+<span class="t-i">You: What are the main findings?</span>
+<span class="t-s">Assistant: The report identifies three key findings... (Sources: pages 3, 7, 12)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout tip">
+    <div class="callout-icon">✅</div>
+    <p><strong>Good PDFs to test with:</strong> research papers, company reports, legal documents, textbooks. Scanned PDFs (images) won't work — the text must be extractable.</p>
+  </div>
+  <div class="callout info">
+    <div class="callout-icon">💬</div>
+    <p><strong>Follow-up questions work!</strong> Ask "tell me more about point 2" or "can you give an example?" — the <code>ConversationBufferMemory</code> passes the full chat history to the model so it understands context.</p>
+  </div>
+
+  <div class="panel-nav">
+    <button class="pnav-btn pnav-prev" data-go="4">← rag_pdf.py Code</button>
+    <button class="pnav-btn pnav-next green-btn" data-go="6">Bonus: Free Version →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ CH 6 — FREE VERSION ════════════════════════ -->
+<div class="chapter-panel" id="ch6">
+  <div class="panel-header">
+    <div class="panel-step bonus-label">Bonus — Free Version</div>
+    <div class="panel-title">rag_pdf_free.py</div>
+    <div class="panel-subtitle">Same pipeline, zero API cost. Uses HuggingFace models that run entirely on your machine.</div>
+  </div>
+
+  <div class="bonus-banner">
+    <div class="bonus-banner-icon">🆓</div>
+    <div class="bonus-banner-body">
+      <h3>No API Key, No Cost</h3>
+      <p>Uses <strong>all-MiniLM-L6-v2</strong> for embeddings and <strong>flan-t5-base</strong> for generation. Models download once from HuggingFace (~500 MB total) then run fully offline.</p>
+    </div>
+  </div>
+
+  <div class="block no-explain">
+    <div class="code-block">
+      <div class="code-header">
+        <div style="display:flex;align-items:center;"><div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div><span class="code-filename">rag_pdf_free.py</span></div>
+        <div class="code-right"><span class="code-lang green">python</span><button class="copy-btn" data-target="free-code"><span>⎘</span><span>Copy</span></button></div>
+      </div>
+      <pre id="free-code"><span class="cmt"># ─────────────────────────────────────────────────────────────────────────────
+# rag_pdf_free.py  —  Chat with a PDF using only free, local models
+#
+# KEY DIFFERENCES vs rag_pdf.py:
+#   • No OpenAI API key needed
+#   • Embeddings: all-MiniLM-L6-v2 (HuggingFace, runs on CPU)
+#   • Generation: flan-t5-base (HuggingFace text2text model)
+#   • We build the prompt manually (no LangChain chain needed)
+#   • Answers are shorter and simpler — flan-t5-base is a small model
+# ─────────────────────────────────────────────────────────────────────────────</span>
+
+<span class="k">import</span> <span class="n">gradio</span> <span class="k">as</span> <span class="n">gr</span>
+<span class="k">from</span> <span class="n">langchain_community.document_loaders</span> <span class="k">import</span> <span class="n">PyPDFLoader</span>
+<span class="k">from</span> <span class="n">langchain_text_splitters</span> <span class="k">import</span> <span class="n">RecursiveCharacterTextSplitter</span>
+<span class="k">from</span> <span class="n">langchain_chroma</span> <span class="k">import</span> <span class="n">Chroma</span>
+
+<span class="k">from</span> <span class="n">langchain_huggingface</span> <span class="k">import</span> <span class="n">HuggingFaceEmbeddings</span>
+<span class="cmt"># ↑ wraps sentence-transformers inside LangChain's embedding interface
+#   so it works as a drop-in replacement for OpenAIEmbeddings</span>
+
+<span class="k">from</span> <span class="n">transformers</span> <span class="k">import</span> <span class="n">pipeline</span>
+<span class="cmt"># ↑ HuggingFace pipelines — a simple way to run models for specific tasks
+#   We use "text2text-generation" which takes text in, produces text out</span>
+
+<span class="cmt"># Model names — these are downloaded from HuggingFace Hub on first run</span>
+<span class="n">EMBEDDING_MODEL</span>   <span class="o">=</span> <span class="s">"sentence-transformers/all-MiniLM-L6-v2"</span>
+<span class="cmt"># ↑ compact but effective sentence embedding model (~80 MB)
+#   produces 384-dimension vectors (vs 1536 for OpenAI)</span>
+
+<span class="n">GENERATION_MODEL</span>  <span class="o">=</span> <span class="s">"google/flan-t5-base"</span>
+<span class="cmt"># ↑ a small instruction-following model by Google (~250 MB)
+#   good at question-answering but gives short, direct answers</span>
+
+<span class="cmt"># Global state — vectorstore holds the retriever after PDF upload</span>
+<span class="n">vectorstore</span>        <span class="o">=</span> <span class="n">None</span>
+<span class="n">generation_pipeline</span> <span class="o">=</span> <span class="n">None</span>
+
+
+<span class="cmt"># ── FUNCTION: get_generation_pipeline ────────────────────────────────────────
+# Lazy-loads the generation model — downloads + loads it only on first call.
+# Using a global avoids reloading the model on every question (slow!).</span>
+<span class="k">def</span> <span class="fn">get_generation_pipeline</span><span class="p">():</span>
+    <span class="k">global</span> <span class="n">generation_pipeline</span>
+    <span class="k">if</span> <span class="n">generation_pipeline</span> <span class="k">is</span> <span class="n">None</span><span class="p">:</span>  <span class="cmt"># only load once</span>
+        <span class="n">generation_pipeline</span> <span class="o">=</span> <span class="fn">pipeline</span><span class="p">(</span>
+            <span class="s">"text2text-generation"</span><span class="p">,</span>   <span class="cmt"># task type</span>
+            <span class="n">model</span><span class="o">=</span><span class="n">GENERATION_MODEL</span><span class="p">,</span>   <span class="cmt"># model name from HuggingFace Hub</span>
+            <span class="n">tokenizer</span><span class="o">=</span><span class="n">GENERATION_MODEL</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">generation_pipeline</span>
+
+
+<span class="cmt"># ── FUNCTION: load_and_index ──────────────────────────────────────────────────
+# Same 4-step pipeline as the paid version, but uses HuggingFace embeddings
+# instead of OpenAI — no API call, no cost, runs on CPU.</span>
+<span class="k">def</span> <span class="fn">load_and_index</span><span class="p">(</span><span class="n">pdf_path</span><span class="p">:</span> <span class="n">str</span><span class="p">):</span>
+    <span class="cmt">    # Step 1: load PDF pages</span>
+    <span class="n">loader</span> <span class="o">=</span> <span class="n">PyPDFLoader</span><span class="p">(</span><span class="n">pdf_path</span><span class="p">)</span>
+    <span class="n">pages</span> <span class="o">=</span> <span class="n">loader</span><span class="p">.</span><span class="fn">load</span><span class="p">()</span>
+
+    <span class="cmt">    # Step 2: chunk into 500-char pieces</span>
+    <span class="n">splitter</span> <span class="o">=</span> <span class="n">RecursiveCharacterTextSplitter</span><span class="p">(</span><span class="n">chunk_size</span><span class="o">=</span><span class="m">500</span><span class="p">,</span> <span class="n">chunk_overlap</span><span class="o">=</span><span class="m">50</span><span class="p">)</span>
+    <span class="n">chunks</span> <span class="o">=</span> <span class="n">splitter</span><span class="p">.</span><span class="fn">split_documents</span><span class="p">(</span><span class="n">pages</span><span class="p">)</span>
+
+    <span class="cmt">    # Step 3: embed with the local HuggingFace model (no API call!)
+    # HuggingFaceEmbeddings downloads and caches the model on first run</span>
+    <span class="n">embeddings</span> <span class="o">=</span> <span class="n">HuggingFaceEmbeddings</span><span class="p">(</span><span class="n">model_name</span><span class="o">=</span><span class="n">EMBEDDING_MODEL</span><span class="p">)</span>
+    <span class="n">store</span> <span class="o">=</span> <span class="n">Chroma</span><span class="p">.</span><span class="fn">from_documents</span><span class="p">(</span><span class="n">chunks</span><span class="p">,</span> <span class="n">embedding</span><span class="o">=</span><span class="n">embeddings</span><span class="p">)</span>
+
+    <span class="cmt">    # Step 4: return retriever (k=4 → top 4 matching chunks per query)</span>
+    <span class="k">return</span> <span class="n">store</span><span class="p">.</span><span class="fn">as_retriever</span><span class="p">(</span><span class="n">search_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s">"k"</span><span class="p">:</span> <span class="m">4</span><span class="p">})</span>
+
+
+<span class="cmt"># ── FUNCTION: build_prompt ────────────────────────────────────────────────────
+# In the free version we don't use LangChain's ConversationalRetrievalChain.
+# Instead we manually build a prompt string that flan-t5-base can understand.
+#
+# The prompt has three sections:
+#   1. Recent chat history — so the model sees the conversation context
+#   2. Retrieved chunks — the relevant parts of the PDF
+#   3. The current question</span>
+<span class="k">def</span> <span class="fn">build_prompt</span><span class="p">(</span><span class="n">question</span><span class="p">:</span> <span class="n">str</span><span class="p">,</span> <span class="n">docs</span><span class="p">,</span> <span class="n">history</span><span class="p">):</span>
+    <span class="cmt">    # Format each retrieved chunk with its source page number</span>
+    <span class="n">context_parts</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">doc</span> <span class="k">in</span> <span class="fn">enumerate</span><span class="p">(</span><span class="n">docs</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="m">1</span><span class="p">):</span>
+        <span class="n">page</span>      <span class="o">=</span> <span class="n">doc</span><span class="p">.</span><span class="n">metadata</span><span class="p">.</span><span class="fn">get</span><span class="p">(</span><span class="s">"page"</span><span class="p">)</span>
+        <span class="n">page_text</span> <span class="o">=</span> <span class="s">f"page <span class="p">{</span><span class="n">page</span><span class="o">+</span><span class="m">1</span><span class="p">}</span>"</span> <span class="k">if</span> <span class="fn">isinstance</span><span class="p">(</span><span class="n">page</span><span class="p">,</span> <span class="n">int</span><span class="p">)</span> <span class="k">else</span> <span class="s">"unknown page"</span>
+        <span class="n">context_parts</span><span class="p">.</span><span class="fn">append</span><span class="p">(</span><span class="s">f"[<span class="p">{</span><span class="n">idx</span><span class="p">}</span> | <span class="p">{</span><span class="n">page_text</span><span class="p">}</span>]\n<span class="p">{</span><span class="n">doc</span><span class="p">.</span><span class="n">page_content</span><span class="p">}</span>"</span><span class="p">)</span>
+
+    <span class="cmt">    # Use only the last 6 messages from history to keep the prompt short
+    # (flan-t5-base has a limited context window of ~512 tokens)</span>
+    <span class="n">recent_history</span> <span class="o">=</span> <span class="n">history</span><span class="p">[</span><span class="o">-</span><span class="m">6</span><span class="p">:]</span> <span class="k">if</span> <span class="n">history</span> <span class="k">else</span> <span class="p">[]</span>
+    <span class="n">history_lines</span>  <span class="o">=</span> <span class="p">[</span><span class="s">f"<span class="p">{</span><span class="n">m</span><span class="p">[</span><span class="s">'role'</span><span class="p">]</span><span class="p">}</span>: <span class="p">{</span><span class="n">m</span><span class="p">[</span><span class="s">'content'</span><span class="p">]</span><span class="p">}</span>"</span> <span class="k">for</span> <span class="n">m</span> <span class="k">in</span> <span class="n">recent_history</span><span class="p">]</span>
+
+    <span class="n">context_text</span> <span class="o">=</span> <span class="s">"\n\n"</span><span class="p">.</span><span class="fn">join</span><span class="p">(</span><span class="n">context_parts</span><span class="p">)</span> <span class="k">if</span> <span class="n">context_parts</span> <span class="k">else</span> <span class="s">"No context found."</span>
+    <span class="n">history_text</span> <span class="o">=</span> <span class="s">"\n"</span><span class="p">.</span><span class="fn">join</span><span class="p">(</span><span class="n">history_lines</span><span class="p">)</span> <span class="k">if</span> <span class="n">history_lines</span> <span class="k">else</span> <span class="s">"No prior history."</span>
+
+    <span class="cmt">    # The instruction at the top prevents hallucination:
+    # flan-t5 is told to only use the provided context, not its training data</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="s">"Answer the question using only the context below. "</span>
+        <span class="s">"If the answer is not present, say you do not know.\n\n"</span>
+        <span class="s">f"Chat history:\n<span class="p">{</span><span class="n">history_text</span><span class="p">}</span>\n\n"</span>
+        <span class="s">f"Context:\n<span class="p">{</span><span class="n">context_text</span><span class="p">}</span>\n\n"</span>
+        <span class="s">f"Question: <span class="p">{</span><span class="n">question</span><span class="p">}</span>\n"</span>
+        <span class="s">"Answer:"</span>
+    <span class="p">)</span>
+
+
+<span class="cmt"># ── upload_pdf and ask_question ───────────────────────────────────────────────
+# Same structure as the paid version but simpler — no LangChain chain.</span>
+<span class="k">def</span> <span class="fn">upload_pdf</span><span class="p">(</span><span class="n">pdf_file</span><span class="p">):</span>
+    <span class="k">global</span> <span class="n">vectorstore</span>
+    <span class="k">if</span> <span class="n">pdf_file</span> <span class="k">is</span> <span class="n">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s">"No file uploaded."</span><span class="p">,</span> <span class="p">[]</span>
+    <span class="n">retriever</span>   <span class="o">=</span> <span class="fn">load_and_index</span><span class="p">(</span><span class="n">pdf_file</span><span class="p">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">vectorstore</span> <span class="o">=</span> <span class="n">retriever</span>   <span class="cmt"># store retriever globally for ask_question</span>
+    <span class="k">return</span> <span class="s">"PDF indexed. Ask questions now."</span><span class="p">,</span> <span class="p">[]</span>
+
+
+<span class="k">def</span> <span class="fn">ask_question</span><span class="p">(</span><span class="n">question</span><span class="p">,</span> <span class="n">history</span><span class="p">):</span>
+    <span class="n">history</span> <span class="o">=</span> <span class="n">history</span> <span class="k">or</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="k">not</span> <span class="n">question</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">history</span>
+    <span class="k">if</span> <span class="n">vectorstore</span> <span class="k">is</span> <span class="n">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">history</span> <span class="o">+</span> <span class="p">[{</span><span class="s">"role"</span><span class="p">:</span><span class="s">"user"</span><span class="p">,</span><span class="s">"content"</span><span class="p">:</span><span class="n">question</span><span class="p">},</span>
+                           <span class="p">{</span><span class="s">"role"</span><span class="p">:</span><span class="s">"assistant"</span><span class="p">,</span><span class="s">"content"</span><span class="p">:</span><span class="s">"Please upload a PDF first."</span><span class="p">}]</span>
+
+    <span class="cmt">    # 1. Retrieve the top-4 most relevant chunks</span>
+    <span class="n">docs</span>   <span class="o">=</span> <span class="n">vectorstore</span><span class="p">.</span><span class="fn">invoke</span><span class="p">(</span><span class="n">question</span><span class="p">)</span>
+
+    <span class="cmt">    # 2. Build the prompt by combining context + history + question</span>
+    <span class="n">prompt</span> <span class="o">=</span> <span class="fn">build_prompt</span><span class="p">(</span><span class="n">question</span><span class="p">,</span> <span class="n">docs</span><span class="p">,</span> <span class="n">history</span><span class="p">)</span>
+
+    <span class="cmt">    # 3. Run flan-t5-base on the prompt
+    # max_new_tokens=220 caps the reply length
+    # do_sample=False → greedy decoding (deterministic, faster)</span>
+    <span class="n">generator</span> <span class="o">=</span> <span class="fn">get_generation_pipeline</span><span class="p">()</span>
+    <span class="n">result</span>    <span class="o">=</span> <span class="n">generator</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">max_new_tokens</span><span class="o">=</span><span class="m">220</span><span class="p">,</span> <span class="n">do_sample</span><span class="o">=</span><span class="n">False</span><span class="p">)</span>
+    <span class="n">answer</span>    <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="m">0</span><span class="p">][</span><span class="s">"generated_text"</span><span class="p">].</span><span class="fn">strip</span><span class="p">()</span>
+
+    <span class="cmt">    # 4. Append source page references</span>
+    <span class="n">pages</span> <span class="o">=</span> <span class="fn">sorted</span><span class="p">({</span><span class="n">d</span><span class="p">.</span><span class="n">metadata</span><span class="p">.</span><span class="fn">get</span><span class="p">(</span><span class="s">"page"</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="k">in</span> <span class="n">docs</span>
+                   <span class="k">if</span> <span class="fn">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">.</span><span class="n">metadata</span><span class="p">.</span><span class="fn">get</span><span class="p">(</span><span class="s">"page"</span><span class="p">),</span> <span class="n">int</span><span class="p">)})</span>
+    <span class="k">if</span> <span class="n">pages</span><span class="p">:</span>
+        <span class="n">answer</span> <span class="o">+=</span> <span class="s">"\n\nSources: pages "</span> <span class="o">+</span> <span class="s">", "</span><span class="p">.</span><span class="fn">join</span><span class="p">(</span><span class="fn">str</span><span class="p">(</span><span class="n">p</span><span class="o">+</span><span class="m">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="k">in</span> <span class="n">pages</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">history</span> <span class="o">+</span> <span class="p">[{</span><span class="s">"role"</span><span class="p">:</span><span class="s">"user"</span><span class="p">,</span><span class="s">"content"</span><span class="p">:</span><span class="n">question</span><span class="p">},</span>
+                      <span class="p">{</span><span class="s">"role"</span><span class="p">:</span><span class="s">"assistant"</span><span class="p">,</span><span class="s">"content"</span><span class="p">:</span><span class="n">answer</span><span class="p">}]</span>
+
+
+<span class="cmt"># ── GRADIO UI (same layout as the paid version) ───────────────────────────────</span>
+<span class="k">with</span> <span class="n">gr</span><span class="p">.</span><span class="fn">Blocks</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s">"Chat with Your PDF (Free)"</span><span class="p">)</span> <span class="k">as</span> <span class="n">demo</span><span class="p">:</span>
+    <span class="n">gr</span><span class="p">.</span><span class="fn">Markdown</span><span class="p">(</span><span class="s">"## Chat with Your PDF (Free, local)\nUpload a PDF and ask questions."</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">gr</span><span class="p">.</span><span class="fn">Row</span><span class="p">():</span>
+        <span class="n">pdf_input</span> <span class="o">=</span> <span class="n">gr</span><span class="p">.</span><span class="fn">File</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s">"Upload PDF"</span><span class="p">,</span> <span class="n">file_types</span><span class="o">=</span><span class="p">[</span><span class="s">".pdf"</span><span class="p">])</span>
+        <span class="n">status</span>    <span class="o">=</span> <span class="n">gr</span><span class="p">.</span><span class="fn">Textbox</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s">"Status"</span><span class="p">,</span> <span class="n">interactive</span><span class="o">=</span><span class="n">False</span><span class="p">)</span>
+    <span class="n">chatbot</span>        <span class="o">=</span> <span class="n">gr</span><span class="p">.</span><span class="fn">Chatbot</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s">"Conversation"</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="m">400</span><span class="p">)</span>
+    <span class="n">question_input</span> <span class="o">=</span> <span class="n">gr</span><span class="p">.</span><span class="fn">Textbox</span><span class="p">(</span><span class="n">placeholder</span><span class="o">=</span><span class="s">"Ask about your PDF..."</span><span class="p">)</span>
+    <span class="n">pdf_input</span><span class="p">.</span><span class="fn">change</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">upload_pdf</span><span class="p">,</span> <span class="n">inputs</span><span class="o">=</span><span class="n">pdf_input</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="p">[</span><span class="n">status</span><span class="p">,</span> <span class="n">chatbot</span><span class="p">])</span>
+    <span class="n">question_input</span><span class="p">.</span><span class="fn">submit</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">ask_question</span><span class="p">,</span> <span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="n">question_input</span><span class="p">,</span> <span class="n">chatbot</span><span class="p">],</span> <span class="n">outputs</span><span class="o">=</span><span class="n">chatbot</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">"__main__"</span><span class="p">:</span>
+    <span class="n">demo</span><span class="p">.</span><span class="fn">launch</span><span class="p">()</span></pre>
+    </div>
+  </div>
+
+  <div class="callout bonus">
+    <div class="callout-icon">🔍</div>
+    <p><strong>Key difference from paid version:</strong> Instead of LangChain's <code>ConversationalRetrievalChain</code>, we manually call <code>vectorstore.invoke()</code> → <code>build_prompt()</code> → <code>generator()</code>. This gives you full visibility into the pipeline — great for learning.</p>
+  </div>
+  <div class="callout warn">
+    <div class="callout-icon">⚠️</div>
+    <p><strong>First run takes ~2 minutes</strong> — HuggingFace downloads both models. They're cached in <code>~/.cache/huggingface/</code> and reused on every subsequent run.</p>
+  </div>
+
+  <div class="panel-nav">
+    <button class="pnav-btn pnav-prev" data-go="5">← Run the App</button>
+    <button class="pnav-btn pnav-next" data-go="7">Quick Reference →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ CH 7 — REFERENCE ═══════════════════════════ -->
+<div class="chapter-panel" id="ch7">
+  <div class="panel-header">
+    <div class="panel-step">Reference</div>
+    <div class="panel-title">Quick Reference</div>
+    <div class="panel-subtitle">Commands, model swap guide, and troubleshooting tips.</div>
+  </div>
+
+  <div class="block no-explain">
+    <div class="code-block">
+      <div class="code-header">
+        <div style="display:flex;align-items:center;"><div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div><span class="code-filename">Run commands</span></div>
+        <div class="code-right"><span class="code-lang">bash</span><button class="copy-btn" data-target="ref-code"><span>⎘</span><span>Copy</span></button></div>
+      </div>
+      <pre id="ref-code"><span class="cmt"># Paid version (needs OPENAI_API_KEY in .env)</span>
+<span class="t-p">$</span> <span class="t-c">python rag_pdf.py</span>
+
+<span class="cmt"># Free version (downloads models on first run, then fully offline)</span>
+<span class="t-p">$</span> <span class="t-c">python rag_pdf_free.py</span>
+
+<span class="cmt"># Both open the Gradio UI at:</span>
+<span class="t-s">http://localhost:7860</span>
+
+<span class="cmt"># Swap the LLM model in paid version (edit rag_pdf.py line ~40):</span>
+<span class="n">llm</span> <span class="o">=</span> <span class="n">ChatOpenAI</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s">"gpt-4o"</span><span class="p">)</span>          <span class="cmt"># most capable</span>
+<span class="n">llm</span> <span class="o">=</span> <span class="n">ChatOpenAI</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s">"gpt-4o-mini"</span><span class="p">)</span>     <span class="cmt"># default — cheap &amp; fast</span>
+
+<span class="cmt"># Swap the free model to something larger:</span>
+<span class="n">GENERATION_MODEL</span> <span class="o">=</span> <span class="s">"google/flan-t5-large"</span>  <span class="cmt"># better answers, ~800 MB</span>
+<span class="n">GENERATION_MODEL</span> <span class="o">=</span> <span class="s">"google/flan-t5-xl"</span>    <span class="cmt"># even better, ~3 GB</span></pre>
+    </div>
+  </div>
+
+  <div class="callout tip">
+    <div class="callout-icon">🛠️</div>
+    <p><strong>PDF won't load?</strong> Make sure it's a text-based PDF (not a scanned image). Test with <code>pdftotext yourfile.pdf -</code> — if it prints text, it will work.</p>
+  </div>
+  <div class="callout tip">
+    <div class="callout-icon">⚡</div>
+    <p><strong>Increase chunk size</strong> for dense technical documents: <code>chunk_size=1000</code>. Decrease to <code>chunk_size=200</code> for very precise fact-retrieval. Always keep <code>chunk_overlap</code> at ~10% of chunk size.</p>
+  </div>
+
+  <div class="finish-card" style="margin-top:28px;">
+    <div style="font-size:40px;margin-bottom:12px;">🎉</div>
+    <h2>Lab Complete!</h2>
+    <p>You've built a full RAG pipeline — PDF to conversational AI — in under 100 lines of Python. Try the free version, then swap in your own documents.</p>
+    <div class="finish-actions">
+      <a class="btn-primary" href="../index.html">← Back to Modules</a>
+      <a class="btn-outline" href="../vector-db.html">Vector DB Deep Dive →</a>
+    </div>
+  </div>
+
+  <div class="panel-nav">
+    <button class="pnav-btn pnav-prev" data-go="6">← Free Version</button>
+    <div class="pnav-placeholder"></div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+// ── PARTICLE CANVAS ───────────────────────────────────────────────────────────
+(function(){
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  function resize(){ canvas.width=innerWidth; canvas.height=innerHeight; }
+  resize(); window.addEventListener('resize', resize);
+  const COLORS=['#a78bfa','#ff6ec7','#38bdf8'];
+  const pts = Array.from({length:55},()=>({
+    x:Math.random()*innerWidth, y:Math.random()*innerHeight,
+    vx:(Math.random()-.5)*.25, vy:(Math.random()-.5)*.25,
+    r:Math.random()*1.4+.6, c:COLORS[Math.floor(Math.random()*3)]
+  }));
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for(let i=0;i<pts.length;i++) for(let j=i+1;j<pts.length;j++){
+      const dx=pts[i].x-pts[j].x, dy=pts[i].y-pts[j].y, d=Math.sqrt(dx*dx+dy*dy);
+      if(d<120){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);
+        ctx.strokeStyle='#a78bfa';ctx.globalAlpha=(1-d/120)*.05;ctx.lineWidth=1;ctx.stroke();}
+    }
+    pts.forEach(p=>{
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=p.c;ctx.globalAlpha=.12;ctx.fill();
+      p.x+=p.vx;p.y+=p.vy;
+      if(p.x<0||p.x>canvas.width) p.vx*=-1;
+      if(p.y<0||p.y>canvas.height) p.vy*=-1;
+    });
+    ctx.globalAlpha=1; requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+const TOTAL=7; let current=1;
+function goTo(n){
+  if(n<1||n>TOTAL) return;
+  document.getElementById('ch'+current)?.classList.remove('active');
+  document.querySelectorAll('.chapter-item').forEach(el=>el.classList.remove('active'));
+  current=n;
+  document.getElementById('ch'+current)?.classList.add('active');
+  document.querySelectorAll(`.chapter-item[data-chapter="${current}"]`).forEach(el=>el.classList.add('active'));
+  document.querySelectorAll('.chapter-item').forEach(el=>{
+    const ch=parseInt(el.dataset.chapter);
+    if(!isNaN(ch)&&ch<current) el.classList.add('done'); else el.classList.remove('done');
+  });
+  const pct=(current/TOTAL*100).toFixed(1);
+  document.getElementById('progress-fill').style.width=pct+'%';
+  const lbl=current<=6?`Step ${current} of 6`:'Reference';
+  document.getElementById('progress-label').textContent=lbl;
+  document.querySelector('.main').scrollTo({top:0,behavior:'smooth'});
+  window.scrollTo({top:0,behavior:'smooth'});
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+document.querySelectorAll('.chapter-item[data-chapter]').forEach(el=>{
+  el.addEventListener('click',e=>{e.preventDefault();goTo(parseInt(el.dataset.chapter));});
+});
+document.querySelectorAll('.pnav-btn[data-go]').forEach(btn=>{
+  btn.addEventListener('click',()=>goTo(parseInt(btn.dataset.go)));
+});
+
+// ── HAMBURGER ─────────────────────────────────────────────────────────────────
+const hamburger=document.getElementById('hamburger');
+const sidebar=document.getElementById('sidebar');
+const overlay=document.getElementById('overlay');
+hamburger.addEventListener('click',()=>{sidebar.classList.toggle('open');overlay.classList.toggle('show');});
+overlay.addEventListener('click',()=>{sidebar.classList.remove('open');overlay.classList.remove('show');});
+
+// ── COPY BUTTONS ──────────────────────────────────────────────────────────────
+document.querySelectorAll('.copy-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const el=document.getElementById(btn.dataset.target);
+    if(!el) return;
+    navigator.clipboard.writeText(el.innerText).then(()=>{
+      const lbl=btn.querySelector('span:last-child');
+      const orig=lbl.textContent;
+      lbl.textContent='Copied!'; btn.classList.add('copied');
+      setTimeout(()=>{lbl.textContent=orig;btn.classList.remove('copied');},2000);
+    });
+  });
+});
+</script>
+</body>
+</html>
