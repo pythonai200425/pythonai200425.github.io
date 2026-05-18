@@ -199,6 +199,87 @@
   </div>
 </header>
 
+<!-- ── DOCKER SETUP ── -->
+<div class="section">
+  <div class="section-heading" style="padding-top:40px;">
+    <h2>Docker Setup</h2>
+    <span class="badge">docker-compose.yml</span>
+  </div>
+
+  <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:18px;padding:28px 28px 24px;margin-bottom:48px;">
+    <p style="font-size:.9rem;color:var(--muted);line-height:1.75;margin-bottom:22px;">
+      n8n runs entirely inside Docker — no local install needed. Save the file below as
+      <code style="background:rgba(255,109,90,.12);color:var(--orange);padding:2px 7px;border-radius:5px;font-family:'Courier New',monospace;">docker-compose.yml</code>,
+      then start it with one command. Everything — workflows, credentials, settings — is stored in a named volume so nothing is lost on restart.
+    </p>
+
+    <!-- file block -->
+    <div style="background:#040408;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:18px;">
+      <div style="background:#0d0d1a;border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-family:'Courier New',monospace;font-size:.78rem;color:var(--orange);">📄 docker-compose.yml</span>
+        <span style="font-size:.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;">YAML</span>
+      </div>
+      <pre style="margin:0;padding:20px 22px;font-family:'Courier New',monospace;font-size:.83rem;line-height:1.8;color:var(--text);overflow-x:auto;"><span style="color:#60a5fa;">services:</span>
+  <span style="color:#ff6d5a;">n8n:</span>
+    <span style="color:#34d399;">image:</span> n8nio/n8n:latest
+    <span style="color:#34d399;">ports:</span>
+      - <span style="color:#fbbf24;">"5678:5678"</span>
+    <span style="color:#34d399;">volumes:</span>
+      - n8n_data:/home/node/.n8n
+    <span style="color:#34d399;">restart:</span> unless-stopped
+    <span style="color:#34d399;">environment:</span>
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+<span style="color:#3a4456;">      # - WEBHOOK_URL=https://your-ngrok-url.ngrok-free.dev</span>
+
+<span style="color:#60a5fa;">volumes:</span>
+  n8n_data:</pre>
+    </div>
+
+    <!-- start command -->
+    <div style="background:#040408;border:1px solid var(--border);border-radius:8px;padding:13px 18px;margin-bottom:22px;display:flex;align-items:center;gap:12px;">
+      <span style="color:var(--green);font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;flex-shrink:0;">$ run</span>
+      <code style="font-family:'Courier New',monospace;font-size:.92rem;color:var(--text);">docker compose up -d</code>
+    </div>
+
+    <!-- explanation grid -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;">
+      <div style="background:#0d0d1a;border:1px solid var(--border);border-radius:10px;padding:16px;">
+        <div style="font-size:1.3rem;margin-bottom:8px;">🐳</div>
+        <div style="font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:5px;">image: n8nio/n8n:latest</div>
+        <div style="font-size:.78rem;color:var(--muted);line-height:1.6;">Pulls the official n8n image from Docker Hub — always the newest stable release. No manual versioning needed.</div>
+      </div>
+      <div style="background:#0d0d1a;border:1px solid var(--border);border-radius:10px;padding:16px;">
+        <div style="font-size:1.3rem;margin-bottom:8px;">🔌</div>
+        <div style="font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:5px;">ports: 5678:5678</div>
+        <div style="font-size:.78rem;color:var(--muted);line-height:1.6;">Maps the container's port 5678 to your host. Open <code style="color:var(--blue);">localhost:5678</code> in any browser once it's running.</div>
+      </div>
+      <div style="background:#0d0d1a;border:1px solid var(--border);border-radius:10px;padding:16px;">
+        <div style="font-size:1.3rem;margin-bottom:8px;">💾</div>
+        <div style="font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:5px;">volumes: n8n_data</div>
+        <div style="font-size:.78rem;color:var(--muted);line-height:1.6;">All workflows, credentials and settings live in a named Docker volume — survives container restarts and image upgrades.</div>
+      </div>
+      <div style="background:#0d0d1a;border:1px solid var(--border);border-radius:10px;padding:16px;">
+        <div style="font-size:1.3rem;margin-bottom:8px;">🔄</div>
+        <div style="font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:5px;">restart: unless-stopped</div>
+        <div style="font-size:.78rem;color:var(--muted);line-height:1.6;">n8n auto-restarts after a machine reboot or Docker daemon restart. It's always available when you need it.</div>
+      </div>
+      <div style="background:#0d0d1a;border:1px solid var(--border);border-radius:10px;padding:16px;">
+        <div style="font-size:1.3rem;margin-bottom:8px;">🌐</div>
+        <div style="font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:5px;">WEBHOOK_URL</div>
+        <div style="font-size:.78rem;color:var(--muted);line-height:1.6;">Tells n8n what base URL to use when building webhook links. For local testing use <code style="color:var(--orange);">localhost:5678</code>.</div>
+      </div>
+      <div style="background:#0d0d1a;border:1px solid var(--border);border-radius:10px;padding:16px;">
+        <div style="font-size:1.3rem;margin-bottom:8px;">📡</div>
+        <div style="font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:5px;">ngrok (optional)</div>
+        <div style="font-size:.78rem;color:var(--muted);line-height:1.6;">Uncomment the ngrok line to expose your local n8n to real external webhooks from GitHub, Slack, or any service.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="section">
   <div class="section-heading">
     <h2>Demos</h2>
