@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Demo 03 — LLM Chat | n8n</title>
+  <style>
+    :root {
+      --bg: #0f0f1a; --card: #1a1b2e; --card2: #21223a;
+      --border: #2e3058; --orange: #ff6d5a; --orange2: #ff9c8a;
+      --green: #22c55e; --purple: #a855f7; --blue: #60a5fa;
+      --yellow: #fbbf24; --text: #e2e8f0; --muted: #94a3b8;
+      --accent: #a855f7;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: "Segoe UI", system-ui, sans-serif; line-height: 1.6; }
+    .topnav { display: flex; align-items: center; gap: 16px; padding: 14px 28px; border-bottom: 1px solid var(--border); background: var(--card); font-size: 14px; }
+    .topnav a { color: var(--muted); text-decoration: none; }
+    .topnav a:hover { color: var(--text); }
+    .topnav .sep { color: var(--border); }
+    .topnav .current { color: var(--accent); font-weight: 600; }
+    .hero { background: linear-gradient(135deg, #130a2e 0%, #0f0f1a 50%); border-bottom: 1px solid var(--border); padding: 44px 28px 36px; position: relative; overflow: hidden; }
+    .hero::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse 50% 80% at 10% 50%, rgba(168,85,247,0.14) 0%, transparent 70%); }
+    .demo-badge { display: inline-block; background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.35); color: var(--purple); padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px; }
+    .hero h1 { font-size: clamp(1.6rem,4vw,2.4rem); font-weight: 800; margin-bottom: 10px; }
+    .hero h1 span { color: var(--purple); }
+    .hero p { font-size: 1rem; color: var(--muted); max-width: 560px; }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 36px 24px; display: flex; flex-direction: column; gap: 36px; }
+    .goal-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; border-left: 4px solid var(--accent); }
+    .goal-box h3 { font-size: .95rem; color: var(--accent); font-weight: 700; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+    .goal-box p { color: var(--muted); font-size: .95rem; }
+
+    .flow-diagram { background: #12131f; border: 1px solid var(--border); border-radius: 14px; padding: 32px 24px; display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: nowrap; overflow-x: auto; }
+    .node { flex-shrink: 0; background: var(--card2); border: 2px solid var(--border); border-radius: 12px; padding: 14px 20px; text-align: center; min-width: 130px; }
+    .node-icon { font-size: 1.8rem; margin-bottom: 4px; }
+    .node-type { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+    .node-name { font-size: .85rem; font-weight: 700; color: var(--text); }
+    .node-sub { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+    .node.trigger { border-color: var(--green); }
+    .node.action { border-color: var(--blue); }
+    .node.ai { border-color: var(--purple); }
+    .connector { flex-shrink: 0; display: flex; align-items: center; padding: 0 4px; }
+    .connector svg { width: 48px; height: 24px; }
+
+    .steps { display: flex; flex-direction: column; gap: 20px; }
+    .steps h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+    .step { display: flex; gap: 16px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .step-num { flex-shrink: 0; width: 36px; height: 36px; background: var(--purple); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: .95rem; }
+    .step-body { flex: 1; }
+    .step-body h3 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+    .step-body p { font-size: .9rem; color: var(--muted); margin-bottom: 8px; }
+    .click-hint { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: .82rem; color: var(--text); font-family: monospace; }
+    .click-hint.green { border-color: rgba(34,197,94,.4); color: var(--green); background: rgba(34,197,94,.07); }
+    .click-hint.orange { border-color: rgba(255,109,90,.4); color: var(--orange2); background: rgba(255,109,90,.07); }
+    .click-hint.blue { border-color: rgba(96,165,250,.4); color: var(--blue); background: rgba(96,165,250,.07); }
+    .click-hint.purple { border-color: rgba(168,85,247,.4); color: var(--purple); background: rgba(168,85,247,.07); }
+    .hints { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .screen-mock { background: #0b0c18; border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-top: 12px; font-size: .82rem; }
+    .field-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; padding: 8px 10px; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 6px; }
+    .field-label { color: var(--muted); font-size: .8rem; min-width: 120px; flex-shrink: 0; }
+    .field-val { color: var(--green); font-family: monospace; font-size: .82rem; word-break: break-all; }
+
+    .response-box { background: #0b0c18; border: 1px solid rgba(168,85,247,.3); border-radius: 10px; padding: 16px; margin-top: 12px; }
+    .response-box .rb-label { color: var(--purple); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+    .response-box pre { font-family: monospace; font-size: .8rem; color: #e2e8f0; line-height: 1.7; }
+
+    /* Tab selector */
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .tab-btn { background: rgba(255,255,255,.05); border: 1px solid var(--border); color: var(--muted); padding: 6px 16px; border-radius: 20px; cursor: pointer; font-size: .85rem; transition: all .2s; }
+    .tab-btn.active { background: var(--purple); color: #fff; border-color: var(--purple); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .json-box { background: #0b0c18; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .json-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,.03); }
+    .json-header span { font-size: 12px; color: var(--muted); font-family: monospace; }
+    .copy-btn { background: rgba(255,255,255,.06); border: 1px solid var(--border); color: var(--text); padding: 4px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: background .2s; }
+    .copy-btn:hover { background: rgba(255,255,255,.12); }
+    .json-box pre { padding: 16px; overflow-x: auto; font-family: monospace; font-size: .78rem; color: #a8d8a8; line-height: 1.7; max-height: 400px; }
+    .how-to-import { background: rgba(96,165,250,.07); border: 1px solid rgba(96,165,250,.25); border-radius: 10px; padding: 16px 20px; margin-top: 12px; font-size: .88rem; color: var(--muted); }
+    .how-to-import strong { color: var(--blue); }
+    .how-to-import ol { padding-left: 20px; margin-top: 8px; }
+    .how-to-import li { margin-bottom: 4px; }
+    .tip-box { background: rgba(251,191,36,.07); border: 1px solid rgba(251,191,36,.3); border-radius: 10px; padding: 14px 18px; font-size: .88rem; color: var(--yellow); }
+
+    /* Model comparison table */
+    .model-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    .model-table th { background: rgba(255,255,255,.05); color: var(--muted); font-weight: 600; padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+    .model-table td { padding: 10px 14px; border-bottom: 1px solid rgba(46,48,88,.5); }
+    .model-table tr:last-child td { border-bottom: none; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: .72rem; font-weight: 700; }
+    .badge.free { background: rgba(34,197,94,.15); color: var(--green); }
+    .badge.key { background: rgba(255,109,90,.15); color: var(--orange2); }
+    .badge.local { background: rgba(251,191,36,.15); color: var(--yellow); }
+    .model-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 8px; }
+
+    .nav-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding: 20px 24px; }
+    .nav-btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); background: var(--card); border: 1px solid var(--border); padding: 10px 18px; border-radius: 8px; font-size: .9rem; font-weight: 600; transition: border-color .2s; }
+    .nav-btn:hover { border-color: var(--purple); }
+    .nav-btn.next { background: var(--purple); color: #fff; border-color: var(--purple); }
+    .nav-btn.next:hover { background: #9333ea; }
+  </style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="index.html">🏠 n8n Zero to Hero</a>
+  <span class="sep">›</span>
+  <span class="current">Demo 03 — LLM Chat</span>
+</nav>
+
+<div class="hero">
+  <div class="demo-badge">Demo 03 · Intermediate</div>
+  <h1>Your First <span>LLM Integration</span></h1>
+  <p>Connect Ollama (local) or OpenAI directly inside n8n. Send a prompt, get an AI response, chain it to the next node. This is where your ML knowledge meets automation.</p>
+</div>
+
+<div class="wrap">
+
+  <div class="goal-box">
+    <h3>🎯 Goal</h3>
+    <p>Build a workflow that sends a user-defined prompt to an LLM and returns the AI's response as a clean output field. We'll show both <strong>Ollama (local, free)</strong> and <strong>OpenAI (API key)</strong> options.</p>
+  </div>
+
+  <!-- Model options -->
+  <div>
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:12px">🤖 Supported LLM Options</h2>
+    <div class="model-wrap">
+      <table class="model-table">
+        <thead><tr><th>Model / Provider</th><th>n8n Node</th><th>Key needed?</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Ollama</strong> (llama3, mistral…)</td>
+            <td>Ollama Chat Model</td>
+            <td><span class="badge local">Local</span></td>
+            <td>Free, runs on your machine. Must have Ollama running.</td>
+          </tr>
+          <tr>
+            <td><strong>OpenAI</strong> GPT-4o / 4o-mini</td>
+            <td>OpenAI Chat Model</td>
+            <td><span class="badge key">API Key</span></td>
+            <td>Fast, smart. Costs money per token.</td>
+          </tr>
+          <tr>
+            <td><strong>Anthropic</strong> Claude</td>
+            <td>Anthropic Chat Model</td>
+            <td><span class="badge key">API Key</span></td>
+            <td>Great reasoning. Also paid.</td>
+          </tr>
+          <tr>
+            <td><strong>Google Gemini</strong></td>
+            <td>Google Gemini</td>
+            <td><span class="badge free">Free tier</span></td>
+            <td>Free tier available via Google AI Studio.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tip-box">
+      <strong>💡 Recommended for class:</strong> Use <strong>Ollama</strong> with llama3 if you have it running locally, OR use <strong>OpenAI gpt-4o-mini</strong> with a shared class API key. Both use the same n8n nodes — just swap the credential.
+    </div>
+  </div>
+
+  <!-- Flow diagram -->
+  <div>
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:16px">📊 Workflow Overview</h2>
+    <div class="flow-diagram">
+      <div class="node trigger">
+        <div class="node-icon">▶️</div>
+        <div class="node-type">Trigger</div>
+        <div class="node-name">Manual Trigger</div>
+      </div>
+      <div class="connector">
+        <svg viewBox="0 0 48 24"><line x1="0" y1="12" x2="38" y2="12" stroke="#2e3058" stroke-width="2"/><polygon points="38,7 48,12 38,17" fill="#2e3058"/></svg>
+      </div>
+      <div class="node action">
+        <div class="node-icon">✏️</div>
+        <div class="node-type">Action</div>
+        <div class="node-name">Set Prompt</div>
+        <div class="node-sub">define the question</div>
+      </div>
+      <div class="connector">
+        <svg viewBox="0 0 48 24"><line x1="0" y1="12" x2="38" y2="12" stroke="#2e3058" stroke-width="2"/><polygon points="38,7 48,12 38,17" fill="#2e3058"/></svg>
+      </div>
+      <div class="node ai">
+        <div class="node-icon">🤖</div>
+        <div class="node-type">AI</div>
+        <div class="node-name">Basic LLM Chain</div>
+        <div class="node-sub">Ollama / OpenAI</div>
+      </div>
+    </div>
+    <p style="font-size:.82rem;color:var(--muted);margin-top:10px;text-align:center">
+      Purple = AI node &nbsp;|&nbsp; The LLM Chain uses a sub-node (Chat Model) as its "brain"
+    </p>
+  </div>
+
+  <!-- Steps with tabs for Ollama vs OpenAI -->
+  <div class="steps">
+    <h2>📋 Step-by-Step Instructions</h2>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h3>Create workflow + Manual Trigger</h3>
+        <p>New workflow named "03 - LLM Chat". Add Manual Trigger as before.</p>
+        <div class="hints">
+          <span class="click-hint green">➕ Add workflow → "03 - LLM Chat"</span>
+          <span class="click-hint orange">Add Manual Trigger node</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h3>Add "Edit Fields" to set the prompt</h3>
+        <p>Add an Edit Fields node. We'll store the prompt as a field so we can reference it later (or change it easily).</p>
+        <div class="screen-mock">
+          <div style="color:var(--muted);font-size:.78rem;margin-bottom:10px">Edit Fields — Set prompt field</div>
+          <div class="field-row">
+            <div class="field-label">Name</div>
+            <div class="field-val">prompt</div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Value</div>
+            <div class="field-val">Explain what a neural network is in 2 sentences, like I'm a Python developer.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h3>Add the "Basic LLM Chain" node</h3>
+        <p>This is n8n's high-level AI node. Hover the Edit Fields node → click its <strong>+</strong> connector.</p>
+        <div class="hints">
+          <span class="click-hint orange">🔍 Search: "Basic LLM Chain"</span>
+          <span class="click-hint purple">Click: Basic LLM Chain</span>
+        </div>
+        <p style="margin-top:8px;font-size:.82rem;color:var(--muted)">The Basic LLM Chain node has a special sub-connection slot at the bottom — that's where you plug in the actual AI model.</p>
+        <div class="screen-mock" style="margin-top:10px">
+          <div style="color:var(--muted);font-size:.78rem;margin-bottom:10px">Basic LLM Chain — Settings</div>
+          <div class="field-row">
+            <div class="field-label">Prompt</div>
+            <div class="field-val">={{ $json.prompt }}</div>
+          </div>
+        </div>
+        <div class="hints" style="margin-top:8px">
+          <span class="click-hint purple">Set Prompt to: ={{ $json.prompt }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h3>Connect the Chat Model (choose one)</h3>
+        <p>The Basic LLM Chain needs a "brain". On the <strong>bottom</strong> of the Basic LLM Chain node you'll see a <strong>🤖 Chat Model</strong> input connector. Click it.</p>
+
+        <div class="tabs">
+          <button class="tab-btn active" onclick="showTab('ollama', this)">Ollama (Local)</button>
+          <button class="tab-btn" onclick="showTab('openai', this)">OpenAI</button>
+        </div>
+
+        <div class="tab-panel active" id="tab-ollama">
+          <div style="font-size:.88rem;color:var(--muted);margin-bottom:10px">For Ollama you need it running locally on port 11434 (default Docker setup).</div>
+          <div class="hints">
+            <span class="click-hint orange">🔍 Search: "Ollama Chat Model"</span>
+            <span class="click-hint purple">Click: Ollama Chat Model</span>
+          </div>
+          <div class="screen-mock" style="margin-top:10px">
+            <div style="color:var(--muted);font-size:.78rem;margin-bottom:10px">Ollama Chat Model — Settings</div>
+            <div class="field-row">
+              <div class="field-label">Base URL</div>
+              <div class="field-val">http://host.docker.internal:11434</div>
+            </div>
+            <div class="field-row">
+              <div class="field-label">Model</div>
+              <div class="field-val">llama3 (or mistral, gemma2, etc.)</div>
+            </div>
+          </div>
+          <div style="margin-top:10px;font-size:.82rem;color:var(--yellow)">⚠️ Use <code>host.docker.internal</code> (not localhost) because n8n runs inside Docker!</div>
+        </div>
+
+        <div class="tab-panel" id="tab-openai">
+          <div style="font-size:.88rem;color:var(--muted);margin-bottom:10px">Needs an OpenAI API key. Set it once in n8n credentials.</div>
+          <div class="hints">
+            <span class="click-hint orange">🔍 Search: "OpenAI Chat Model"</span>
+            <span class="click-hint purple">Click: OpenAI Chat Model</span>
+          </div>
+          <div class="screen-mock" style="margin-top:10px">
+            <div style="color:var(--muted);font-size:.78rem;margin-bottom:10px">OpenAI Chat Model — Settings</div>
+            <div class="field-row">
+              <div class="field-label">Credential</div>
+              <div class="field-val">Click "Create new credential" → paste API key</div>
+            </div>
+            <div class="field-row">
+              <div class="field-label">Model</div>
+              <div class="field-val">gpt-4o-mini (fast & cheap)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <h3>Add a System Message (optional but recommended)</h3>
+        <p>In the Basic LLM Chain settings, scroll down to find <strong>"Messages"</strong> section. Add a system message:</p>
+        <div class="screen-mock">
+          <div style="color:var(--muted);font-size:.78rem;margin-bottom:10px">Messages → Add System Message</div>
+          <div class="field-row">
+            <div class="field-label">Role</div>
+            <div class="field-val">system</div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Content</div>
+            <div class="field-val">You are a helpful AI tutor for Python developers learning ML. Keep answers concise and practical.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <h3>Run and inspect the output</h3>
+        <p>Click <strong>Test workflow</strong>. The LLM Chain node will light up purple while thinking, then green when done.</p>
+        <div class="hints">
+          <span class="click-hint orange">▶ Test workflow</span>
+          <span class="click-hint purple">Click LLM Chain node → Output</span>
+        </div>
+        <div class="response-box" style="margin-top:10px">
+          <div class="rb-label">✓ LLM Chain Output</div>
+          <pre>{
+  "text": "A neural network is a computational model loosely inspired by the brain,
+consisting of interconnected layers of nodes (neurons) that learn patterns
+from data by adjusting their connection weights during training.
+In Python, libraries like PyTorch and TensorFlow let you define and train
+these networks with just a few lines of code."
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">7</div>
+      <div class="step-body">
+        <h3>🏆 Challenge: Dynamic prompts</h3>
+        <p>Change the Edit Fields prompt to something related to your ML work. Try:</p>
+        <div class="hints">
+          <span class="click-hint green">"Explain overfitting in 1 sentence."</span>
+          <span class="click-hint green">"What's the difference between BERT and GPT?"</span>
+          <span class="click-hint green">"Write a Python function to normalize a list of numbers."</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Import JSON -->
+  <div>
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:14px">📥 Import This Workflow (Ollama version)</h2>
+    <div class="json-box">
+      <div class="json-header">
+        <span>llm-chat-ollama.json</span>
+        <button class="copy-btn" onclick="copyJson()">📋 Copy JSON</button>
+      </div>
+      <pre id="wf-json">{
+  "name": "03 - LLM Chat",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "c1000001-0003-0003-0003-000000000001",
+      "name": "When clicking Test workflow",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [180, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "llm-set-001",
+              "name": "prompt",
+              "value": "Explain what a neural network is in 2 sentences, like I'm a Python developer.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c1000001-0003-0003-0003-000000000002",
+      "name": "Set Prompt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [380, 300]
+    },
+    {
+      "parameters": {
+        "prompt": "={{ $json.prompt }}",
+        "messages": {
+          "messageValues": [
+            {
+              "type": "SystemMessage",
+              "message": "You are a helpful AI tutor for Python developers learning ML. Be concise."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c1000001-0003-0003-0003-000000000003",
+      "name": "Basic LLM Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "model": "llama3",
+        "options": {}
+      },
+      "id": "c1000001-0003-0003-0003-000000000004",
+      "name": "Ollama Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [600, 500]
+    }
+  ],
+  "connections": {
+    "When clicking Test workflow": {
+      "main": [[{ "node": "Set Prompt", "type": "main", "index": 0 }]]
+    },
+    "Set Prompt": {
+      "main": [[{ "node": "Basic LLM Chain", "type": "main", "index": 0 }]]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [[{ "node": "Basic LLM Chain", "type": "ai_languageModel", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}</pre>
+    </div>
+    <div class="how-to-import">
+      <strong>Note:</strong> After importing, click the Ollama Chat Model node and set your <strong>Base URL</strong> to <code>http://host.docker.internal:11434</code>. For OpenAI, delete the Ollama node and add an OpenAI Chat Model node connecting to the same input.
+    </div>
+  </div>
+
+  <div class="goal-box" style="border-left-color:var(--blue)">
+    <h3 style="color:var(--blue)">🐍 Python Comparison</h3>
+    <p>
+      <code style="font-family:monospace;color:var(--green)">from langchain_ollama import ChatOllama</code><br>
+      <code style="font-family:monospace;color:var(--green)">llm = ChatOllama(model="llama3")</code><br>
+      <code style="font-family:monospace;color:var(--green)">response = llm.invoke("Explain neural networks...")</code><br><br>
+      n8n wraps LangChain under the hood. The "Basic LLM Chain" IS a LangChain chain. You already know this — now it's visual.
+    </p>
+  </div>
+
+</div>
+
+<div class="nav-footer">
+  <a href="02-http-api.html" class="nav-btn">← Demo 02</a>
+  <a href="04-python-code.html" class="nav-btn next">Demo 04: Python Node →</a>
+</div>
+
+<script>
+function showTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+function copyJson() {
+  const text = document.getElementById('wf-json').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy JSON', 2000);
+  });
+}
+</script>
+</body>
+</html>

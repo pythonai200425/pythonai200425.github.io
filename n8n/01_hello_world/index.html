@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Demo 01 — Hello World · N8N</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%23ff6d5a'/><text x='32' y='46' text-anchor='middle' font-family='Arial' font-size='28' font-weight='900' fill='white'>n8n</text></svg>">
+  <style>
+    :root{--bg:#0c0c18;--card:#111120;--card2:#16162a;--border:#1e1e32;--text:#e4e8f0;--muted:#6b7a90;--dim:#3a4456;--orange:#ff6d5a;--purple:#9d5ff5;--green:#34d399;--blue:#60a5fa;--yellow:#fbbf24;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;}
+    /* TOP NAV */
+    .top-nav{background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;position:sticky;top:0;z-index:100;height:52px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+    .nav-back{color:var(--orange);text-decoration:none;font-size:.88rem;font-weight:700;display:flex;align-items:center;gap:6px;}
+    .nav-back:hover{color:#ffb3a7;}
+    .nav-title{font-family:'Courier New',monospace;font-size:.8rem;color:var(--muted);letter-spacing:.06em;}
+    .nav-next{color:var(--purple);text-decoration:none;font-size:.88rem;font-weight:700;display:flex;align-items:center;gap:6px;}
+    .nav-next:hover{color:#c4a0ff;}
+    /* HERO */
+    .hero{max-width:900px;margin:0 auto;padding:48px 24px 32px;}
+    .hero-tag{display:inline-block;padding:5px 12px;border-radius:999px;font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:rgba(255,109,90,.12);border:1px solid rgba(255,109,90,.3);color:var(--orange);margin-bottom:16px;}
+    .hero h1{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:900;margin-bottom:12px;background:linear-gradient(120deg,#fff 30%,var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .hero p{color:var(--muted);font-size:1rem;line-height:1.7;max-width:660px;}
+    /* FLOW DIAGRAM */
+    .flow-wrap{max-width:900px;margin:0 auto;padding:0 24px 32px;}
+    .flow-box{background:#08080f;border:1px solid var(--border);border-radius:14px;padding:28px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+    .n-node{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:140px;position:relative;transition:border-color .2s,box-shadow .2s;}
+    .n-node:hover{box-shadow:0 0 0 1px var(--nc,var(--orange)),0 8px 24px rgba(0,0,0,.4);}
+    .n-node{border-color:var(--nc,var(--border));}
+    .n-icon{font-size:1.6rem;}
+    .n-type{font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--nc,var(--muted));opacity:.8;}
+    .n-name{font-size:.88rem;font-weight:700;color:var(--text);font-family:'Courier New',monospace;}
+    .n-arrow{font-size:1.6rem;color:var(--dim);}
+    /* STEPS */
+    .steps-wrap{max-width:900px;margin:0 auto;padding:0 24px 60px;}
+    .steps-label{font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--orange);margin-bottom:20px;}
+    .step{display:flex;gap:16px;align-items:flex-start;margin-bottom:16px;}
+    .step-badge{width:40px;height:40px;border-radius:50%;background:var(--orange);color:#fff;display:grid;place-items:center;font-weight:900;font-size:1rem;flex-shrink:0;box-shadow:0 4px 14px rgba(255,109,90,.3);}
+    .step-badge.p{background:var(--purple);box-shadow:0 4px 14px rgba(157,95,245,.3);}
+    .step-badge.g{background:var(--green);color:#000;box-shadow:0 4px 14px rgba(52,211,153,.3);}
+    .step-body{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;flex:1;}
+    .step-body h3{font-size:1rem;font-weight:700;margin-bottom:6px;color:var(--text);}
+    .step-body p{font-size:.88rem;color:var(--muted);line-height:1.65;margin-bottom:8px;}
+    .step-body p:last-child{margin-bottom:0;}
+    /* UI elements */
+    .btn{display:inline-block;padding:4px 14px;border-radius:7px;font-size:.82rem;font-weight:700;cursor:default;margin:2px;}
+    .btn.orange{background:var(--orange);color:#fff;box-shadow:0 2px 8px rgba(255,109,90,.35);}
+    .btn.ghost{background:var(--card2);border:1px solid var(--border);color:var(--text);}
+    .btn.purple{background:var(--purple);color:#fff;box-shadow:0 2px 8px rgba(157,95,245,.35);}
+    .field{display:inline-block;font-family:'Courier New',monospace;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);border-radius:5px;padding:2px 8px;font-size:.84rem;color:var(--green);}
+    .val{display:inline-block;font-family:'Courier New',monospace;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.25);border-radius:5px;padding:2px 8px;font-size:.84rem;color:var(--blue);}
+    .note{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.22);border-radius:8px;padding:10px 14px;font-size:.85rem;color:#d4a30a;margin-top:10px;}
+    .note b{color:var(--yellow);}
+    .success{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.22);border-radius:8px;padding:10px 14px;font-size:.85rem;color:var(--green);margin-top:10px;}
+    /* Output box */
+    .output-box{background:#040408;border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-family:'Courier New',monospace;font-size:.85rem;color:var(--text);margin-top:10px;line-height:1.7;}
+    .output-box .k{color:var(--blue);} .output-box .s{color:var(--green);} .output-box .n{color:var(--orange);}
+    /* IMG placeholder */
+    .screen-hint{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:10px;text-align:center;color:var(--dim);font-size:.82rem;}
+    /* BOTTOM NAV */
+    .bottom-nav{max-width:900px;margin:0 auto;padding:0 24px 60px;display:flex;justify-content:space-between;align-items:center;}
+    .bottom-nav a{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:10px;text-decoration:none;font-weight:700;font-size:.9rem;transition:transform .2s,box-shadow .2s;}
+    .bottom-nav a:hover{transform:translateY(-2px);}
+    .btn-back{background:var(--card);border:1px solid var(--border);color:var(--muted);}
+    .btn-next{background:var(--purple);color:#fff;box-shadow:0 4px 14px rgba(157,95,245,.3);}
+    @media(max-width:600px){.flow-box{flex-direction:column;align-items:flex-start;}.n-arrow{transform:rotate(90deg)}.hero h1{font-size:1.8rem}}
+  </style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <a class="nav-back" href="../index.html">← N8N Demos</a>
+  <span class="nav-title">DEMO 01 — Hello World</span>
+  <a class="nav-next" href="../02_http_api/index.html">Demo 02 →</a>
+</nav>
+
+<div class="hero">
+  <span class="hero-tag">Demo 01 · Beginner</span>
+  <h1>👋 Hello World</h1>
+  <p>Your first N8N workflow. You'll learn how the canvas works, how to add and connect nodes, and how to see execution output. Takes about 5 minutes.</p>
+</div>
+
+<!-- FLOW DIAGRAM -->
+<div class="flow-wrap">
+  <div class="flow-box">
+    <div class="n-node" style="--nc:#ff6d5a">
+      <span class="n-icon">⚡</span>
+      <span class="n-type">Trigger</span>
+      <span class="n-name">Manual Trigger</span>
+    </div>
+    <div class="n-arrow">→</div>
+    <div class="n-node" style="--nc:#9d5ff5">
+      <span class="n-icon">✏️</span>
+      <span class="n-type">Action</span>
+      <span class="n-name">Set</span>
+    </div>
+    <div class="n-arrow">→</div>
+    <div class="n-node" style="--nc:#34d399">
+      <span class="n-icon">👁️</span>
+      <span class="n-type">Output</span>
+      <span class="n-name">View Result</span>
+    </div>
+  </div>
+</div>
+
+<div class="steps-wrap">
+  <div class="steps-label">Step by step</div>
+
+  <div class="step">
+    <div class="step-badge">1</div>
+    <div class="step-body">
+      <h3>Open N8N in your browser</h3>
+      <p>Go to <span class="val">http://localhost:5678</span> — your N8N instance running on Docker.</p>
+      <p>If you see the login screen, use the credentials you set up during installation.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge">2</div>
+    <div class="step-body">
+      <h3>Create a new workflow</h3>
+      <p>Click <span class="btn orange">+ New Workflow</span> (top right) — or from the left sidebar click <span class="btn ghost">Workflows</span> then <span class="btn orange">Create Workflow</span>.</p>
+      <p>You'll land on the empty canvas. This is where you build your automation.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge">3</div>
+    <div class="step-body">
+      <h3>Add a Manual Trigger node</h3>
+      <p>Click <span class="btn orange">+ Add first step</span> in the center of the canvas (or press <span class="btn ghost">Tab</span>).</p>
+      <p>In the search box type <span class="field">Manual Trigger</span> → click it. It appears on the canvas.</p>
+      <div class="note"><b>What is a trigger?</b> Every workflow needs a trigger — it defines WHEN the workflow runs. "Manual" means you click a button. Later you'll see Schedule, Webhook, and Chat triggers.</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge p">4</div>
+    <div class="step-body">
+      <h3>Add a Set node</h3>
+      <p>Hover over the <strong>Manual Trigger</strong> node on the canvas — a <span class="btn orange">+</span> circle appears on its right edge. Click it.</p>
+      <p>Search for <span class="field">Set</span> → click it. It connects automatically to the Manual Trigger.</p>
+      <div class="note"><b>What is Set?</b> The Set node creates or overwrites fields in the data flowing through. Think of it like assigning a variable.</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge p">5</div>
+    <div class="step-body">
+      <h3>Configure the Set node</h3>
+      <p>Click the <strong>Set</strong> node to open its settings panel on the right. You'll see a blank fields area.</p>
+      <p>Click <span class="btn ghost">Add field</span> and fill in:</p>
+      <p>Name: <span class="field">message</span> &nbsp;→&nbsp; Value: <span class="val">Hello, World from N8N! 🎉</span></p>
+      <p>Click <span class="btn ghost">Add field</span> again:</p>
+      <p>Name: <span class="field">from</span> &nbsp;→&nbsp; Value: <span class="val">Python AI Class</span></p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge g">6</div>
+    <div class="step-body">
+      <h3>Execute the workflow</h3>
+      <p>Click <span class="btn orange">▶ Test workflow</span> in the top bar.</p>
+      <p>You should see a green checkmark ✅ appear on both nodes — the workflow ran successfully!</p>
+      <div class="success">Both nodes show green. The workflow executed and data flowed through.</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge g">7</div>
+    <div class="step-body">
+      <h3>See the output</h3>
+      <p>Click on the <strong>Set</strong> node. In the right panel switch to the <span class="btn ghost">Output</span> tab.</p>
+      <p>You'll see your data as JSON:</p>
+      <div class="output-box">[
+  {
+    <span class="k">"message"</span>: <span class="s">"Hello, World from N8N! 🎉"</span>,
+    <span class="k">"from"</span>:    <span class="s">"Python AI Class"</span>
+  }
+]</div>
+      <div class="note"><b>This is N8N's data model.</b> Data flows as an array of JSON objects (called "items") between nodes. The next node receives this output as its input.</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge g">8</div>
+    <div class="step-body">
+      <h3>Save the workflow</h3>
+      <p>Press <span class="btn ghost">Ctrl + S</span> (or <span class="btn ghost">⌘ S</span>) — or click the save button at top right.</p>
+      <p>Give it a name like <span class="val">01 - Hello World</span>.</p>
+      <div class="success">✅ You built your first N8N workflow! You know how to: open the canvas, add nodes, connect them, configure fields, and read output.</div>
+    </div>
+  </div>
+
+  <div style="margin-top:32px;padding:20px;background:var(--card);border:1px solid var(--border);border-radius:14px;">
+    <div style="font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--orange);margin-bottom:14px;">Key Concepts from This Demo</div>
+    <div style="display:grid;gap:10px;">
+      <div style="display:flex;gap:12px;align-items:flex-start;"><span style="color:var(--orange);font-size:1.2rem;flex-shrink:0;">⚡</span><div><strong style="color:var(--text);">Nodes</strong> <span style="color:var(--muted);font-size:.88rem;">— every step in the workflow is a node. Triggers start it, actions process data, outputs return it.</span></div></div>
+      <div style="display:flex;gap:12px;align-items:flex-start;"><span style="color:var(--purple);font-size:1.2rem;flex-shrink:0;">→</span><div><strong style="color:var(--text);">Connections</strong> <span style="color:var(--muted);font-size:.88rem;">— drag from the right dot of one node to the left dot of another to connect them.</span></div></div>
+      <div style="display:flex;gap:12px;align-items:flex-start;"><span style="color:var(--green);font-size:1.2rem;flex-shrink:0;">📦</span><div><strong style="color:var(--text);">Items</strong> <span style="color:var(--muted);font-size:.88rem;">— data flows as an array of JSON objects. Each object is one "item". This is N8N's data model.</span></div></div>
+      <div style="display:flex;gap:12px;align-items:flex-start;"><span style="color:var(--blue);font-size:1.2rem;flex-shrink:0;">▶</span><div><strong style="color:var(--text);">Test vs Active</strong> <span style="color:var(--muted);font-size:.88rem;">— "Test workflow" runs once manually. Activating (toggle top right) makes it run automatically from real triggers.</span></div></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="bottom-nav">
+  <a class="btn-back" href="../index.html">← All Demos</a>
+  <a class="btn-next" href="../02_http_api/index.html">Demo 02: HTTP Request →</a>
+</div>
+
+</body>
+</html>

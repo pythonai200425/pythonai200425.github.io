@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Demo 02 — HTTP Request · N8N</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%23ff6d5a'/><text x='32' y='46' text-anchor='middle' font-family='Arial' font-size='28' font-weight='900' fill='white'>n8n</text></svg>">
+  <style>
+    :root{--bg:#0c0c18;--card:#111120;--card2:#16162a;--border:#1e1e32;--text:#e4e8f0;--muted:#6b7a90;--dim:#3a4456;--orange:#ff6d5a;--purple:#9d5ff5;--green:#34d399;--blue:#60a5fa;--yellow:#fbbf24;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;}
+    .top-nav{background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;position:sticky;top:0;z-index:100;height:52px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+    .nav-back{color:var(--orange);text-decoration:none;font-size:.88rem;font-weight:700;}
+    .nav-back:hover{color:#ffb3a7;}
+    .nav-title{font-family:'Courier New',monospace;font-size:.8rem;color:var(--muted);letter-spacing:.06em;}
+    .nav-next{color:var(--blue);text-decoration:none;font-size:.88rem;font-weight:700;}
+    .nav-next:hover{color:#a3c5fd;}
+    .hero{max-width:900px;margin:0 auto;padding:48px 24px 32px;}
+    .hero-tag{display:inline-block;padding:5px 12px;border-radius:999px;font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:rgba(157,95,245,.12);border:1px solid rgba(157,95,245,.3);color:var(--purple);margin-bottom:16px;}
+    .hero h1{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:900;margin-bottom:12px;background:linear-gradient(120deg,#fff 30%,var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .hero p{color:var(--muted);font-size:1rem;line-height:1.7;max-width:660px;}
+    .flow-wrap{max-width:900px;margin:0 auto;padding:0 24px 32px;}
+    .flow-box{background:#08080f;border:1px solid var(--border);border-radius:14px;padding:28px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+    .n-node{background:var(--card);border:1px solid var(--nc,var(--border));border-radius:12px;padding:14px 18px;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:140px;transition:box-shadow .2s;}
+    .n-node:hover{box-shadow:0 0 0 1px var(--nc,var(--border)),0 8px 24px rgba(0,0,0,.4);}
+    .n-icon{font-size:1.6rem;} .n-type{font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--nc,var(--muted));opacity:.8;} .n-name{font-size:.88rem;font-weight:700;color:var(--text);font-family:'Courier New',monospace;}
+    .n-arrow{font-size:1.6rem;color:var(--dim);}
+    .steps-wrap{max-width:900px;margin:0 auto;padding:0 24px 60px;}
+    .steps-label{font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--purple);margin-bottom:20px;}
+    .step{display:flex;gap:16px;align-items:flex-start;margin-bottom:16px;}
+    .step-badge{width:40px;height:40px;border-radius:50%;background:var(--purple);color:#fff;display:grid;place-items:center;font-weight:900;font-size:1rem;flex-shrink:0;box-shadow:0 4px 14px rgba(157,95,245,.3);}
+    .step-badge.g{background:var(--green);color:#000;box-shadow:0 4px 14px rgba(52,211,153,.3);}
+    .step-badge.o{background:var(--orange);box-shadow:0 4px 14px rgba(255,109,90,.3);}
+    .step-badge.b{background:var(--blue);box-shadow:0 4px 14px rgba(96,165,250,.3);}
+    .step-body{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;flex:1;}
+    .step-body h3{font-size:1rem;font-weight:700;margin-bottom:6px;color:var(--text);}
+    .step-body p{font-size:.88rem;color:var(--muted);line-height:1.65;margin-bottom:8px;}
+    .step-body p:last-child{margin-bottom:0;}
+    .btn{display:inline-block;padding:4px 14px;border-radius:7px;font-size:.82rem;font-weight:700;cursor:default;margin:2px;}
+    .btn.orange{background:var(--orange);color:#fff;} .btn.ghost{background:var(--card2);border:1px solid var(--border);color:var(--text);} .btn.purple{background:var(--purple);color:#fff;}
+    .field{display:inline-block;font-family:'Courier New',monospace;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);border-radius:5px;padding:2px 8px;font-size:.84rem;color:var(--green);}
+    .val{display:inline-block;font-family:'Courier New',monospace;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.25);border-radius:5px;padding:2px 8px;font-size:.84rem;color:var(--blue);}
+    .note{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.22);border-radius:8px;padding:10px 14px;font-size:.85rem;color:#d4a30a;margin-top:10px;line-height:1.55;}
+    .note b{color:var(--yellow);}
+    .success{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.22);border-radius:8px;padding:10px 14px;font-size:.85rem;color:var(--green);margin-top:10px;}
+    .output-box{background:#040408;border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-family:'Courier New',monospace;font-size:.83rem;color:var(--text);margin-top:10px;line-height:1.7;overflow-x:auto;white-space:pre;}
+    .output-box .k{color:var(--blue);} .output-box .s{color:var(--green);} .output-box .n{color:var(--orange);} .output-box .c{color:var(--dim);font-style:italic;}
+    .code-box{background:#040408;border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-family:'Courier New',monospace;font-size:.85rem;color:var(--text);margin-top:10px;line-height:1.7;white-space:pre-wrap;}
+    .code-box .k{color:var(--blue);font-weight:700;} .code-box .s{color:var(--green);} .code-box .fn{color:var(--purple);} .code-box .c{color:var(--dim);font-style:italic;} .code-box .n{color:var(--orange);}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;}
+    .info-card{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
+    .info-card .ic-label{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+    .info-card .ic-val{font-family:'Courier New',monospace;font-size:.88rem;color:var(--green);}
+    .bottom-nav{max-width:900px;margin:0 auto;padding:0 24px 60px;display:flex;justify-content:space-between;align-items:center;}
+    .bottom-nav a{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:10px;text-decoration:none;font-weight:700;font-size:.9rem;transition:transform .2s;}
+    .bottom-nav a:hover{transform:translateY(-2px);}
+    .btn-back{background:var(--card);border:1px solid var(--border);color:var(--muted);}
+    .btn-next{background:var(--blue);color:#fff;box-shadow:0 4px 14px rgba(96,165,250,.3);}
+    @media(max-width:600px){.flow-box{flex-direction:column;}.n-arrow{transform:rotate(90deg)}.two-col{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <a class="nav-back" href="../01_hello_world/index.html">← Demo 01</a>
+  <span class="nav-title">DEMO 02 — HTTP Request + Data</span>
+  <a class="nav-next" href="../03_llm/index.html">Demo 03 →</a>
+</nav>
+
+<div class="hero">
+  <span class="hero-tag">Demo 02 · Beginner+</span>
+  <h1>🌐 HTTP Request + Data</h1>
+  <p>Fetch real JSON data from a public API, inspect it inside N8N, then use a Code node to transform it — just like you would with Python's <code style="color:var(--green)">requests</code> and dict manipulation.</p>
+</div>
+
+<div class="flow-wrap">
+  <div class="flow-box">
+    <div class="n-node" style="--nc:#ff6d5a"><span class="n-icon">⚡</span><span class="n-type">Trigger</span><span class="n-name">Manual Trigger</span></div>
+    <div class="n-arrow">→</div>
+    <div class="n-node" style="--nc:#9d5ff5"><span class="n-icon">🌐</span><span class="n-type">Action</span><span class="n-name">HTTP Request</span></div>
+    <div class="n-arrow">→</div>
+    <div class="n-node" style="--nc:#34d399"><span class="n-icon">⚙️</span><span class="n-type">Transform</span><span class="n-name">Code</span></div>
+    <div class="n-arrow">→</div>
+    <div class="n-node" style="--nc:#60a5fa"><span class="n-icon">✏️</span><span class="n-type">Action</span><span class="n-name">Set</span></div>
+  </div>
+</div>
+
+<div class="steps-wrap">
+  <div class="steps-label">Step by step</div>
+
+  <div class="step">
+    <div class="step-badge o">1</div>
+    <div class="step-body">
+      <h3>New workflow + Manual Trigger</h3>
+      <p>Create a new workflow (same as Demo 01). Add a <span class="field">Manual Trigger</span> node.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge">2</div>
+    <div class="step-body">
+      <h3>Add an HTTP Request node</h3>
+      <p>Click <span class="btn orange">+</span> from Manual Trigger → search <span class="field">HTTP Request</span> → click it.</p>
+      <p>In the right panel configure:</p>
+      <div class="two-col">
+        <div class="info-card"><div class="ic-label">Method</div><div class="ic-val">GET</div></div>
+        <div class="info-card"><div class="ic-label">URL</div><div class="ic-val" style="word-break:break-all;">https://jsonplaceholder.typicode.com/posts/1</div></div>
+      </div>
+      <div class="note"><b>JSONPlaceholder</b> is a free fake REST API — perfect for testing. It returns a sample blog post as JSON. No API key needed.</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge">3</div>
+    <div class="step-body">
+      <h3>Execute and inspect the raw response</h3>
+      <p>Click <span class="btn orange">▶ Test workflow</span>. Click the <strong>HTTP Request</strong> node → <span class="btn ghost">Output</span> tab.</p>
+      <p>You'll see the full JSON returned by the API:</p>
+      <div class="output-box"><span class="c">// Raw API response — one item</span>
+{
+  <span class="k">"userId"</span>: <span class="n">1</span>,
+  <span class="k">"id"</span>:     <span class="n">1</span>,
+  <span class="k">"title"</span>:  <span class="s">"sunt aut facere repellat provident..."</span>,
+  <span class="k">"body"</span>:   <span class="s">"quia et suscipit\nsuscipit recusandae..."</span>
+}</div>
+      <div class="note"><b>N8N wraps the response</b> in its item format. Access any field downstream with <code>{{ $json.title }}</code> or in a Code node with <code>items[0].json.title</code>.</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge g">4</div>
+    <div class="step-body">
+      <h3>Add a Code node to transform the data</h3>
+      <p>Click <span class="btn orange">+</span> from HTTP Request → search <span class="field">Code</span> → click it.</p>
+      <p>The Code node runs JavaScript (think of it like a Python function that processes the items array).</p>
+      <p>In the code editor, <strong>replace all</strong> the default code with:</p>
+      <div class="code-box"><span class="c">// items = array of objects from the previous node</span>
+<span class="k">const</span> post = items[<span class="n">0</span>].json;
+
+<span class="k">return</span> [{
+  json: {
+    <span class="s">post_id</span>:        post.id,
+    <span class="s">title_upper</span>:   post.title.<span class="fn">toUpperCase</span>(),
+    <span class="s">word_count</span>:    post.body.<span class="fn">split</span>(<span class="s">' '</span>).length,
+    <span class="s">short_summary</span>: post.body.<span class="fn">slice</span>(<span class="n">0</span>, <span class="n">80</span>) + <span class="s">'...'</span>
+  }
+}];</div>
+      <div class="note"><b>N8N Code node:</b> always return an array of <code>{"{"}json: {"{"}...{"}"}</code> objects. That's the item format. Each object becomes one item in the next node.</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge g">5</div>
+    <div class="step-body">
+      <h3>See the transformed output</h3>
+      <p>Click <span class="btn orange">▶ Test workflow</span> again. Click the <strong>Code</strong> node → <span class="btn ghost">Output</span>.</p>
+      <div class="output-box">{
+  <span class="k">"post_id"</span>:       <span class="n">1</span>,
+  <span class="k">"title_upper"</span>:  <span class="s">"SUNT AUT FACERE REPELLAT PROVIDENT..."</span>,
+  <span class="k">"word_count"</span>:   <span class="n">40</span>,
+  <span class="k">"short_summary"</span>:<span class="s">"quia et suscipit\nsuscipit recusandae..."</span>
+}</div>
+      <div class="success">✅ You fetched real API data and transformed it. This is the core pattern for any data pipeline in N8N.</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge b">6</div>
+    <div class="step-body">
+      <h3>Bonus — fetch multiple posts with IF branching</h3>
+      <p>Change the URL to <span class="val">https://jsonplaceholder.typicode.com/posts</span> — this returns 100 posts.</p>
+      <p>Add an <span class="field">IF</span> node after HTTP Request. Configure:</p>
+      <p>Value 1: <span class="val">{{ $json.userId }}</span> &nbsp;·&nbsp; Operation: <span class="btn ghost">Equal</span> &nbsp;·&nbsp; Value 2: <span class="val">1</span></p>
+      <p>The True branch gets user 1's posts, False branch gets everyone else's. Run it to see two output paths.</p>
+      <div class="note"><b>IF node</b> = an if/else for your workflow. True items go down the green path, False items go down the red path. This is how you add conditional logic without code.</div>
+    </div>
+  </div>
+
+  <div style="margin-top:32px;padding:20px;background:var(--card);border:1px solid var(--border);border-radius:14px;">
+    <div style="font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--purple);margin-bottom:14px;">Python ↔ N8N Mapping</div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:.87rem;">
+        <thead><tr><th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);color:var(--muted);">Python</th><th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);color:var(--muted);">N8N Equivalent</th></tr></thead>
+        <tbody>
+          <tr><td style="padding:8px 12px;border-bottom:1px solid var(--border);font-family:'Courier New',monospace;color:var(--green);">requests.get(url).json()</td><td style="padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text);">HTTP Request node (GET)</td></tr>
+          <tr><td style="padding:8px 12px;border-bottom:1px solid var(--border);font-family:'Courier New',monospace;color:var(--green);">data['title'].upper()</td><td style="padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text);">Code node: <code>items[0].json.title.toUpperCase()</code></td></tr>
+          <tr><td style="padding:8px 12px;border-bottom:1px solid var(--border);font-family:'Courier New',monospace;color:var(--green);">if data['userId'] == 1:</td><td style="padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text);">IF node with condition</td></tr>
+          <tr><td style="padding:8px 12px;font-family:'Courier New',monospace;color:var(--green);">result = {'key': value}</td><td style="padding:8px 12px;color:var(--text);">Set node: add field key = value</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="bottom-nav">
+  <a class="btn-back" href="../01_hello_world/index.html">← Demo 01</a>
+  <a class="btn-next" href="../03_llm/index.html">Demo 03: LLM Integration →</a>
+</div>
+
+</body>
+</html>

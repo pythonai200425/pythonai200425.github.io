@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Demo 06 — AI Agent with Tools | n8n</title>
+  <style>
+    :root {
+      --bg: #0f0f1a; --card: #1a1b2e; --card2: #21223a;
+      --border: #2e3058; --orange: #ff6d5a; --orange2: #ff9c8a;
+      --green: #22c55e; --purple: #a855f7; --blue: #60a5fa;
+      --yellow: #fbbf24; --pink: #ec4899; --cyan: #06b6d4;
+      --text: #e2e8f0; --muted: #94a3b8; --accent: #f97316;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: "Segoe UI", system-ui, sans-serif; line-height: 1.6; }
+    .topnav { display: flex; align-items: center; gap: 16px; padding: 14px 28px; border-bottom: 1px solid var(--border); background: var(--card); font-size: 14px; }
+    .topnav a { color: var(--muted); text-decoration: none; }
+    .topnav a:hover { color: var(--text); }
+    .topnav .sep { color: var(--border); }
+    .topnav .current { color: var(--accent); font-weight: 600; }
+    .hero { background: linear-gradient(135deg, #1a0800 0%, #0f0f1a 50%); border-bottom: 1px solid var(--border); padding: 44px 28px 36px; position: relative; overflow: hidden; }
+    .hero::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse 50% 80% at 10% 50%, rgba(249,115,22,0.14) 0%, transparent 70%); }
+    .demo-badge { display: inline-block; background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.35); color: var(--accent); padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px; }
+    .hero h1 { font-size: clamp(1.6rem,4vw,2.4rem); font-weight: 800; margin-bottom: 10px; }
+    .hero h1 span { color: var(--accent); }
+    .hero p { font-size: 1rem; color: var(--muted); max-width: 560px; }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 36px 24px; display: flex; flex-direction: column; gap: 36px; }
+    .goal-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; border-left: 4px solid var(--accent); }
+    .goal-box h3 { font-size: .95rem; color: var(--accent); font-weight: 700; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+    .goal-box p { color: var(--muted); font-size: .95rem; }
+
+    /* Architecture diagram */
+    .arch-diagram {
+      background: #12131f; border: 1px solid var(--border); border-radius: 14px;
+      padding: 32px 20px; position: relative; overflow-x: auto;
+    }
+    .arch-row { display: flex; align-items: center; justify-content: center; gap: 0; }
+    .arch-col { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .node { flex-shrink: 0; background: var(--card2); border: 2px solid var(--border); border-radius: 12px; padding: 14px 18px; text-align: center; min-width: 130px; }
+    .node-icon { font-size: 1.6rem; margin-bottom: 4px; }
+    .node-type { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+    .node-name { font-size: .82rem; font-weight: 700; color: var(--text); }
+    .node-sub { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+    .node.trigger { border-color: var(--green); }
+    .node.agent-node { border-color: var(--accent); box-shadow: 0 0 16px rgba(249,115,22,.2); }
+    .node.ai { border-color: var(--purple); }
+    .node.tool { border-color: var(--blue); }
+    .node.memory-node { border-color: var(--yellow); }
+    .connector { flex-shrink: 0; display: flex; align-items: center; padding: 0 4px; }
+    .connector svg { width: 48px; height: 24px; }
+    .vert-connector { display: flex; justify-content: center; align-items: center; height: 30px; }
+    .vert-connector svg { width: 24px; height: 30px; }
+    .tools-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
+    .tool-badge { background: rgba(96,165,250,.1); border: 1px solid rgba(96,165,250,.3); color: var(--blue); padding: 6px 12px; border-radius: 8px; font-size: .78rem; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .sub-label { font-size: .72rem; color: var(--muted); text-align: center; margin-top: 4px; }
+
+    .steps { display: flex; flex-direction: column; gap: 20px; }
+    .steps h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+    .step { display: flex; gap: 16px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .step-num { flex-shrink: 0; width: 36px; height: 36px; background: var(--accent); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: .95rem; }
+    .step-body { flex: 1; }
+    .step-body h3 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+    .step-body p { font-size: .9rem; color: var(--muted); margin-bottom: 8px; }
+    .click-hint { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: .82rem; color: var(--text); font-family: monospace; }
+    .click-hint.green { border-color: rgba(34,197,94,.4); color: var(--green); background: rgba(34,197,94,.07); }
+    .click-hint.orange { border-color: rgba(249,115,22,.4); color: var(--accent); background: rgba(249,115,22,.07); }
+    .click-hint.blue { border-color: rgba(96,165,250,.4); color: var(--blue); background: rgba(96,165,250,.07); }
+    .click-hint.purple { border-color: rgba(168,85,247,.4); color: var(--purple); background: rgba(168,85,247,.07); }
+    .hints { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .screen-mock { background: #0b0c18; border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-top: 12px; font-size: .82rem; }
+    .field-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; padding: 8px 10px; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 6px; }
+    .field-label { color: var(--muted); font-size: .8rem; min-width: 130px; flex-shrink: 0; }
+    .field-val { color: var(--green); font-family: monospace; font-size: .82rem; word-break: break-all; }
+
+    /* ReAct trace */
+    .react-trace { background: #0b0c18; border: 1px solid rgba(249,115,22,.3); border-radius: 10px; padding: 16px; margin-top: 12px; }
+    .react-trace .rt-label { color: var(--accent); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+    .react-step { display: flex; gap: 10px; margin-bottom: 10px; font-size: .82rem; }
+    .react-icon { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 700; }
+    .react-think { background: rgba(168,85,247,.2); color: var(--purple); border: 1px solid rgba(168,85,247,.4); }
+    .react-act { background: rgba(96,165,250,.2); color: var(--blue); border: 1px solid rgba(96,165,250,.4); }
+    .react-obs { background: rgba(34,197,94,.2); color: var(--green); border: 1px solid rgba(34,197,94,.4); }
+    .react-ans { background: rgba(249,115,22,.2); color: var(--accent); border: 1px solid rgba(249,115,22,.4); }
+    .react-text { color: var(--muted); line-height: 1.5; }
+    .react-text strong { color: var(--text); }
+
+    .code-mock { background: #0b0c18; border: 1px solid rgba(251,191,36,.3); border-radius: 10px; overflow: hidden; margin-top: 10px; }
+    .code-mock .code-header { display: flex; align-items: center; padding: 8px 14px; border-bottom: 1px solid var(--border); background: rgba(251,191,36,.06); }
+    .code-mock .code-lang { font-size: 11px; color: var(--yellow); font-weight: 700; }
+    .code-mock pre { padding: 16px; font-family: "Consolas", monospace; font-size: .82rem; color: #f8f8f2; line-height: 1.75; overflow-x: auto; }
+
+    /* Tools grid */
+    .tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+    .tool-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; border-top: 3px solid var(--blue); }
+    .tool-card .tc-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .tool-card h4 { font-size: .9rem; font-weight: 700; margin-bottom: 4px; }
+    .tool-card p { font-size: .8rem; color: var(--muted); }
+    .tool-card code { font-size: .75rem; color: var(--blue); font-family: monospace; }
+
+    .json-box { background: #0b0c18; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .json-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,.03); }
+    .json-header span { font-size: 12px; color: var(--muted); font-family: monospace; }
+    .copy-btn { background: rgba(255,255,255,.06); border: 1px solid var(--border); color: var(--text); padding: 4px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+    .copy-btn:hover { background: rgba(255,255,255,.12); }
+    .json-box pre { padding: 16px; overflow-x: auto; font-family: monospace; font-size: .78rem; color: #a8d8a8; line-height: 1.7; max-height: 400px; }
+    .how-to-import { background: rgba(96,165,250,.07); border: 1px solid rgba(96,165,250,.25); border-radius: 10px; padding: 16px 20px; margin-top: 12px; font-size: .88rem; color: var(--muted); }
+    .how-to-import strong { color: var(--blue); }
+
+    .nav-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding: 20px 24px; }
+    .nav-btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); background: var(--card); border: 1px solid var(--border); padding: 10px 18px; border-radius: 8px; font-size: .9rem; font-weight: 600; transition: border-color .2s; }
+    .nav-btn:hover { border-color: var(--accent); }
+    .nav-btn.home { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .tip-box { background: rgba(249,115,22,.07); border: 1px solid rgba(249,115,22,.3); border-radius: 10px; padding: 14px 18px; font-size: .88rem; color: var(--accent); }
+    .completion-box { background: linear-gradient(135deg, rgba(249,115,22,.12) 0%, rgba(168,85,247,.12) 100%); border: 1px solid rgba(249,115,22,.3); border-radius: 14px; padding: 28px; text-align: center; }
+    .completion-box h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 10px; }
+    .completion-box p { color: var(--muted); margin-bottom: 16px; }
+    .next-steps { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+    .next-step { background: rgba(255,255,255,.06); border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; font-size: .85rem; }
+    .next-step strong { display: block; color: var(--text); margin-bottom: 2px; }
+    .next-step span { color: var(--muted); font-size: .8rem; }
+  </style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="index.html">🏠 n8n Zero to Hero</a>
+  <span class="sep">›</span>
+  <span class="current">Demo 06 — AI Agent with Tools</span>
+</nav>
+
+<div class="hero">
+  <div class="demo-badge">Demo 06 · Advanced</div>
+  <h1>AI <span>Agent with Tools</span></h1>
+  <p>Give the LLM the ability to take actions: fetch web data, run calculations, execute Python code. Watch it reason step-by-step and pick the right tool — ReAct-style.</p>
+</div>
+
+<div class="wrap">
+
+  <div class="goal-box">
+    <h3>🎯 Goal</h3>
+    <p>Build an AI Agent with 3 tools: an HTTP Request tool (web data), a Calculator tool, and a custom Python Code tool. The agent receives a complex question and autonomously chooses which tools to use and in what order.</p>
+  </div>
+
+  <!-- What is an agent -->
+  <div>
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:12px">🦾 What Makes This an "Agent"?</h2>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;">
+      <p style="color:var(--muted);font-size:.9rem;margin-bottom:16px">A regular LLM Chain just calls the model once. An Agent loops:</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:center;">
+        <div style="background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);border-radius:8px;padding:10px 14px;font-size:.82rem;color:var(--purple);text-align:center;min-width:100px">🤔 Think<br><span style="color:var(--muted);font-size:.72rem">What tool do I need?</span></div>
+        <div style="color:var(--border);font-size:1.2rem">→</div>
+        <div style="background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.3);border-radius:8px;padding:10px 14px;font-size:.82rem;color:var(--blue);text-align:center;min-width:100px">⚡ Act<br><span style="color:var(--muted);font-size:.72rem">Call the tool</span></div>
+        <div style="color:var(--border);font-size:1.2rem">→</div>
+        <div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:10px 14px;font-size:.82rem;color:var(--green);text-align:center;min-width:100px">👁️ Observe<br><span style="color:var(--muted);font-size:.72rem">What did it return?</span></div>
+        <div style="color:var(--border);font-size:1.2rem">→</div>
+        <div style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.3);border-radius:8px;padding:10px 14px;font-size:.82rem;color:var(--accent);text-align:center;min-width:100px">✅ Answer<br><span style="color:var(--muted);font-size:.72rem">Or loop again</span></div>
+      </div>
+      <p style="color:var(--muted);font-size:.82rem;margin-top:12px;text-align:center">This is the <strong style="color:var(--text)">ReAct pattern</strong> — the same one used in LangChain agents and AutoGPT.</p>
+    </div>
+  </div>
+
+  <!-- Available tools -->
+  <div>
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:14px">🧰 Tools We'll Give the Agent</h2>
+    <div class="tools-grid">
+      <div class="tool-card">
+        <div class="tc-icon">🌐</div>
+        <h4>HTTP Request Tool</h4>
+        <p>Lets the agent fetch live data from any URL.</p>
+        <code>Tool: HTTP Request</code>
+      </div>
+      <div class="tool-card">
+        <div class="tc-icon">🧮</div>
+        <h4>Calculator Tool</h4>
+        <p>Evaluates math expressions — no hallucinations on numbers.</p>
+        <code>Tool: Calculator</code>
+      </div>
+      <div class="tool-card">
+        <div class="tc-icon">🐍</div>
+        <h4>Code Tool (Python)</h4>
+        <p>Run arbitrary Python logic. Returns the output to the agent.</p>
+        <code>Tool: Code (Python)</code>
+      </div>
+      <div class="tool-card">
+        <div class="tc-icon">🧠</div>
+        <h4>Memory (optional)</h4>
+        <p>Window Buffer Memory for multi-turn conversation history.</p>
+        <code>Memory: Window Buffer</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- Architecture diagram -->
+  <div>
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:16px">📊 Workflow Architecture</h2>
+    <div class="arch-diagram">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:20px;">
+        <div style="display:flex;align-items:center;gap:0;">
+          <div class="node trigger" style="min-width:110px">
+            <div class="node-icon">▶️</div>
+            <div class="node-type">Trigger</div>
+            <div class="node-name">Manual Trigger</div>
+          </div>
+          <div class="connector">
+            <svg viewBox="0 0 48 24"><line x1="0" y1="12" x2="38" y2="12" stroke="#2e3058" stroke-width="2"/><polygon points="38,7 48,12 38,17" fill="#2e3058"/></svg>
+          </div>
+          <div class="node action" style="border-color:var(--blue);min-width:110px">
+            <div class="node-icon">✏️</div>
+            <div class="node-type">Action</div>
+            <div class="node-name">Set Task</div>
+          </div>
+          <div class="connector">
+            <svg viewBox="0 0 48 24"><line x1="0" y1="12" x2="38" y2="12" stroke="#2e3058" stroke-width="2"/><polygon points="38,7 48,12 38,17" fill="#2e3058"/></svg>
+          </div>
+          <div class="node agent-node" style="min-width:120px">
+            <div class="node-icon">🦾</div>
+            <div class="node-type">AI Agent</div>
+            <div class="node-name">Agent</div>
+            <div class="node-sub">ReAct loop</div>
+          </div>
+        </div>
+        <div style="font-size:.78rem;color:var(--muted);text-align:center">↕ sub-connections (plugged into the Agent from below)</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+          <div class="node ai" style="min-width:110px">
+            <div class="node-icon">🤖</div>
+            <div class="node-type">Chat Model</div>
+            <div class="node-name">Ollama / OpenAI</div>
+          </div>
+          <div class="node tool" style="min-width:110px">
+            <div class="node-icon">🌐</div>
+            <div class="node-type">Tool</div>
+            <div class="node-name">HTTP Request</div>
+          </div>
+          <div class="node tool" style="min-width:110px">
+            <div class="node-icon">🧮</div>
+            <div class="node-type">Tool</div>
+            <div class="node-name">Calculator</div>
+          </div>
+          <div class="node tool" style="min-width:110px">
+            <div class="node-icon">🐍</div>
+            <div class="node-type">Tool</div>
+            <div class="node-name">Code (Python)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:.82rem;color:var(--muted);margin-top:10px;text-align:center">
+      Tools connect to the Agent node's bottom connectors — same as how Chat Model connects to LLM Chain
+    </p>
+  </div>
+
+  <!-- Steps -->
+  <div class="steps">
+    <h2>📋 Step-by-Step Instructions</h2>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h3>Create workflow + Manual Trigger</h3>
+        <p>New workflow "06 - AI Agent". Add Manual Trigger as usual.</p>
+        <div class="hints">
+          <span class="click-hint green">➕ New workflow → "06 - AI Agent"</span>
+          <span class="click-hint orange">Add Manual Trigger</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h3>Add "Edit Fields" — Set the task</h3>
+        <p>Add an Edit Fields node. Set a task that requires multiple tools:</p>
+        <div class="screen-mock">
+          <div class="field-row">
+            <div class="field-label">Name</div>
+            <div class="field-val">task</div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Value</div>
+            <div class="field-val">Fetch a random cat fact from https://catfact.ninja/fact, then count how many words are in the fact, and tell me both the fact and the word count.</div>
+          </div>
+        </div>
+        <p style="margin-top:8px;font-size:.82rem;color:var(--muted)">This task requires the agent to: (1) call HTTP, (2) count words (code/calculator), (3) summarize.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h3>Add the AI Agent node</h3>
+        <p>Hover Edit Fields → click <strong>+</strong> → search for "Agent".</p>
+        <div class="hints">
+          <span class="click-hint orange">🔍 Search: "AI Agent"</span>
+          <span class="click-hint orange">Click: AI Agent</span>
+        </div>
+        <p style="margin-top:8px;font-size:.82rem">In the Agent settings, set the prompt:</p>
+        <div class="screen-mock">
+          <div class="field-row">
+            <div class="field-label">Prompt</div>
+            <div class="field-val">={{ $json.task }}</div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">System Message</div>
+            <div class="field-val">You are a helpful research assistant with access to tools. Always use tools to get real data — never guess. Think step-by-step.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h3>Connect the Chat Model (sub-node)</h3>
+        <p>On the <strong>bottom</strong> of the AI Agent node, click the <strong>🤖 Chat Model</strong> connector. Add your Ollama or OpenAI Chat Model.</p>
+        <div class="hints">
+          <span class="click-hint purple">Bottom connector → 🤖 Chat Model</span>
+          <span class="click-hint orange">🔍 Ollama Chat Model (or OpenAI)</span>
+        </div>
+        <div class="screen-mock" style="margin-top:10px">
+          <div style="color:var(--muted);font-size:.78rem;margin-bottom:6px">Ollama: Base URL</div>
+          <div class="field-row">
+            <div class="field-label">Base URL</div>
+            <div class="field-val">http://host.docker.internal:11434</div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Model</div>
+            <div class="field-val">llama3 (or qwen2.5, mistral)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <h3>Add the HTTP Request Tool</h3>
+        <p>On the bottom of the Agent node, click the <strong>🔧 Tool</strong> connector. Add an <strong>HTTP Request Tool</strong>.</p>
+        <div class="hints">
+          <span class="click-hint blue">Bottom connector → 🔧 Tool</span>
+          <span class="click-hint orange">🔍 "HTTP Request" → Click it</span>
+        </div>
+        <p style="margin-top:8px;font-size:.82rem;color:var(--muted)">The HTTP Request Tool is special — the agent gives it the URL dynamically. Configure it:</p>
+        <div class="screen-mock">
+          <div class="field-row">
+            <div class="field-label">Name</div>
+            <div class="field-val">fetch_url</div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Description</div>
+            <div class="field-val">Fetches data from any URL and returns the JSON response. Use this to get live data from APIs.</div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Method</div>
+            <div class="field-val">GET</div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">URL</div>
+            <div class="field-val">(leave dynamic — agent fills this)</div>
+          </div>
+        </div>
+        <div class="tip-box" style="margin-top:10px">
+          <strong>💡 Tool descriptions matter!</strong> The agent reads the description to decide when to use each tool. Write clear descriptions.
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <h3>Add the Calculator Tool</h3>
+        <p>Still on the Agent's bottom <strong>Tool</strong> connector area — click <strong>+</strong> again to add more tools.</p>
+        <div class="hints">
+          <span class="click-hint orange">🔍 Search: "Calculator"</span>
+          <span class="click-hint blue">Click: Calculator</span>
+        </div>
+        <p style="margin-top:8px;font-size:.82rem;color:var(--muted)">The Calculator tool evaluates math expressions. No configuration needed — it works out of the box.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">7</div>
+      <div class="step-body">
+        <h3>Add the Code (Python) Tool</h3>
+        <div class="hints">
+          <span class="click-hint orange">🔍 Search: "Code Tool"</span>
+          <span class="click-hint blue">Click: Code Tool</span>
+        </div>
+        <p style="margin-top:8px;font-size:.82rem">Configure it with a description and Python code for word counting:</p>
+        <div class="screen-mock">
+          <div class="field-row">
+            <div class="field-label">Name</div>
+            <div class="field-val">count_words</div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Description</div>
+            <div class="field-val">Counts the number of words in a given text. Input: a string of text. Output: the word count as a number.</div>
+          </div>
+        </div>
+        <div class="code-mock" style="margin-top:10px">
+          <div class="code-header"><span class="code-lang">🐍 Code Tool — Python</span></div>
+          <pre># The agent sends input via the 'query' variable
+text = query  # 'query' is the agent's input to this tool
+words = text.split()
+return [{"json": {"word_count": len(words), "text_preview": text[:80]}}]</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">8</div>
+      <div class="step-body">
+        <h3>Run the Agent and watch it reason</h3>
+        <p>Click <strong>Test workflow</strong>. The Agent node will show its thinking process in the Output panel.</p>
+        <div class="hints">
+          <span class="click-hint orange">▶ Test workflow</span>
+          <span class="click-hint orange">Click Agent node → Output → see reasoning</span>
+        </div>
+        <div class="react-trace" style="margin-top:12px">
+          <div class="rt-label">🤔 Agent ReAct Trace (what you'll see)</div>
+          <div class="react-step">
+            <div class="react-icon react-think">T</div>
+            <div class="react-text"><strong>Thought:</strong> I need to fetch a cat fact from the URL, then count the words. Let me start by calling fetch_url.</div>
+          </div>
+          <div class="react-step">
+            <div class="react-icon react-act">A</div>
+            <div class="react-text"><strong>Action:</strong> fetch_url → <code style="color:var(--blue)">https://catfact.ninja/fact</code></div>
+          </div>
+          <div class="react-step">
+            <div class="react-icon react-obs">O</div>
+            <div class="react-text"><strong>Observation:</strong> <code style="color:var(--green)">{fact: "Cats can jump up to 6 times their length.", length: 42}</code></div>
+          </div>
+          <div class="react-step">
+            <div class="react-icon react-think">T</div>
+            <div class="react-text"><strong>Thought:</strong> Got the fact. Now I'll use count_words to count the words in it.</div>
+          </div>
+          <div class="react-step">
+            <div class="react-icon react-act">A</div>
+            <div class="react-text"><strong>Action:</strong> count_words → <code style="color:var(--yellow)">"Cats can jump up to 6 times their length."</code></div>
+          </div>
+          <div class="react-step">
+            <div class="react-icon react-obs">O</div>
+            <div class="react-text"><strong>Observation:</strong> <code style="color:var(--green)">{word_count: 9, text_preview: "Cats can jump..."}</code></div>
+          </div>
+          <div class="react-step">
+            <div class="react-icon react-ans">✓</div>
+            <div class="react-text"><strong>Final Answer:</strong> The cat fact is: <em>"Cats can jump up to 6 times their length."</em> It contains <strong>9 words</strong>.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">9</div>
+      <div class="step-body">
+        <h3>🏆 Challenge: More complex tasks</h3>
+        <p>Try these tasks in the Set node to see different tool combinations:</p>
+        <div class="hints" style="flex-direction:column;align-items:flex-start;">
+          <span class="click-hint green" style="font-size:.8rem">"What is 1234 * 5678? Show your calculation."</span>
+          <span class="click-hint green" style="font-size:.8rem">"Get a random joke from https://official-joke-api.appspot.com/random_joke and rate its humor on a scale of 1-10."</span>
+          <span class="click-hint green" style="font-size:.8rem">"Fetch Bitcoin price from https://api.coindesk.com/v1/bpi/currentprice.json and tell me the price in USD."</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Import JSON -->
+  <div>
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:14px">📥 Import This Workflow</h2>
+    <div class="json-box">
+      <div class="json-header">
+        <span>ai-agent.json</span>
+        <button class="copy-btn" onclick="copyJson()">📋 Copy JSON</button>
+      </div>
+      <pre id="wf-json">{
+  "name": "06 - AI Agent with Tools",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "f1000001-0006-0006-0006-000000000001",
+      "name": "When clicking Test workflow",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [180, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "agent-set-001",
+              "name": "task",
+              "value": "Fetch a random cat fact from https://catfact.ninja/fact, then count how many words are in the fact, and tell me both the fact and the word count.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f1000001-0006-0006-0006-000000000002",
+      "name": "Set Task",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [380, 300]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.task }}",
+        "options": {
+          "systemMessage": "You are a helpful research assistant with access to tools. Always use tools to get real data — never guess. Think step-by-step before acting."
+        }
+      },
+      "id": "f1000001-0006-0006-0006-000000000003",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [580, 300]
+    },
+    {
+      "parameters": {
+        "model": "llama3",
+        "options": {}
+      },
+      "id": "f1000001-0006-0006-0006-000000000004",
+      "name": "Ollama Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [440, 520]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Fetches data from any URL and returns the JSON response. Use this to get live data from APIs.",
+        "url": "",
+        "options": {}
+      },
+      "id": "f1000001-0006-0006-0006-000000000005",
+      "name": "HTTP Request Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [580, 520]
+    },
+    {
+      "parameters": {},
+      "id": "f1000001-0006-0006-0006-000000000006",
+      "name": "Calculator",
+      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+      "typeVersion": 1,
+      "position": [720, 520]
+    },
+    {
+      "parameters": {
+        "name": "count_words",
+        "description": "Counts the number of words in a given text. Input: a string of text. Output: the word count.",
+        "language": "python",
+        "pythonCode": "text = query\nwords = text.split()\nreturn [{\"json\": {\"word_count\": len(words), \"text_preview\": text[:80]}}]"
+      },
+      "id": "f1000001-0006-0006-0006-000000000007",
+      "name": "Code Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [860, 520]
+    }
+  ],
+  "connections": {
+    "When clicking Test workflow": {
+      "main": [[{ "node": "Set Task", "type": "main", "index": 0 }]]
+    },
+    "Set Task": {
+      "main": [[{ "node": "AI Agent", "type": "main", "index": 0 }]]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [[{ "node": "AI Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "HTTP Request Tool": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Calculator": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Code Tool": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}</pre>
+    </div>
+    <div class="how-to-import">
+      <strong>Import:</strong> ⋯ → Import from JSON → paste → Import. Update Ollama base URL to <code>http://host.docker.internal:11434</code>.
+    </div>
+  </div>
+
+  <!-- Comparison -->
+  <div class="goal-box" style="border-left-color:var(--blue)">
+    <h3 style="color:var(--blue)">🐍 Python Comparison (LangChain)</h3>
+    <p>
+      <code style="font-family:monospace;color:var(--green);font-size:.85rem">from langchain.agents import create_react_agent, AgentExecutor<br>
+from langchain_community.tools import WikipediaQueryRun<br>
+<br>
+tools = [WikipediaQueryRun(), calculator_tool, python_tool]<br>
+agent = create_react_agent(llm, tools, prompt)<br>
+executor = AgentExecutor(agent=agent, tools=tools)<br>
+result = executor.invoke({"input": task})</code><br><br>
+      n8n's AI Agent node IS this — with a visual interface, built-in logging, retry logic, and no package management headaches.
+    </p>
+  </div>
+
+  <!-- Completion -->
+  <div class="completion-box">
+    <h2>🎉 You've Completed n8n Zero to Hero!</h2>
+    <p>You went from Hello World to a full AI Agent with tools. Here's what you can build next:</p>
+    <div class="next-steps">
+      <div class="next-step">
+        <strong>📊 ML Pipeline Monitor</strong>
+        <span>Webhook receives model metrics → Python analyzes → LLM explains anomalies → Slack alert</span>
+      </div>
+      <div class="next-step">
+        <strong>📄 Document Q&amp;A</strong>
+        <span>Upload PDF → extract text → chunk → embed → store → agent retrieves relevant chunks</span>
+      </div>
+      <div class="next-step">
+        <strong>🔄 Data ETL + AI</strong>
+        <span>Database → Python transforms → LLM generates insights → email report</span>
+      </div>
+      <div class="next-step">
+        <strong>🤖 Multi-Agent</strong>
+        <span>Chain multiple specialized agents: researcher → analyst → writer → reviewer</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="nav-footer">
+  <a href="05-webhook-ai.html" class="nav-btn">← Demo 05</a>
+  <a href="index.html" class="nav-btn home">🏠 Back to Index</a>
+</div>
+
+<script>
+function copyJson() {
+  const text = document.getElementById('wf-json').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy JSON', 2000);
+  });
+}
+</script>
+</body>
+</html>

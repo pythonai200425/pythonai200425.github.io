@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Demo 03 — LLM Integration · N8N</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%23ff6d5a'/><text x='32' y='46' text-anchor='middle' font-family='Arial' font-size='28' font-weight='900' fill='white'>n8n</text></svg>">
+  <style>
+    :root{--bg:#0c0c18;--card:#111120;--card2:#16162a;--border:#1e1e32;--text:#e4e8f0;--muted:#6b7a90;--dim:#3a4456;--orange:#ff6d5a;--purple:#9d5ff5;--green:#34d399;--blue:#60a5fa;--yellow:#fbbf24;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;}
+    .top-nav{background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;position:sticky;top:0;z-index:100;height:52px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+    .nav-back{color:var(--purple);text-decoration:none;font-size:.88rem;font-weight:700;}
+    .nav-back:hover{color:#c4a0ff;}
+    .nav-title{font-family:'Courier New',monospace;font-size:.8rem;color:var(--muted);letter-spacing:.06em;}
+    .nav-next{color:var(--yellow);text-decoration:none;font-size:.88rem;font-weight:700;}
+    .nav-next:hover{color:#fde68a;}
+    .hero{max-width:900px;margin:0 auto;padding:48px 24px 32px;}
+    .hero-tag{display:inline-block;padding:5px 12px;border-radius:999px;font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.3);color:var(--blue);margin-bottom:16px;}
+    .hero h1{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:900;margin-bottom:12px;background:linear-gradient(120deg,#fff 30%,var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .hero p{color:var(--muted);font-size:1rem;line-height:1.7;max-width:660px;}
+    .flow-wrap{max-width:900px;margin:0 auto;padding:0 24px 32px;}
+    .flow-box{background:#08080f;border:1px solid var(--border);border-radius:14px;padding:28px 24px;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+    .flow-col{display:flex;flex-direction:column;align-items:center;gap:8px;}
+    .n-node{background:var(--card);border:1px solid var(--nc,var(--border));border-radius:12px;padding:14px 18px;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:145px;transition:box-shadow .2s;}
+    .n-node:hover{box-shadow:0 0 0 1px var(--nc,var(--border)),0 8px 24px rgba(0,0,0,.4);}
+    .n-node.small{min-width:120px;padding:10px 14px;}
+    .n-icon{font-size:1.6rem;} .n-type{font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--nc,var(--muted));opacity:.8;} .n-name{font-size:.85rem;font-weight:700;color:var(--text);font-family:'Courier New',monospace;text-align:center;}
+    .n-arrow{font-size:1.6rem;color:var(--dim);align-self:center;}
+    .sub-label{font-size:.65rem;color:var(--dim);letter-spacing:.08em;text-transform:uppercase;}
+    .attach-line{width:1px;height:20px;background:var(--border);}
+    .steps-wrap{max-width:900px;margin:0 auto;padding:0 24px 60px;}
+    .steps-label{font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);margin-bottom:20px;}
+    .step{display:flex;gap:16px;align-items:flex-start;margin-bottom:16px;}
+    .step-badge{width:40px;height:40px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;font-weight:900;font-size:1rem;flex-shrink:0;box-shadow:0 4px 14px rgba(96,165,250,.3);}
+    .step-badge.g{background:var(--green);color:#000;box-shadow:0 4px 14px rgba(52,211,153,.3);}
+    .step-badge.o{background:var(--orange);box-shadow:0 4px 14px rgba(255,109,90,.3);}
+    .step-badge.p{background:var(--purple);box-shadow:0 4px 14px rgba(157,95,245,.3);}
+    .step-body{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;flex:1;}
+    .step-body h3{font-size:1rem;font-weight:700;margin-bottom:6px;color:var(--text);}
+    .step-body p{font-size:.88rem;color:var(--muted);line-height:1.65;margin-bottom:8px;}
+    .step-body p:last-child{margin-bottom:0;}
+    .btn{display:inline-block;padding:4px 14px;border-radius:7px;font-size:.82rem;font-weight:700;cursor:default;margin:2px;}
+    .btn.orange{background:var(--orange);color:#fff;} .btn.ghost{background:var(--card2);border:1px solid var(--border);color:var(--text);}
+    .field{display:inline-block;font-family:'Courier New',monospace;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);border-radius:5px;padding:2px 8px;font-size:.84rem;color:var(--green);}
+    .val{display:inline-block;font-family:'Courier New',monospace;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.25);border-radius:5px;padding:2px 8px;font-size:.84rem;color:var(--blue);}
+    .note{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.22);border-radius:8px;padding:10px 14px;font-size:.85rem;color:#d4a30a;margin-top:10px;line-height:1.55;}
+    .note b{color:var(--yellow);}
+    .info{background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.22);border-radius:8px;padding:10px 14px;font-size:.85rem;color:var(--blue);margin-top:10px;line-height:1.55;}
+    .success{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.22);border-radius:8px;padding:10px 14px;font-size:.85rem;color:var(--green);margin-top:10px;}
+    .output-box{background:#040408;border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-family:'Courier New',monospace;font-size:.83rem;color:var(--text);margin-top:10px;line-height:1.7;white-space:pre-wrap;}
+    .output-box .k{color:var(--blue);} .output-box .s{color:var(--green);} .output-box .n{color:var(--orange);} .output-box .c{color:var(--dim);font-style:italic;}
+    .tabs{display:flex;gap:4px;margin-bottom:12px;}
+    .tab{padding:6px 16px;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;border:1px solid var(--border);background:var(--card2);color:var(--muted);transition:all .2s;}
+    .tab.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+    .tab-panel{display:none;} .tab-panel.active{display:block;}
+    .code-box{background:#040408;border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-family:'Courier New',monospace;font-size:.85rem;color:var(--text);margin-top:10px;line-height:1.7;white-space:pre-wrap;}
+    .code-box .k{color:var(--blue);font-weight:700;} .code-box .s{color:var(--green);} .code-box .fn{color:var(--purple);} .code-box .c{color:var(--dim);font-style:italic;} .code-box .n{color:var(--orange);}
+    .bottom-nav{max-width:900px;margin:0 auto;padding:0 24px 60px;display:flex;justify-content:space-between;align-items:center;}
+    .bottom-nav a{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:10px;text-decoration:none;font-weight:700;font-size:.9rem;transition:transform .2s;}
+    .bottom-nav a:hover{transform:translateY(-2px);}
+    .btn-back{background:var(--card);border:1px solid var(--border);color:var(--muted);}
+    .btn-next{background:var(--yellow);color:#000;box-shadow:0 4px 14px rgba(251,191,36,.3);}
+    @media(max-width:600px){.flow-box{flex-direction:column;}.n-arrow{transform:rotate(90deg);align-self:flex-start;margin-left:20px}}
+  </style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <a class="nav-back" href="../02_http_api/index.html">← Demo 02</a>
+  <span class="nav-title">DEMO 03 — LLM Integration</span>
+  <a class="nav-next" href="../04_webhook/index.html">Demo 04 →</a>
+</nav>
+
+<div class="hero">
+  <span class="hero-tag">Demo 03 · Intermediate</span>
+  <h1>🧠 LLM Integration</h1>
+  <p>Connect N8N to a language model — OpenAI or a local Ollama instance. You already know how to call these APIs in Python. Here you wire them visually in 3 nodes.</p>
+</div>
+
+<!-- FLOW DIAGRAM — shows sub-node attachment -->
+<div class="flow-wrap">
+  <div class="flow-box">
+    <div class="n-node" style="--nc:#ff6d5a"><span class="n-icon">⚡</span><span class="n-type">Trigger</span><span class="n-name">Manual Trigger</span></div>
+    <div class="n-arrow">→</div>
+    <div class="n-node" style="--nc:#9d5ff5"><span class="n-icon">✏️</span><span class="n-type">Action</span><span class="n-name">Set</span><span class="n-name" style="font-size:.72rem;color:var(--muted);">prompt text</span></div>
+    <div class="n-arrow">→</div>
+    <div class="flow-col">
+      <div class="n-node" style="--nc:#60a5fa"><span class="n-icon">🔗</span><span class="n-type">AI</span><span class="n-name">Basic LLM Chain</span></div>
+      <div class="attach-line"></div>
+      <div style="display:flex;gap:8px;">
+        <div class="n-node small" style="--nc:#34d399"><span class="n-icon">🤖</span><span class="n-type" style="font-size:.55rem;">Model</span><span class="n-name" style="font-size:.75rem;">Chat Model</span><span class="sub-label">(sub-node)</span></div>
+      </div>
+    </div>
+    <div class="n-arrow">→</div>
+    <div class="n-node" style="--nc:#34d399"><span class="n-icon">💬</span><span class="n-type">Output</span><span class="n-name">AI Response</span></div>
+  </div>
+  <p style="font-size:.75rem;color:var(--dim);margin-top:10px;padding:0 4px;">The Chat Model (OpenAI or Ollama) attaches <em>below</em> the LLM Chain — it's a sub-node, not a separate connection.</p>
+</div>
+
+<div class="steps-wrap">
+  <div class="steps-label">Step by step</div>
+
+  <div class="step">
+    <div class="step-badge o">1</div>
+    <div class="step-body">
+      <h3>New workflow + Manual Trigger + Set node</h3>
+      <p>Create a new workflow. Add <span class="field">Manual Trigger</span>, then add a <span class="field">Set</span> node.</p>
+      <p>In Set, add a field: Name <span class="field">prompt</span> → Value <span class="val">Explain what a neural network is in 2 sentences, for a Python developer.</span></p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge">2</div>
+    <div class="step-body">
+      <h3>Add a Basic LLM Chain node</h3>
+      <p>Click <span class="btn orange">+</span> from Set → search <span class="field">Basic LLM Chain</span> → click it.</p>
+      <p>In the right panel, set <strong>Prompt</strong> to:</p>
+      <p><span class="val">{{ $json.prompt }}</span></p>
+      <p>This uses N8N's expression syntax — <code>{{ }}</code> reads data from the previous node's JSON. It's like Python's f-strings.</p>
+      <div class="note"><b>Basic LLM Chain</b> is a wrapper for any chat model. It needs a Chat Model sub-node attached to it to know which AI service to call.</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge">3</div>
+    <div class="step-body">
+      <h3>Attach a Chat Model sub-node</h3>
+      <p>Look at the bottom of the <strong>Basic LLM Chain</strong> node on the canvas. You'll see a small <span class="btn ghost">+ Model</span> attachment point.</p>
+      <p>Click it → choose your model provider:</p>
+
+      <div class="tabs" id="model-tabs">
+        <div class="tab active" onclick="switchTab('openai')">OpenAI</div>
+        <div class="tab" onclick="switchTab('ollama')">Ollama (Local)</div>
+      </div>
+
+      <div id="tab-openai" class="tab-panel active">
+        <p>Search for <span class="field">OpenAI Chat Model</span> → click it.</p>
+        <p>In the panel click <span class="btn ghost">+ Create new credential</span> → paste your <span class="val">OPENAI_API_KEY</span>.</p>
+        <p>Set <strong>Model</strong> to <span class="val">gpt-4o-mini</span> (cheap, fast, capable).</p>
+        <div class="info">You already know this API from Python — N8N uses the same endpoint. The key you paste here is stored encrypted in N8N's database.</div>
+      </div>
+
+      <div id="tab-ollama" class="tab-panel">
+        <p>Search for <span class="field">Ollama Chat Model</span> → click it.</p>
+        <p>Set <strong>Base URL</strong> to <span class="val">http://host.docker.internal:11434</span></p>
+        <p>Set <strong>Model</strong> to <span class="val">llama3.2</span> (or whatever you have pulled in Ollama).</p>
+        <div class="note"><b>host.docker.internal</b> is how Docker containers reach services running on your host machine (your laptop). If Ollama is running on port 11434 on your Mac/Windows, this URL reaches it from inside the N8N container.</div>
+        <div class="code-box"><span class="c"># To pull a model in Ollama (run in your terminal, NOT in Docker):</span>
+ollama pull llama3.2</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge p">4</div>
+    <div class="step-body">
+      <h3>Execute and see the AI response</h3>
+      <p>Click <span class="btn orange">▶ Test workflow</span>. The LLM Chain runs, calls the model, and returns the completion.</p>
+      <p>Click <strong>Basic LLM Chain</strong> → <span class="btn ghost">Output</span>:</p>
+      <div class="output-box">{
+  <span class="k">"response"</span>: <span class="s">"A neural network is a computational model inspired
+by the human brain, consisting of layers of interconnected
+nodes (neurons) that process and transform input data.
+In Python, you typically use libraries like PyTorch or
+TensorFlow to define these layers and train the network
+on data to learn patterns."</span>
+}</div>
+      <div class="success">✅ Your workflow called an LLM and got a completion — the same thing you do with <code>openai.chat.completions.create()</code> in Python, but wired visually.</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge p">5</div>
+    <div class="step-body">
+      <h3>Add a System Prompt</h3>
+      <p>In the <strong>Basic LLM Chain</strong> right panel, find <span class="btn ghost">System Prompt Message</span> → click <span class="btn ghost">Add Option</span>.</p>
+      <p>Enter a system prompt:</p>
+      <p><span class="val">You are a senior Python developer who explains ML concepts clearly and practically. Always relate concepts to Python libraries like NumPy, PyTorch, or scikit-learn.</span></p>
+      <p>Re-run — notice the response changes tone and references Python libraries.</p>
+      <div class="note"><b>This is identical to the system message</b> in <code>{"messages": [{"role": "system", "content": "..."}]}</code> from the OpenAI Python SDK. N8N handles the message array construction for you.</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge g">6</div>
+    <div class="step-body">
+      <h3>Try different prompts without changing code</h3>
+      <p>In the <strong>Set</strong> node change the value of <span class="field">prompt</span> to anything:</p>
+      <p>→ <span class="val">What is the difference between LSTM and Transformer architectures?</span></p>
+      <p>→ <span class="val">Write a Python function that tokenizes a sentence into words.</span></p>
+      <p>→ <span class="val">Explain overfitting in 1 sentence, then give 3 ways to prevent it.</span></p>
+      <p>Execute each time and see the response change. This is the power of dynamic prompting with <code>{{ }}</code> expressions.</p>
+    </div>
+  </div>
+
+  <div style="margin-top:32px;padding:20px;background:var(--card);border:1px solid var(--border);border-radius:14px;">
+    <div style="font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);margin-bottom:14px;">Python SDK ↔ N8N Mapping</div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:.86rem;">
+        <thead><tr>
+          <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);color:var(--muted);">OpenAI Python</th>
+          <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);color:var(--muted);">N8N equivalent</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style="padding:8px 12px;border-bottom:1px solid var(--border);font-family:'Courier New',monospace;font-size:.8rem;color:var(--green);">client = OpenAI(api_key=...)</td><td style="padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text);">Create OpenAI credential in N8N</td></tr>
+          <tr><td style="padding:8px 12px;border-bottom:1px solid var(--border);font-family:'Courier New',monospace;font-size:.8rem;color:var(--green);">model="gpt-4o-mini"</td><td style="padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text);">Model field in OpenAI Chat Model sub-node</td></tr>
+          <tr><td style="padding:8px 12px;border-bottom:1px solid var(--border);font-family:'Courier New',monospace;font-size:.8rem;color:var(--green);">{"role":"system","content":"..."}</td><td style="padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text);">System Prompt field in LLM Chain</td></tr>
+          <tr><td style="padding:8px 12px;font-family:'Courier New',monospace;font-size:.8rem;color:var(--green);">{"role":"user","content":"..."}</td><td style="padding:8px 12px;color:var(--text);">Prompt field in LLM Chain (supports <code>{{"{{"}}</code> expressions)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="bottom-nav">
+  <a class="btn-back" href="../02_http_api/index.html">← Demo 02</a>
+  <a class="btn-next" href="../04_webhook/index.html">Demo 04: Webhook Chatbot →</a>
+</div>
+
+<script>
+function switchTab(id) {
+  document.querySelectorAll('#model-tabs .tab').forEach((t,i) => t.classList.toggle('active', ['openai','ollama'][i] === id));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + id));
+}
+</script>
+</body>
+</html>

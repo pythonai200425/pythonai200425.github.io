@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Demo 02 — HTTP APIs | n8n</title>
+  <style>
+    :root {
+      --bg: #0f0f1a; --card: #1a1b2e; --card2: #21223a;
+      --border: #2e3058; --orange: #ff6d5a; --orange2: #ff9c8a;
+      --green: #22c55e; --purple: #a855f7; --blue: #60a5fa;
+      --yellow: #fbbf24; --text: #e2e8f0; --muted: #94a3b8;
+      --accent: #60a5fa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: "Segoe UI", system-ui, sans-serif; line-height: 1.6; }
+    .topnav { display: flex; align-items: center; gap: 16px; padding: 14px 28px; border-bottom: 1px solid var(--border); background: var(--card); font-size: 14px; }
+    .topnav a { color: var(--muted); text-decoration: none; }
+    .topnav a:hover { color: var(--text); }
+    .topnav .sep { color: var(--border); }
+    .topnav .current { color: var(--accent); font-weight: 600; }
+    .hero { background: linear-gradient(135deg, #0a0e1f 0%, #0f0f1a 50%); border-bottom: 1px solid var(--border); padding: 44px 28px 36px; position: relative; overflow: hidden; }
+    .hero::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse 50% 80% at 10% 50%, rgba(96,165,250,0.12) 0%, transparent 70%); }
+    .demo-badge { display: inline-block; background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.35); color: var(--blue); padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px; }
+    .hero h1 { font-size: clamp(1.6rem,4vw,2.4rem); font-weight: 800; margin-bottom: 10px; }
+    .hero h1 span { color: var(--blue); }
+    .hero p { font-size: 1rem; color: var(--muted); max-width: 560px; }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 36px 24px; display: flex; flex-direction: column; gap: 36px; }
+    .goal-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; border-left: 4px solid var(--accent); }
+    .goal-box h3 { font-size: .95rem; color: var(--accent); font-weight: 700; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+    .goal-box p { color: var(--muted); font-size: .95rem; }
+    .flow-diagram { background: #12131f; border: 1px solid var(--border); border-radius: 14px; padding: 32px 24px; display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: nowrap; overflow-x: auto; }
+    .node { flex-shrink: 0; background: var(--card2); border: 2px solid var(--border); border-radius: 12px; padding: 14px 20px; text-align: center; min-width: 130px; }
+    .node-icon { font-size: 1.8rem; margin-bottom: 4px; }
+    .node-type { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+    .node-name { font-size: .85rem; font-weight: 700; color: var(--text); }
+    .node-sub { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+    .node.trigger { border-color: var(--green); }
+    .node.action { border-color: var(--blue); }
+    .node.code { border-color: var(--yellow); }
+    .connector { flex-shrink: 0; display: flex; align-items: center; padding: 0 4px; }
+    .connector svg { width: 48px; height: 24px; }
+    .steps { display: flex; flex-direction: column; gap: 20px; }
+    .steps h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+    .step { display: flex; gap: 16px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .step-num { flex-shrink: 0; width: 36px; height: 36px; background: var(--blue); color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: .95rem; }
+    .step-body { flex: 1; }
+    .step-body h3 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+    .step-body p { font-size: .9rem; color: var(--muted); margin-bottom: 8px; }
+    .click-hint { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: .82rem; color: var(--text); font-family: monospace; }
+    .click-hint.green { border-color: rgba(34,197,94,.4); color: var(--green); background: rgba(34,197,94,.07); }
+    .click-hint.orange { border-color: rgba(255,109,90,.4); color: var(--orange2); background: rgba(255,109,90,.07); }
+    .click-hint.blue { border-color: rgba(96,165,250,.4); color: var(--blue); background: rgba(96,165,250,.07); }
+    .hints { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .screen-mock { background: #0b0c18; border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-top: 12px; font-size: .82rem; }
+    .field-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; padding: 8px 10px; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 6px; }
+    .field-label { color: var(--muted); font-size: .8rem; min-width: 100px; flex-shrink: 0; }
+    .field-val { color: var(--green); font-family: monospace; font-size: .82rem; word-break: break-all; }
+
+    /* Response preview */
+    .response-box { background: #0b0c18; border: 1px solid rgba(34,197,94,.3); border-radius: 10px; padding: 16px; margin-top: 12px; }
+    .response-box .rb-label { color: var(--green); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+    .response-box pre { font-family: monospace; font-size: .8rem; color: #93c5fd; line-height: 1.7; }
+
+    /* API table */
+    .api-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    .api-table th { background: rgba(255,255,255,.05); color: var(--muted); font-weight: 600; padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+    .api-table td { padding: 10px 14px; border-bottom: 1px solid rgba(46,48,88,.5); vertical-align: top; }
+    .api-table td:first-child { font-family: monospace; color: var(--blue); font-size: .8rem; }
+    .api-table tr:last-child td { border-bottom: none; }
+    .api-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+
+    .json-box { background: #0b0c18; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .json-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,.03); }
+    .json-header span { font-size: 12px; color: var(--muted); font-family: monospace; }
+    .copy-btn { background: rgba(255,255,255,.06); border: 1px solid var(--border); color: var(--text); padding: 4px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: background .2s; }
+    .copy-btn:hover { background: rgba(255,255,255,.12); }
+    .json-box pre { padding: 16px; overflow-x: auto; font-family: monospace; font-size: .78rem; color: #a8d8a8; line-height: 1.7; max-height: 400px; }
+    .how-to-import { background: rgba(96,165,250,.07); border: 1px solid rgba(96,165,250,.25); border-radius: 10px; padding: 16px 20px; margin-top: 12px; font-size: .88rem; color: var(--muted); }
+    .how-to-import strong { color: var(--blue); }
+    .how-to-import ol { padding-left: 20px; margin-top: 8px; }
+    .how-to-import li { margin-bottom: 4px; }
+    .nav-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding: 20px 24px; }
+    .nav-btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); background: var(--card); border: 1px solid var(--border); padding: 10px 18px; border-radius: 8px; font-size: .9rem; font-weight: 600; transition: border-color .2s; }
+    .nav-btn:hover { border-color: var(--blue); }
+    .nav-btn.next { background: var(--blue); color: #000; border-color: var(--blue); }
+    .nav-btn.next:hover { background: #3b82f6; }
+
+    .tip-box { background: rgba(251,191,36,.07); border: 1px solid rgba(251,191,36,.3); border-radius: 10px; padding: 14px 18px; font-size: .88rem; color: var(--yellow); }
+    .tip-box strong { font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="index.html">🏠 n8n Zero to Hero</a>
+  <span class="sep">›</span>
+  <span class="current">Demo 02 — HTTP APIs</span>
+</nav>
+
+<div class="hero">
+  <div class="demo-badge">Demo 02 · Beginner–Intermediate</div>
+  <h1>Call Any <span>HTTP API</span></h1>
+  <p>Fetch real data from the internet inside a workflow. Parse JSON, extract fields, and pass it downstream — just like <code style="color:var(--blue)">requests.get()</code> but visual.</p>
+</div>
+
+<div class="wrap">
+
+  <div class="goal-box">
+    <h3>🎯 Goal</h3>
+    <p>Build a 3-node workflow that fetches a random cat fact from a public API, extracts the text, and outputs a clean result object.</p>
+  </div>
+
+  <!-- APIs reference -->
+  <div>
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:14px">🌐 Public APIs We'll Use (no key needed)</h2>
+    <div class="api-wrap">
+      <table class="api-table">
+        <thead>
+          <tr><th>URL</th><th>Returns</th><th>Try it</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>https://catfact.ninja/fact</td>
+            <td>Random cat fact as JSON <code style="color:var(--muted)">{fact, length}</code></td>
+            <td><a href="https://catfact.ninja/fact" target="_blank" style="color:var(--blue);font-size:.78rem">open →</a></td>
+          </tr>
+          <tr>
+            <td>https://official-joke-api.appspot.com/random_joke</td>
+            <td>Random joke <code style="color:var(--muted)">{setup, punchline}</code></td>
+            <td><a href="https://official-joke-api.appspot.com/random_joke" target="_blank" style="color:var(--blue);font-size:.78rem">open →</a></td>
+          </tr>
+          <tr>
+            <td>https://dog.ceo/api/breeds/image/random</td>
+            <td>Random dog image URL</td>
+            <td><a href="https://dog.ceo/api/breeds/image/random" target="_blank" style="color:var(--blue);font-size:.78rem">open →</a></td>
+          </tr>
+          <tr>
+            <td>https://api.coindesk.com/v1/bpi/currentprice.json</td>
+            <td>Live Bitcoin price in USD</td>
+            <td><a href="https://api.coindesk.com/v1/bpi/currentprice.json" target="_blank" style="color:var(--blue);font-size:.78rem">open →</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Flow diagram -->
+  <div>
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:16px">📊 Workflow: Fetch Cat Fact</h2>
+    <div class="flow-diagram">
+      <div class="node trigger">
+        <div class="node-icon">▶️</div>
+        <div class="node-type">Trigger</div>
+        <div class="node-name">Manual Trigger</div>
+        <div class="node-sub">Click to run</div>
+      </div>
+      <div class="connector">
+        <svg viewBox="0 0 48 24"><line x1="0" y1="12" x2="38" y2="12" stroke="#2e3058" stroke-width="2"/><polygon points="38,7 48,12 38,17" fill="#2e3058"/></svg>
+      </div>
+      <div class="node action">
+        <div class="node-icon">🌐</div>
+        <div class="node-type">Action</div>
+        <div class="node-name">HTTP Request</div>
+        <div class="node-sub">GET catfact.ninja</div>
+      </div>
+      <div class="connector">
+        <svg viewBox="0 0 48 24"><line x1="0" y1="12" x2="38" y2="12" stroke="#2e3058" stroke-width="2"/><polygon points="38,7 48,12 38,17" fill="#2e3058"/></svg>
+      </div>
+      <div class="node action">
+        <div class="node-icon">✏️</div>
+        <div class="node-type">Action</div>
+        <div class="node-name">Edit Fields</div>
+        <div class="node-sub">extract fact</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Steps -->
+  <div class="steps">
+    <h2>📋 Step-by-Step Instructions</h2>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h3>Create a new workflow</h3>
+        <p>In n8n at <code style="color:var(--blue)">localhost:5678</code> click <strong>+ Add workflow</strong> and give it the name "02 - HTTP API".</p>
+        <div class="hints">
+          <span class="click-hint green">➕ Add workflow</span>
+          <span class="click-hint blue">Name it: "02 - HTTP API"</span>
+          <span class="click-hint blue">Press Enter or click Save</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h3>Add Manual Trigger</h3>
+        <p>Same as Demo 01 — click the ➕ on the canvas and add a <strong>Manual Trigger</strong>.</p>
+        <div class="hints">
+          <span class="click-hint orange">🔍 Search: "Manual"</span>
+          <span class="click-hint blue">Click: Manual Trigger</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h3>Add the HTTP Request node</h3>
+        <p>Hover the Manual Trigger node → click its right-side <strong>+</strong> connector. Search for HTTP Request.</p>
+        <div class="hints">
+          <span class="click-hint orange">🔍 Search: "HTTP Request"</span>
+          <span class="click-hint blue">Click: HTTP Request</span>
+        </div>
+        <p style="margin-top:10px">Now configure it in the right panel:</p>
+        <div class="screen-mock">
+          <div style="color:var(--muted);font-size:.78rem;margin-bottom:10px">HTTP Request — Settings</div>
+          <div class="field-row">
+            <div class="field-label">Method</div>
+            <div class="field-val">GET</div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">URL</div>
+            <div class="field-val">https://catfact.ninja/fact</div>
+          </div>
+        </div>
+        <div class="hints" style="margin-top:10px">
+          <span class="click-hint green">Method: GET</span>
+          <span class="click-hint green">URL: https://catfact.ninja/fact</span>
+        </div>
+        <p style="margin-top:8px;font-size:.82rem;color:var(--muted)">Leave everything else at defaults. n8n automatically parses JSON responses.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h3>Test the HTTP Request node first</h3>
+        <p>Before wiring more nodes, test this one alone. Click the HTTP Request node → in the panel click <strong>"Test step"</strong>.</p>
+        <div class="hints">
+          <span class="click-hint orange">▶ Click "Test step"</span>
+        </div>
+        <p style="margin-top:8px;font-size:.82rem;color:var(--muted)">You should see output like this in the Output panel:</p>
+        <div class="response-box">
+          <div class="rb-label">✓ Output (1 item)</div>
+          <pre>{
+  "fact": "Cats sleep 70% of their lives.",
+  "length": 31
+}</pre>
+        </div>
+        <p style="margin-top:8px;font-size:.82rem;color:var(--green)">See that? n8n already parsed the JSON for you. No <code>json.loads()</code> needed!</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <h3>Add Edit Fields to clean the output</h3>
+        <p>Hover the HTTP Request node → click the right <strong>+</strong> → add <strong>Edit Fields (Set)</strong>.</p>
+        <p style="margin-top:8px;font-size:.82rem">In the Edit Fields panel, click <strong>+ Add field</strong> and set:</p>
+        <div class="screen-mock">
+          <div style="color:var(--muted);font-size:.78rem;margin-bottom:10px">Edit Fields — Map fields from API response</div>
+          <div class="field-row">
+            <div class="field-label">Name</div>
+            <div class="field-val">cat_fact</div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Value</div>
+            <div class="field-val">{{ $json.fact }}</div>
+          </div>
+          <div class="field-row" style="margin-top:8px">
+            <div class="field-label">Name</div>
+            <div class="field-val">char_count</div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Value</div>
+            <div class="field-val">{{ $json.length }}</div>
+          </div>
+        </div>
+        <div class="tip-box" style="margin-top:12px">
+          <strong>💡 n8n Expressions:</strong> Use <code>{{ $json.fieldName }}</code> to reference data from the previous node — like Python's <code>data["fieldName"]</code>.
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <h3>Run the full workflow</h3>
+        <p>Click <strong>"Test workflow"</strong> at the bottom toolbar. All 3 nodes should light up green.</p>
+        <div class="hints">
+          <span class="click-hint orange">▶ Test workflow</span>
+          <span class="click-hint blue">Click Edit Fields node → see Output</span>
+        </div>
+        <div class="response-box" style="margin-top:10px">
+          <div class="rb-label">✓ Final Output</div>
+          <pre>{
+  "cat_fact": "Cats sleep 70% of their lives.",
+  "char_count": 31
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">7</div>
+      <div class="step-body">
+        <h3>🏆 Challenge: Try a different API</h3>
+        <p>Replace the URL in the HTTP Request node with the <strong>Joke API</strong> and extract <code>setup</code> and <code>punchline</code>:</p>
+        <div class="hints">
+          <span class="click-hint green">URL: https://official-joke-api.appspot.com/random_joke</span>
+        </div>
+        <p style="margin-top:8px;font-size:.82rem;color:var(--muted)">In Edit Fields, add fields: <code>joke_setup</code> → <code>{{ $json.setup }}</code> and <code>joke_punchline</code> → <code>{{ $json.punchline }}</code></p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Import JSON -->
+  <div>
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:14px">📥 Import This Workflow</h2>
+    <div class="json-box">
+      <div class="json-header">
+        <span>http-api.json</span>
+        <button class="copy-btn" onclick="copyJson()">📋 Copy JSON</button>
+      </div>
+      <pre id="wf-json">{
+  "name": "02 - HTTP API",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "b1000001-0002-0002-0002-000000000001",
+      "name": "When clicking Test workflow",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [180, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://catfact.ninja/fact",
+        "options": {}
+      },
+      "id": "b1000001-0002-0002-0002-000000000002",
+      "name": "Fetch Cat Fact",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "http-set-001",
+              "name": "cat_fact",
+              "value": "={{ $json.fact }}",
+              "type": "string"
+            },
+            {
+              "id": "http-set-002",
+              "name": "char_count",
+              "value": "={{ $json.length }}",
+              "type": "number"
+            },
+            {
+              "id": "http-set-003",
+              "name": "fetched_at",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b1000001-0002-0002-0002-000000000003",
+      "name": "Extract Fact",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [620, 300]
+    }
+  ],
+  "connections": {
+    "When clicking Test workflow": {
+      "main": [[{ "node": "Fetch Cat Fact", "type": "main", "index": 0 }]]
+    },
+    "Fetch Cat Fact": {
+      "main": [[{ "node": "Extract Fact", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}</pre>
+    </div>
+    <div class="how-to-import">
+      <strong>Import:</strong> Canvas → ⋯ menu → <strong>Import from JSON</strong> → paste → Import
+    </div>
+  </div>
+
+  <!-- Key concept -->
+  <div class="goal-box" style="border-left-color:var(--blue)">
+    <h3 style="color:var(--blue)">🐍 Python Comparison</h3>
+    <p>
+      <code style="color:var(--green);font-family:monospace">import requests</code><br>
+      <code style="color:var(--green);font-family:monospace">r = requests.get("https://catfact.ninja/fact").json()</code><br>
+      <code style="color:var(--green);font-family:monospace">result = {"cat_fact": r["fact"], "char_count": r["length"]}</code><br><br>
+      In n8n: 2 nodes, 0 lines of code. The HTTP Request node IS <code style="color:var(--muted);font-family:monospace">requests.get()</code>.
+    </p>
+  </div>
+
+</div>
+
+<div class="nav-footer">
+  <a href="01-hello-world.html" class="nav-btn">← Demo 01</a>
+  <a href="03-llm-chat.html" class="nav-btn next">Demo 03: LLM Chat →</a>
+</div>
+
+<script>
+function copyJson() {
+  const text = document.getElementById('wf-json').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy JSON', 2000);
+  });
+}
+</script>
+</body>
+</html>

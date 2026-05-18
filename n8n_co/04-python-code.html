@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Demo 04 — Python Code Node | n8n</title>
+  <style>
+    :root {
+      --bg: #0f0f1a; --card: #1a1b2e; --card2: #21223a;
+      --border: #2e3058; --orange: #ff6d5a; --orange2: #ff9c8a;
+      --green: #22c55e; --purple: #a855f7; --blue: #60a5fa;
+      --yellow: #fbbf24; --text: #e2e8f0; --muted: #94a3b8;
+      --accent: #fbbf24;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: "Segoe UI", system-ui, sans-serif; line-height: 1.6; }
+    .topnav { display: flex; align-items: center; gap: 16px; padding: 14px 28px; border-bottom: 1px solid var(--border); background: var(--card); font-size: 14px; }
+    .topnav a { color: var(--muted); text-decoration: none; }
+    .topnav a:hover { color: var(--text); }
+    .topnav .sep { color: var(--border); }
+    .topnav .current { color: var(--accent); font-weight: 600; }
+    .hero { background: linear-gradient(135deg, #1a1200 0%, #0f0f1a 50%); border-bottom: 1px solid var(--border); padding: 44px 28px 36px; position: relative; overflow: hidden; }
+    .hero::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse 50% 80% at 10% 50%, rgba(251,191,36,0.12) 0%, transparent 70%); }
+    .demo-badge { display: inline-block; background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.35); color: var(--yellow); padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px; }
+    .hero h1 { font-size: clamp(1.6rem,4vw,2.4rem); font-weight: 800; margin-bottom: 10px; }
+    .hero h1 span { color: var(--yellow); }
+    .hero p { font-size: 1rem; color: var(--muted); max-width: 560px; }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 36px 24px; display: flex; flex-direction: column; gap: 36px; }
+    .goal-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; border-left: 4px solid var(--accent); }
+    .goal-box h3 { font-size: .95rem; color: var(--accent); font-weight: 700; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+    .goal-box p { color: var(--muted); font-size: .95rem; }
+
+    .flow-diagram { background: #12131f; border: 1px solid var(--border); border-radius: 14px; padding: 32px 24px; display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: nowrap; overflow-x: auto; }
+    .node { flex-shrink: 0; background: var(--card2); border: 2px solid var(--border); border-radius: 12px; padding: 14px 20px; text-align: center; min-width: 130px; }
+    .node-icon { font-size: 1.8rem; margin-bottom: 4px; }
+    .node-type { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+    .node-name { font-size: .85rem; font-weight: 700; color: var(--text); }
+    .node-sub { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+    .node.trigger { border-color: var(--green); }
+    .node.action { border-color: var(--blue); }
+    .node.ai { border-color: var(--purple); }
+    .node.code { border-color: var(--yellow); }
+    .connector { flex-shrink: 0; display: flex; align-items: center; padding: 0 4px; }
+    .connector svg { width: 48px; height: 24px; }
+
+    .steps { display: flex; flex-direction: column; gap: 20px; }
+    .steps h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+    .step { display: flex; gap: 16px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .step-num { flex-shrink: 0; width: 36px; height: 36px; background: var(--yellow); color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: .95rem; }
+    .step-body { flex: 1; }
+    .step-body h3 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+    .step-body p { font-size: .9rem; color: var(--muted); margin-bottom: 8px; }
+    .click-hint { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: .82rem; color: var(--text); font-family: monospace; }
+    .click-hint.green { border-color: rgba(34,197,94,.4); color: var(--green); background: rgba(34,197,94,.07); }
+    .click-hint.orange { border-color: rgba(255,109,90,.4); color: var(--orange2); background: rgba(255,109,90,.07); }
+    .click-hint.blue { border-color: rgba(96,165,250,.4); color: var(--blue); background: rgba(96,165,250,.07); }
+    .click-hint.yellow { border-color: rgba(251,191,36,.4); color: var(--yellow); background: rgba(251,191,36,.07); }
+    .hints { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+
+    /* Code editor mockup */
+    .code-mock { background: #0b0c18; border: 1px solid rgba(251,191,36,.3); border-radius: 10px; overflow: hidden; margin-top: 10px; }
+    .code-mock .code-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; border-bottom: 1px solid var(--border); background: rgba(251,191,36,.06); }
+    .code-mock .code-lang { font-size: 11px; color: var(--yellow); font-weight: 700; }
+    .code-mock pre { padding: 16px; font-family: "Consolas", "Fira Code", monospace; font-size: .82rem; color: #f8f8f2; line-height: 1.75; overflow-x: auto; }
+    .kw { color: #ff79c6; }   /* keywords */
+    .fn { color: #50fa7b; }   /* functions */
+    .st { color: #f1fa8c; }   /* strings */
+    .cm { color: #6272a4; }   /* comments */
+    .nu { color: #bd93f9; }   /* numbers */
+    .va { color: #8be9fd; }   /* variables */
+
+    .response-box { background: #0b0c18; border: 1px solid rgba(34,197,94,.3); border-radius: 10px; padding: 16px; margin-top: 12px; }
+    .response-box .rb-label { color: var(--green); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+    .response-box pre { font-family: monospace; font-size: .8rem; color: #e2e8f0; line-height: 1.7; }
+
+    .json-box { background: #0b0c18; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .json-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,.03); }
+    .json-header span { font-size: 12px; color: var(--muted); font-family: monospace; }
+    .copy-btn { background: rgba(255,255,255,.06); border: 1px solid var(--border); color: var(--text); padding: 4px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: background .2s; }
+    .copy-btn:hover { background: rgba(255,255,255,.12); }
+    .json-box pre { padding: 16px; overflow-x: auto; font-family: monospace; font-size: .78rem; color: #a8d8a8; line-height: 1.7; max-height: 420px; }
+    .how-to-import { background: rgba(96,165,250,.07); border: 1px solid rgba(96,165,250,.25); border-radius: 10px; padding: 16px 20px; margin-top: 12px; font-size: .88rem; color: var(--muted); }
+    .how-to-import strong { color: var(--blue); }
+
+    .warn-box { background: rgba(255,109,90,.07); border: 1px solid rgba(255,109,90,.3); border-radius: 10px; padding: 14px 18px; font-size: .88rem; color: var(--orange2); }
+    .tip-box { background: rgba(251,191,36,.07); border: 1px solid rgba(251,191,36,.3); border-radius: 10px; padding: 14px 18px; font-size: .88rem; color: var(--yellow); }
+    .nav-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding: 20px 24px; }
+    .nav-btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); background: var(--card); border: 1px solid var(--border); padding: 10px 18px; border-radius: 8px; font-size: .9rem; font-weight: 600; transition: border-color .2s; }
+    .nav-btn:hover { border-color: var(--yellow); }
+    .nav-btn.next { background: var(--yellow); color: #000; border-color: var(--yellow); }
+    .nav-btn.next:hover { background: #f59e0b; }
+
+    .info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+    .info-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .info-card h4 { font-size: .9rem; font-weight: 700; margin-bottom: 6px; }
+    .info-card p { font-size: .82rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="index.html">🏠 n8n Zero to Hero</a>
+  <span class="sep">›</span>
+  <span class="current">Demo 04 — Python Code Node</span>
+</nav>
+
+<div class="hero">
+  <div class="demo-badge">Demo 04 · Intermediate</div>
+  <h1>Write Real <span>Python</span> Inside n8n</h1>
+  <p>Drop a Code node anywhere in your flow and write Python just like you always do. Process data, run ML logic, call libraries — then pipe results into an LLM.</p>
+</div>
+
+<div class="wrap">
+
+  <div class="goal-box">
+    <h3>🎯 Goal</h3>
+    <p>Build a workflow that: (1) runs Python code to generate a fake ML model score report, (2) sends that report to an LLM for analysis, (3) outputs the AI's interpretation. Your Python skills work inside n8n unchanged.</p>
+  </div>
+
+  <!-- What the Code Node can do -->
+  <div>
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:14px">🐍 What the Code Node Can Do</h2>
+    <div class="info-grid">
+      <div class="info-card">
+        <h4>📦 Built-in modules</h4>
+        <p>Use <code>math</code>, <code>json</code>, <code>datetime</code>, <code>re</code>, <code>hashlib</code> and more — no install needed.</p>
+      </div>
+      <div class="info-card">
+        <h4>📋 Access input data</h4>
+        <p>All items from the previous node are in <code>items</code>. Each item has a <code>.json</code> dict.</p>
+      </div>
+      <div class="info-card">
+        <h4>↩️ Return new items</h4>
+        <p>Your code must return a list: <code>[{"json": {...}}, ...]</code>. That becomes the output.</p>
+      </div>
+      <div class="info-card">
+        <h4>⚠️ No pip install</h4>
+        <p>You can't install packages at runtime. numpy/pandas require custom Docker image setup.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Flow diagram -->
+  <div>
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:16px">📊 Workflow Overview</h2>
+    <div class="flow-diagram">
+      <div class="node trigger">
+        <div class="node-icon">▶️</div>
+        <div class="node-type">Trigger</div>
+        <div class="node-name">Manual Trigger</div>
+      </div>
+      <div class="connector">
+        <svg viewBox="0 0 48 24"><line x1="0" y1="12" x2="38" y2="12" stroke="#2e3058" stroke-width="2"/><polygon points="38,7 48,12 38,17" fill="#2e3058"/></svg>
+      </div>
+      <div class="node code">
+        <div class="node-icon">🐍</div>
+        <div class="node-type">Code (Python)</div>
+        <div class="node-name">Generate Report</div>
+        <div class="node-sub">ML scores + stats</div>
+      </div>
+      <div class="connector">
+        <svg viewBox="0 0 48 24"><line x1="0" y1="12" x2="38" y2="12" stroke="#2e3058" stroke-width="2"/><polygon points="38,7 48,12 38,17" fill="#2e3058"/></svg>
+      </div>
+      <div class="node ai">
+        <div class="node-icon">🤖</div>
+        <div class="node-type">AI</div>
+        <div class="node-name">LLM Analysis</div>
+        <div class="node-sub">interpret results</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Steps -->
+  <div class="steps">
+    <h2>📋 Step-by-Step Instructions</h2>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h3>Create workflow + Manual Trigger</h3>
+        <p>New workflow "04 - Python Code". Add Manual Trigger.</p>
+        <div class="hints">
+          <span class="click-hint green">➕ New workflow → "04 - Python Code"</span>
+          <span class="click-hint orange">Add Manual Trigger</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h3>Add a Code node</h3>
+        <p>Hover Manual Trigger → click its <strong>+</strong> → search for "Code".</p>
+        <div class="hints">
+          <span class="click-hint orange">🔍 Search: "Code"</span>
+          <span class="click-hint yellow">Click: Code</span>
+        </div>
+        <p style="margin-top:8px;font-size:.82rem;color:var(--muted)">The Code node opens with a JavaScript editor by default. <strong>Change it to Python</strong>:</p>
+        <div class="hints" style="margin-top:6px">
+          <span class="click-hint yellow">Language dropdown → Select "Python"</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h3>Write the Python code</h3>
+        <p>Delete the default code and paste this ML score report generator:</p>
+        <div class="code-mock">
+          <div class="code-header">
+            <span class="code-lang">🐍 Python — Code Node</span>
+          </div>
+          <pre><span class="kw">import</span> math
+<span class="kw">import</span> random
+<span class="kw">from</span> datetime <span class="kw">import</span> datetime
+
+<span class="cm"># Simulate ML model evaluation results</span>
+random.seed(<span class="nu">42</span>)
+
+models = [
+  {<span class="st">"name"</span>: <span class="st">"LogisticRegression"</span>, <span class="st">"accuracy"</span>: <span class="nu">0.842</span>, <span class="st">"f1"</span>: <span class="nu">0.819</span>, <span class="st">"auc"</span>: <span class="nu">0.891</span>},
+  {<span class="st">"name"</span>: <span class="st">"RandomForest"</span>,      <span class="st">"accuracy"</span>: <span class="nu">0.913</span>, <span class="st">"f1"</span>: <span class="nu">0.907</span>, <span class="st">"auc"</span>: <span class="nu">0.954</span>},
+  {<span class="st">"name"</span>: <span class="st">"SVM"</span>,               <span class="st">"accuracy"</span>: <span class="nu">0.876</span>, <span class="st">"f1"</span>: <span class="nu">0.861</span>, <span class="st">"auc"</span>: <span class="nu">0.922</span>},
+  {<span class="st">"name"</span>: <span class="st">"NeuralNet"</span>,         <span class="st">"accuracy"</span>: <span class="nu">0.941</span>, <span class="st">"f1"</span>: <span class="nu">0.938</span>, <span class="st">"auc"</span>: <span class="nu">0.971</span>},
+]
+
+<span class="cm"># Find best model</span>
+best = <span class="fn">max</span>(models, key=<span class="kw">lambda</span> m: m[<span class="st">"auc"</span>])
+
+<span class="cm"># Build summary string for LLM</span>
+summary_lines = [<span class="st">"Model Evaluation Report"</span>, <span class="st">"=" * 30</span>]
+<span class="kw">for</span> m <span class="kw">in</span> models:
+  flag = <span class="st">" ← BEST"</span> <span class="kw">if</span> m[<span class="st">"name"</span>] == best[<span class="st">"name"</span>] <span class="kw">else</span> <span class="st">""</span>
+  summary_lines.append(
+    <span class="st">f"{m['name']:20s} Acc={m['accuracy']:.3f}  F1={m['f1']:.3f}  AUC={m['auc']:.3f}{flag}"</span>
+  )
+
+report_text = <span class="st">"\n"</span>.<span class="fn">join</span>(summary_lines)
+
+<span class="cm"># Return as n8n item list</span>
+<span class="kw">return</span> [{
+  <span class="st">"json"</span>: {
+    <span class="st">"report"</span>: report_text,
+    <span class="st">"best_model"</span>: best[<span class="st">"name"</span>],
+    <span class="st">"best_auc"</span>: best[<span class="st">"auc"</span>],
+    <span class="st">"model_count"</span>: <span class="fn">len</span>(models),
+    <span class="st">"generated_at"</span>: datetime.<span class="fn">now</span>().<span class="fn">isoformat</span>()
+  }
+}]</pre>
+        </div>
+        <div class="tip-box" style="margin-top:10px">
+          <strong>💡 Key rule:</strong> Always <code>return</code> a list of dicts with <code>"json"</code> keys. This is n8n's item format — like a list of rows in pandas.
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h3>Test the Code node alone</h3>
+        <p>Click the Code node → click <strong>"Test step"</strong> to run only this node and inspect output.</p>
+        <div class="hints">
+          <span class="click-hint orange">▶ Test step</span>
+          <span class="click-hint yellow">Check Output tab</span>
+        </div>
+        <div class="response-box" style="margin-top:10px">
+          <div class="rb-label">✓ Code Node Output</div>
+          <pre>{
+  "report": "Model Evaluation Report\n==============================\nLogisticRegression   Acc=0.842  F1=0.819  AUC=0.891\nRandomForest         Acc=0.913  F1=0.907  AUC=0.954\nSVM                  Acc=0.876  F1=0.861  AUC=0.922\nNeuralNet            Acc=0.941  F1=0.938  AUC=0.971 ← BEST",
+  "best_model": "NeuralNet",
+  "best_auc": 0.971,
+  "model_count": 4,
+  "generated_at": "2026-05-18T12:00:00"
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <h3>Add Basic LLM Chain for analysis</h3>
+        <p>Hover the Code node → click its <strong>+</strong> → add <strong>Basic LLM Chain</strong>. Connect your Chat Model (Ollama / OpenAI) sub-node.</p>
+        <div class="hints">
+          <span class="click-hint orange">🔍 Search: "Basic LLM Chain"</span>
+          <span class="click-hint blue">Add Ollama or OpenAI Chat Model sub-node</span>
+        </div>
+        <p style="margin-top:8px;font-size:.82rem">In the Basic LLM Chain settings, set the prompt to:</p>
+        <div class="code-mock" style="margin-top:8px">
+          <div class="code-header"><span class="code-lang">LLM Prompt (expression)</span></div>
+          <pre>={{ "Here is a machine learning model comparison report:\n\n" + $json.report + "\n\nAs an ML expert, please:\n1. Confirm which model is best and why\n2. Comment on the performance gap between models\n3. Suggest one next step to improve further" }}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <h3>Run the full workflow</h3>
+        <p>Click <strong>Test workflow</strong>. Watch the data flow: Python generates → LLM analyzes.</p>
+        <div class="hints">
+          <span class="click-hint orange">▶ Test workflow</span>
+        </div>
+        <div class="response-box" style="margin-top:10px">
+          <div class="rb-label">✓ LLM Analysis Output</div>
+          <pre>{
+  "text": "The NeuralNet model is clearly the winner with an AUC of 0.971,
+indicating excellent discrimination ability. The gap between
+RandomForest (0.954) and NeuralNet (0.971) is small but meaningful
+for production systems...
+
+Next step: Consider ensemble methods combining RandomForest and
+NeuralNet, or tune NeuralNet hyperparameters with Optuna to
+push AUC above 0.98."
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">7</div>
+      <div class="step-body">
+        <h3>🏆 Challenge: Use real input items</h3>
+        <p>Modify the Code node to read from <code>items</code> — data passed from the previous node:</p>
+        <div class="code-mock" style="margin-top:8px">
+          <div class="code-header"><span class="code-lang">🐍 Python — reading input items</span></div>
+          <pre><span class="cm"># Access data from previous node</span>
+<span class="kw">for</span> item <span class="kw">in</span> items:
+  data = item.<span class="fn">json</span>  <span class="cm"># dict with all fields</span>
+  <span class="fn">print</span>(data)
+
+<span class="cm"># items is a list — one item per "row" from upstream</span>
+<span class="kw">return</span> [{<span class="st">"json"</span>: {<span class="st">"processed"</span>: item.json}} <span class="kw">for</span> item <span class="kw">in</span> items]</pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Import JSON -->
+  <div>
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:14px">📥 Import This Workflow</h2>
+    <div class="json-box">
+      <div class="json-header">
+        <span>python-code.json</span>
+        <button class="copy-btn" onclick="copyJson()">📋 Copy JSON</button>
+      </div>
+      <pre id="wf-json">{
+  "name": "04 - Python Code Node",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "d1000001-0004-0004-0004-000000000001",
+      "name": "When clicking Test workflow",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [180, 300]
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "import math\nimport random\nfrom datetime import datetime\n\nrandom.seed(42)\n\nmodels = [\n  {\"name\": \"LogisticRegression\", \"accuracy\": 0.842, \"f1\": 0.819, \"auc\": 0.891},\n  {\"name\": \"RandomForest\",      \"accuracy\": 0.913, \"f1\": 0.907, \"auc\": 0.954},\n  {\"name\": \"SVM\",               \"accuracy\": 0.876, \"f1\": 0.861, \"auc\": 0.922},\n  {\"name\": \"NeuralNet\",         \"accuracy\": 0.941, \"f1\": 0.938, \"auc\": 0.971},\n]\n\nbest = max(models, key=lambda m: m[\"auc\"])\n\nsummary_lines = [\"Model Evaluation Report\", \"=\" * 30]\nfor m in models:\n  flag = \" <- BEST\" if m[\"name\"] == best[\"name\"] else \"\"\n  summary_lines.append(\n    f\"{m['name']:20s} Acc={m['accuracy']:.3f}  F1={m['f1']:.3f}  AUC={m['auc']:.3f}{flag}\"\n  )\n\nreport_text = \"\\n\".join(summary_lines)\n\nreturn [{\n  \"json\": {\n    \"report\": report_text,\n    \"best_model\": best[\"name\"],\n    \"best_auc\": best[\"auc\"],\n    \"model_count\": len(models),\n    \"generated_at\": datetime.now().isoformat()\n  }\n}]"
+      },
+      "id": "d1000001-0004-0004-0004-000000000002",
+      "name": "Generate ML Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "prompt": "={{ \"Here is a machine learning model comparison report:\\n\\n\" + $json.report + \"\\n\\nAs an ML expert, please:\\n1. Confirm which model is best and why\\n2. Comment on the performance gap between models\\n3. Suggest one next step to improve further\" }}",
+        "options": {}
+      },
+      "id": "d1000001-0004-0004-0004-000000000003",
+      "name": "LLM Analysis",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [620, 300]
+    },
+    {
+      "parameters": {
+        "model": "llama3",
+        "options": {}
+      },
+      "id": "d1000001-0004-0004-0004-000000000004",
+      "name": "Ollama Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [620, 500]
+    }
+  ],
+  "connections": {
+    "When clicking Test workflow": {
+      "main": [[{ "node": "Generate ML Report", "type": "main", "index": 0 }]]
+    },
+    "Generate ML Report": {
+      "main": [[{ "node": "LLM Analysis", "type": "main", "index": 0 }]]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [[{ "node": "LLM Analysis", "type": "ai_languageModel", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}</pre>
+    </div>
+    <div class="how-to-import">
+      <strong>Import:</strong> Canvas → ⋯ menu → Import from JSON → paste → Import. Then update the Ollama Chat Model node's base URL to <code>http://host.docker.internal:11434</code>.
+    </div>
+  </div>
+
+  <div class="goal-box" style="border-left-color:var(--green)">
+    <h3 style="color:var(--green)">🎓 Why this matters</h3>
+    <p>You just built the core pattern of any <strong>ML + AI workflow</strong>: run Python logic → interpret with LLM → output insights. Scale this to: model monitoring, anomaly detection alerts, automated reporting, dataset analysis, experiment logging, and more.</p>
+  </div>
+
+</div>
+
+<div class="nav-footer">
+  <a href="03-llm-chat.html" class="nav-btn">← Demo 03</a>
+  <a href="05-webhook-ai.html" class="nav-btn next">Demo 05: Webhook AI →</a>
+</div>
+
+<script>
+function copyJson() {
+  const text = document.getElementById('wf-json').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy JSON', 2000);
+  });
+}
+</script>
+</body>
+</html>

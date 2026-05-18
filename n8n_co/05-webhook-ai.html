@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Demo 05 — Webhook AI Chatbot | n8n</title>
+  <style>
+    :root {
+      --bg: #0f0f1a; --card: #1a1b2e; --card2: #21223a;
+      --border: #2e3058; --orange: #ff6d5a; --orange2: #ff9c8a;
+      --green: #22c55e; --purple: #a855f7; --blue: #60a5fa;
+      --yellow: #fbbf24; --pink: #ec4899; --cyan: #06b6d4;
+      --text: #e2e8f0; --muted: #94a3b8; --accent: #ec4899;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: "Segoe UI", system-ui, sans-serif; line-height: 1.6; }
+    .topnav { display: flex; align-items: center; gap: 16px; padding: 14px 28px; border-bottom: 1px solid var(--border); background: var(--card); font-size: 14px; }
+    .topnav a { color: var(--muted); text-decoration: none; }
+    .topnav a:hover { color: var(--text); }
+    .topnav .sep { color: var(--border); }
+    .topnav .current { color: var(--accent); font-weight: 600; }
+    .hero { background: linear-gradient(135deg, #1a0024 0%, #0f0f1a 50%); border-bottom: 1px solid var(--border); padding: 44px 28px 36px; position: relative; overflow: hidden; }
+    .hero::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse 50% 80% at 10% 50%, rgba(236,72,153,0.14) 0%, transparent 70%); }
+    .demo-badge { display: inline-block; background: rgba(236,72,153,0.12); border: 1px solid rgba(236,72,153,0.35); color: var(--pink); padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px; }
+    .hero h1 { font-size: clamp(1.6rem,4vw,2.4rem); font-weight: 800; margin-bottom: 10px; }
+    .hero h1 span { color: var(--pink); }
+    .hero p { font-size: 1rem; color: var(--muted); max-width: 560px; }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 36px 24px; display: flex; flex-direction: column; gap: 36px; }
+    .goal-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; border-left: 4px solid var(--accent); }
+    .goal-box h3 { font-size: .95rem; color: var(--accent); font-weight: 700; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+    .goal-box p { color: var(--muted); font-size: .95rem; }
+
+    .flow-diagram { background: #12131f; border: 1px solid var(--border); border-radius: 14px; padding: 32px 24px; display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: nowrap; overflow-x: auto; }
+    .node { flex-shrink: 0; background: var(--card2); border: 2px solid var(--border); border-radius: 12px; padding: 14px 20px; text-align: center; min-width: 130px; }
+    .node-icon { font-size: 1.8rem; margin-bottom: 4px; }
+    .node-type { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+    .node-name { font-size: .85rem; font-weight: 700; color: var(--text); }
+    .node-sub { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+    .node.trigger { border-color: var(--green); }
+    .node.webhook-node { border-color: var(--pink); }
+    .node.ai { border-color: var(--purple); }
+    .node.response-node { border-color: var(--cyan); }
+    .connector { flex-shrink: 0; display: flex; align-items: center; padding: 0 4px; }
+    .connector svg { width: 48px; height: 24px; }
+
+    .steps { display: flex; flex-direction: column; gap: 20px; }
+    .steps h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+    .step { display: flex; gap: 16px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .step-num { flex-shrink: 0; width: 36px; height: 36px; background: var(--pink); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: .95rem; }
+    .step-body { flex: 1; }
+    .step-body h3 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+    .step-body p { font-size: .9rem; color: var(--muted); margin-bottom: 8px; }
+    .click-hint { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: .82rem; color: var(--text); font-family: monospace; }
+    .click-hint.green { border-color: rgba(34,197,94,.4); color: var(--green); background: rgba(34,197,94,.07); }
+    .click-hint.orange { border-color: rgba(255,109,90,.4); color: var(--orange2); background: rgba(255,109,90,.07); }
+    .click-hint.blue { border-color: rgba(96,165,250,.4); color: var(--blue); background: rgba(96,165,250,.07); }
+    .click-hint.pink { border-color: rgba(236,72,153,.4); color: var(--pink); background: rgba(236,72,153,.07); }
+    .click-hint.cyan { border-color: rgba(6,182,212,.4); color: var(--cyan); background: rgba(6,182,212,.07); }
+    .hints { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .screen-mock { background: #0b0c18; border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-top: 12px; font-size: .82rem; }
+    .field-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; padding: 8px 10px; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 6px; }
+    .field-label { color: var(--muted); font-size: .8rem; min-width: 120px; flex-shrink: 0; }
+    .field-val { color: var(--green); font-family: monospace; font-size: .82rem; word-break: break-all; }
+
+    .code-mock { background: #0b0c18; border: 1px solid rgba(236,72,153,.3); border-radius: 10px; overflow: hidden; margin-top: 10px; }
+    .code-mock .code-header { display: flex; align-items: center; padding: 8px 14px; border-bottom: 1px solid var(--border); background: rgba(236,72,153,.06); }
+    .code-mock .code-lang { font-size: 11px; color: var(--pink); font-weight: 700; }
+    .code-mock pre { padding: 16px; font-family: "Consolas", monospace; font-size: .82rem; color: #f8f8f2; line-height: 1.75; overflow-x: auto; }
+
+    .terminal-box { background: #000d00; border: 1px solid rgba(34,197,94,.4); border-radius: 10px; padding: 16px; margin-top: 12px; }
+    .terminal-box .t-label { color: var(--green); font-size: .78rem; font-weight: 700; margin-bottom: 8px; }
+    .terminal-box pre { font-family: monospace; font-size: .82rem; color: #a8ff78; line-height: 1.7; }
+    .terminal-box .t-prompt { color: #4ade80; }
+    .terminal-box .t-output { color: var(--muted); }
+
+    .test-ui {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
+    }
+    .test-ui-header { background: rgba(255,255,255,.04); padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+    .test-ui-header span { font-size: .9rem; font-weight: 700; }
+    .test-ui-body { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+    .chat-bubble { padding: 12px 16px; border-radius: 10px; font-size: .88rem; max-width: 80%; }
+    .chat-bubble.user { background: rgba(236,72,153,.15); border: 1px solid rgba(236,72,153,.3); align-self: flex-end; color: var(--text); }
+    .chat-bubble.ai { background: rgba(168,85,247,.1); border: 1px solid rgba(168,85,247,.25); align-self: flex-start; color: var(--text); }
+    .chat-label { font-size: .72rem; color: var(--muted); margin-bottom: 4px; }
+
+    .response-box { background: #0b0c18; border: 1px solid rgba(34,197,94,.3); border-radius: 10px; padding: 16px; margin-top: 12px; }
+    .response-box .rb-label { color: var(--green); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+    .response-box pre { font-family: monospace; font-size: .8rem; color: #e2e8f0; line-height: 1.7; }
+
+    .json-box { background: #0b0c18; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .json-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,.03); }
+    .json-header span { font-size: 12px; color: var(--muted); font-family: monospace; }
+    .copy-btn { background: rgba(255,255,255,.06); border: 1px solid var(--border); color: var(--text); padding: 4px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+    .copy-btn:hover { background: rgba(255,255,255,.12); }
+    .json-box pre { padding: 16px; overflow-x: auto; font-family: monospace; font-size: .78rem; color: #a8d8a8; line-height: 1.7; max-height: 400px; }
+    .how-to-import { background: rgba(96,165,250,.07); border: 1px solid rgba(96,165,250,.25); border-radius: 10px; padding: 16px 20px; margin-top: 12px; font-size: .88rem; color: var(--muted); }
+    .how-to-import strong { color: var(--blue); }
+    .warn-box { background: rgba(251,191,36,.07); border: 1px solid rgba(251,191,36,.3); border-radius: 10px; padding: 14px 18px; font-size: .88rem; color: var(--yellow); }
+
+    .nav-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding: 20px 24px; }
+    .nav-btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); background: var(--card); border: 1px solid var(--border); padding: 10px 18px; border-radius: 8px; font-size: .9rem; font-weight: 600; transition: border-color .2s; }
+    .nav-btn:hover { border-color: var(--pink); }
+    .nav-btn.next { background: var(--pink); color: #fff; border-color: var(--pink); }
+    .nav-btn.next:hover { background: #db2777; }
+
+    /* Live test area */
+    .live-test { background: var(--card); border: 1px solid rgba(236,72,153,.3); border-radius: 14px; padding: 24px; }
+    .live-test h3 { font-size: 1rem; font-weight: 700; margin-bottom: 12px; color: var(--pink); }
+    .live-test input { width: 100%; background: #0b0c18; border: 1px solid var(--border); color: var(--text); padding: 10px 14px; border-radius: 8px; font-size: .9rem; outline: none; margin-bottom: 10px; }
+    .live-test input:focus { border-color: var(--pink); }
+    .live-test button { background: var(--pink); color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-size: .9rem; font-weight: 700; cursor: pointer; }
+    .live-test button:hover { background: #db2777; }
+    #test-output { background: #0b0c18; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-top: 12px; font-family: monospace; font-size: .82rem; color: var(--muted); min-height: 60px; white-space: pre-wrap; display: none; }
+  </style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="index.html">🏠 n8n Zero to Hero</a>
+  <span class="sep">›</span>
+  <span class="current">Demo 05 — Webhook AI Chatbot</span>
+</nav>
+
+<div class="hero">
+  <div class="demo-badge">Demo 05 · Advanced</div>
+  <h1>Live <span>Webhook + AI</span> Chatbot</h1>
+  <p>Create a real HTTP endpoint. POST any question to it and get an AI-generated answer back instantly. This is a production-ready microservice in 3 nodes.</p>
+</div>
+
+<div class="wrap">
+
+  <div class="goal-box">
+    <h3>🎯 Goal</h3>
+    <p>Build a Webhook-triggered workflow that accepts a JSON <code>{"question": "..."}</code> payload, runs it through an LLM, and responds with <code>{"answer": "..."}</code>. Callable from Python, curl, Postman, or any frontend.</p>
+  </div>
+
+  <!-- Architecture -->
+  <div>
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:16px">📊 Workflow Architecture</h2>
+    <div class="flow-diagram">
+      <div class="node webhook-node">
+        <div class="node-icon">🪝</div>
+        <div class="node-type">Trigger</div>
+        <div class="node-name">Webhook</div>
+        <div class="node-sub">POST /ask-ai</div>
+      </div>
+      <div class="connector">
+        <svg viewBox="0 0 48 24"><line x1="0" y1="12" x2="38" y2="12" stroke="#2e3058" stroke-width="2"/><polygon points="38,7 48,12 38,17" fill="#2e3058"/></svg>
+      </div>
+      <div class="node ai">
+        <div class="node-icon">🤖</div>
+        <div class="node-type">AI</div>
+        <div class="node-name">LLM Chain</div>
+        <div class="node-sub">answer question</div>
+      </div>
+      <div class="connector">
+        <svg viewBox="0 0 48 24"><line x1="0" y1="12" x2="38" y2="12" stroke="#2e3058" stroke-width="2"/><polygon points="38,7 48,12 38,17" fill="#2e3058"/></svg>
+      </div>
+      <div class="node response-node">
+        <div class="node-icon">📤</div>
+        <div class="node-type">Response</div>
+        <div class="node-name">Respond to Webhook</div>
+        <div class="node-sub">return JSON</div>
+      </div>
+    </div>
+    <p style="font-size:.82rem;color:var(--muted);margin-top:10px;text-align:center">
+      Pink = Webhook trigger &nbsp;|&nbsp; Cyan = Response node &nbsp;|&nbsp; This workflow IS a REST API
+    </p>
+  </div>
+
+  <!-- Steps -->
+  <div class="steps">
+    <h2>📋 Step-by-Step Instructions</h2>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h3>Create workflow + Webhook Trigger</h3>
+        <p>New workflow "05 - Webhook AI". This time we start with a <strong>Webhook</strong> node instead of Manual Trigger.</p>
+        <div class="hints">
+          <span class="click-hint green">➕ New workflow → "05 - Webhook AI"</span>
+          <span class="click-hint orange">🔍 Search: "Webhook"</span>
+          <span class="click-hint pink">Click: Webhook</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h3>Configure the Webhook node</h3>
+        <p>Click the Webhook node to open settings. Set it up as a POST endpoint:</p>
+        <div class="screen-mock">
+          <div style="color:var(--muted);font-size:.78rem;margin-bottom:10px">Webhook — Settings</div>
+          <div class="field-row">
+            <div class="field-label">HTTP Method</div>
+            <div class="field-val">POST</div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Path</div>
+            <div class="field-val">ask-ai</div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Response Mode</div>
+            <div class="field-val">Using "Respond to Webhook" node</div>
+          </div>
+        </div>
+        <div class="hints" style="margin-top:10px">
+          <span class="click-hint pink">HTTP Method: POST</span>
+          <span class="click-hint pink">Path: ask-ai</span>
+          <span class="click-hint pink">Response Mode: "Respond to Webhook" node</span>
+        </div>
+        <p style="margin-top:10px;font-size:.82rem;color:var(--muted)">After setting the path, n8n shows you the webhook URL. Note it down:</p>
+        <div class="screen-mock" style="margin-top:8px">
+          <div style="color:var(--muted);font-size:.78rem;margin-bottom:6px">Your webhook URL (test mode):</div>
+          <div style="color:var(--pink);font-family:monospace;font-size:.85rem">http://localhost:5678/webhook-test/ask-ai</div>
+          <div style="color:var(--muted);font-size:.78rem;margin-top:8px">Production URL (after activating):</div>
+          <div style="color:var(--cyan);font-family:monospace;font-size:.85rem">http://localhost:5678/webhook/ask-ai</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h3>Add LLM Chain node</h3>
+        <p>Hover Webhook → click <strong>+</strong> → add <strong>Basic LLM Chain</strong>. Connect your Chat Model sub-node.</p>
+        <p style="margin-top:8px;font-size:.82rem">Set the prompt to reference the incoming webhook body:</p>
+        <div class="screen-mock">
+          <div style="color:var(--muted);font-size:.78rem;margin-bottom:10px">Basic LLM Chain — Prompt</div>
+          <div class="field-row">
+            <div class="field-label">Prompt</div>
+            <div class="field-val">={{ $json.body.question }}</div>
+          </div>
+        </div>
+        <div class="hints" style="margin-top:8px">
+          <span class="click-hint blue">Prompt: ={{ $json.body.question }}</span>
+        </div>
+        <p style="margin-top:8px;font-size:.82rem;color:var(--muted)"><code>$json.body</code> is the parsed JSON from the POST request body. <code>.question</code> is the field we'll send.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h3>Add "Respond to Webhook" node</h3>
+        <p>This node sends the HTTP response back to the caller. Hover LLM Chain → click <strong>+</strong>.</p>
+        <div class="hints">
+          <span class="click-hint orange">🔍 Search: "Respond to Webhook"</span>
+          <span class="click-hint cyan">Click: Respond to Webhook</span>
+        </div>
+        <p style="margin-top:8px;font-size:.82rem">Configure the response body:</p>
+        <div class="screen-mock">
+          <div style="color:var(--muted);font-size:.78rem;margin-bottom:10px">Respond to Webhook — Settings</div>
+          <div class="field-row">
+            <div class="field-label">Respond With</div>
+            <div class="field-val">JSON</div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Response Body</div>
+            <div class="field-val">={{ { "answer": $json.text, "status": "ok" } }}</div>
+          </div>
+        </div>
+        <div class="hints" style="margin-top:8px">
+          <span class="click-hint cyan">Respond With: JSON</span>
+          <span class="click-hint cyan">Body: ={{ { "answer": $json.text, "status": "ok" } }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <h3>Activate test mode & get the URL</h3>
+        <p>Click <strong>"Listen for test event"</strong> on the Webhook node — this puts it in listening mode so you can send a test request.</p>
+        <div class="hints">
+          <span class="click-hint pink">Click Webhook node → "Listen for test event"</span>
+        </div>
+        <p style="margin-top:8px;font-size:.82rem;color:var(--muted)">The node now shows a "Listening..." badge. Your test URL is active.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <h3>Test with curl or Python</h3>
+        <p>Open a new terminal or Python script and send a POST request:</p>
+
+        <div class="code-mock">
+          <div class="code-header"><span class="code-lang">Terminal — curl</span></div>
+          <pre>curl -X POST http://localhost:5678/webhook-test/ask-ai \
+     -H "Content-Type: application/json" \
+     -d '{"question": "What is gradient descent in 2 sentences?"}'</pre>
+        </div>
+
+        <div class="code-mock" style="border-color:rgba(251,191,36,.3);">
+          <div class="code-header" style="background:rgba(251,191,36,.06)"><span class="code-lang" style="color:var(--yellow)">🐍 Python — requests</span></div>
+          <pre>import requests
+
+response = requests.post(
+    "http://localhost:5678/webhook-test/ask-ai",
+    json={"question": "What is gradient descent in 2 sentences?"}
+)
+
+data = response.json()
+print(data["answer"])</pre>
+        </div>
+
+        <div class="response-box" style="margin-top:10px">
+          <div class="rb-label">✓ Response JSON</div>
+          <pre>{
+  "answer": "Gradient descent is an optimization algorithm that iteratively adjusts model parameters in the direction that minimizes a loss function. It's the backbone of training neural networks — each step moves the weights slightly toward a lower loss.",
+  "status": "ok"
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">7</div>
+      <div class="step-body">
+        <h3>Activate the workflow for production</h3>
+        <p>Once tested, toggle the workflow <strong>Active</strong> in the top-right. This switches from the test URL to the production URL:</p>
+        <div class="hints">
+          <span class="click-hint green">Toggle "Active" switch (top-right of editor)</span>
+        </div>
+        <div class="screen-mock">
+          <div style="color:var(--muted);font-size:.78rem;margin-bottom:6px">Production URL (always on):</div>
+          <div style="color:var(--cyan);font-family:monospace;font-size:.85rem">http://localhost:5678/webhook/ask-ai</div>
+        </div>
+        <p style="margin-top:8px;font-size:.82rem;color:var(--muted)">The workflow now runs 24/7 as long as n8n Docker is running. This IS a microservice.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">8</div>
+      <div class="step-body">
+        <h3>🏆 Challenge: Add a system persona</h3>
+        <p>Modify the LLM Chain to add a System Message that gives the AI a specific role:</p>
+        <div class="screen-mock">
+          <div style="color:var(--muted);font-size:.78rem;margin-bottom:8px">Messages → System Message</div>
+          <div class="field-row">
+            <div class="field-label">Content</div>
+            <div class="field-val">You are a senior ML engineer with 10 years of experience. Answer concisely and practically. Always give a Python code example if relevant.</div>
+          </div>
+        </div>
+        <p style="margin-top:8px;font-size:.82rem;color:var(--muted)">Also try adding a <code>context</code> field in the POST body and referencing it: <code>={{ $json.body.context + "\n\n" + $json.body.question }}</code></p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Live test widget -->
+  <div class="live-test">
+    <h3>🧪 Live Test (if your n8n is running)</h3>
+    <p style="color:var(--muted);font-size:.85rem;margin-bottom:12px">After activating the workflow, test it directly from this page:</p>
+    <input type="text" id="q-input" placeholder='Enter a question, e.g.: "Explain backpropagation"' />
+    <button onclick="testWebhook()">Send to n8n →</button>
+    <pre id="test-output"></pre>
+  </div>
+
+  <!-- Import JSON -->
+  <div>
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:14px">📥 Import This Workflow</h2>
+    <div class="json-box">
+      <div class="json-header">
+        <span>webhook-ai.json</span>
+        <button class="copy-btn" onclick="copyJson()">📋 Copy JSON</button>
+      </div>
+      <pre id="wf-json">{
+  "name": "05 - Webhook AI Chatbot",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ask-ai",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "e1000001-0005-0005-0005-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [180, 300],
+      "webhookId": "ask-ai-webhook-id"
+    },
+    {
+      "parameters": {
+        "prompt": "={{ $json.body.question }}",
+        "messages": {
+          "messageValues": [
+            {
+              "type": "SystemMessage",
+              "message": "You are a senior ML engineer. Answer concisely and practically. Give Python examples when relevant."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e1000001-0005-0005-0005-000000000002",
+      "name": "Answer Question",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "model": "llama3",
+        "options": {}
+      },
+      "id": "e1000001-0005-0005-0005-000000000003",
+      "name": "Ollama Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [400, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"answer\": $json.text, \"status\": \"ok\", \"model\": \"llama3\" } }}",
+        "options": {}
+      },
+      "id": "e1000001-0005-0005-0005-000000000004",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [620, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Answer Question", "type": "main", "index": 0 }]]
+    },
+    "Answer Question": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [[{ "node": "Answer Question", "type": "ai_languageModel", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}</pre>
+    </div>
+    <div class="how-to-import">
+      <strong>Import:</strong> ⋯ → Import from JSON → paste → Import. Set Ollama base URL. Then toggle <strong>Active</strong> and send your first POST request.
+    </div>
+  </div>
+
+  <div class="goal-box" style="border-left-color:var(--cyan)">
+    <h3 style="color:var(--cyan)">🐍 Python Comparison</h3>
+    <p>
+      This workflow is equivalent to a Flask/FastAPI endpoint:<br>
+      <code style="font-family:monospace;color:var(--green);font-size:.85rem">@app.post("/ask-ai")<br>
+def ask(q: QuestionModel):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;return {"answer": llm.invoke(q.question)}</code><br><br>
+      Except n8n gives you logging, retry logic, execution history, error handling, and UI — for free, with zero code.
+    </p>
+  </div>
+
+</div>
+
+<div class="nav-footer">
+  <a href="04-python-code.html" class="nav-btn">← Demo 04</a>
+  <a href="06-ai-agent.html" class="nav-btn next">Demo 06: AI Agent →</a>
+</div>
+
+<script>
+function copyJson() {
+  const text = document.getElementById('wf-json').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy JSON', 2000);
+  });
+}
+
+async function testWebhook() {
+  const question = document.getElementById('q-input').value.trim();
+  if (!question) return;
+  const output = document.getElementById('test-output');
+  output.style.display = 'block';
+  output.textContent = '⏳ Sending to n8n...';
+  try {
+    const res = await fetch('http://localhost:5678/webhook/ask-ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question })
+    });
+    const data = await res.json();
+    output.textContent = JSON.stringify(data, null, 2);
+    output.style.color = '#a8d8a8';
+  } catch (e) {
+    output.textContent = '❌ Could not connect to n8n. Make sure:\n1. n8n is running at localhost:5678\n2. The workflow is ACTIVE (not just in test mode)\n3. Webhook path is "ask-ai"';
+    output.style.color = '#ff9c8a';
+  }
+}
+</script>
+</body>
+</html>

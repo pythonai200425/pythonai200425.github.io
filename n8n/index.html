@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>N8N — Zero to Hero</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%23ff6d5a'/><text x='32' y='46' text-anchor='middle' font-family='Arial' font-size='28' font-weight='900' fill='white'>n8n</text></svg>">
+  <style>
+    :root {
+      --bg:      #08080f;
+      --card-bg: #0e0e1c;
+      --border:  #1a1a2e;
+      --text:    #e4e8f0;
+      --muted:   #7a8899;
+      --orange:  #ff6d5a;
+      --purple:  #9d5ff5;
+      --green:   #34d399;
+      --blue:    #60a5fa;
+      --yellow:  #fbbf24;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    #progress {
+      position: fixed; top: 0; left: 0; height: 3px;
+      background: linear-gradient(90deg, #ff6d5a, #9d5ff5, #34d399, #ff6d5a);
+      background-size: 300%; z-index: 200; width: 0; transition: width .1s;
+      animation: shimmer 4s linear infinite;
+    }
+    @keyframes shimmer { 0%{background-position:0%} 100%{background-position:300%} }
+    #stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+    .deco {
+      position: fixed; font-family: 'Courier New', monospace; font-size: .7rem;
+      opacity: .055; pointer-events: none; z-index: 1; color: #ff6d5a;
+      white-space: nowrap; animation: floatUp var(--dur,24s) linear infinite;
+    }
+    @keyframes floatUp { from{transform:translateY(110vh)} to{transform:translateY(-140px)} }
+    body::before {
+      content:''; position:fixed; inset:0; z-index:0;
+      background-image: linear-gradient(rgba(255,109,90,.025) 1px,transparent 1px),
+                        linear-gradient(90deg,rgba(255,109,90,.025) 1px,transparent 1px);
+      background-size: 52px 52px; pointer-events:none;
+    }
+    header {
+      position: relative; z-index: 2;
+      text-align: center; padding: 100px 20px 70px;
+    }
+    .header-icon { font-size: 5rem; display:block; margin-bottom:20px;
+      animation: float 3.5s ease-in-out infinite;
+      filter: drop-shadow(0 0 28px rgba(255,109,90,.5));
+    }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
+    header h1 {
+      font-size: clamp(2.4rem,5.5vw,4rem); font-weight: 900;
+      background: linear-gradient(135deg, #ff6d5a, #9d5ff5, #34d399, #ff6d5a);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; background-size: 300%;
+      animation: shimmer 6s ease infinite; letter-spacing: -.02em; margin-bottom: 14px;
+    }
+    .header-sub {
+      font-family: 'Courier New', monospace; font-size: .92rem;
+      color: var(--orange); opacity: .8; letter-spacing: .08em; margin-bottom: 30px;
+    }
+    .stats-row { display:flex; justify-content:center; gap:12px; flex-wrap:wrap; }
+    .stat-pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: rgba(255,109,90,.1); border: 1px solid rgba(255,109,90,.25);
+      border-radius: 999px; padding: 8px 20px; font-size: .84rem; color: var(--orange);
+      animation: pulse 3s ease-in-out infinite;
+    }
+    .stat-pill:nth-child(2){color:var(--purple);background:rgba(157,95,245,.1);border-color:rgba(157,95,245,.25);animation-delay:.4s}
+    .stat-pill:nth-child(3){color:var(--green);background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.25);animation-delay:.8s}
+    @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 transparent} 50%{box-shadow:0 0 16px 4px rgba(255,109,90,.15)} }
+
+    .section { position:relative;z-index:2;max-width:1100px;margin:0 auto;padding:0 24px; }
+    .section-heading {
+      display:flex; align-items:center; gap:16px; margin-bottom:32px; padding-top:60px;
+    }
+    .section-heading::before {
+      content:''; width:4px; height:36px; border-radius:4px;
+      background: var(--orange); box-shadow:0 0 12px var(--orange);
+    }
+    .section-heading h2 {
+      font-size:1.6rem; font-weight:800;
+      background:linear-gradient(90deg,var(--orange),#ffb3a7);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    }
+    .section-heading .badge {
+      font-size:.7rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+      color:var(--orange); background:rgba(255,109,90,.12); border:1px solid rgba(255,109,90,.3);
+      border-radius:999px; padding:3px 12px;
+    }
+    .section-heading::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--border) 60%,transparent); }
+
+    .demos-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+      gap: 22px; margin-bottom: 60px;
+    }
+    .demo-card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 20px; padding: 28px 26px 24px;
+      text-decoration: none; color: inherit; position: relative; overflow: hidden;
+      display: flex; flex-direction: column; gap: 0;
+      opacity: 0; transform: translateY(40px);
+      animation: cardIn .6s ease forwards;
+      transition: transform .3s, box-shadow .3s, border-color .3s;
+    }
+    .demo-card::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:3px;
+      border-radius:20px 20px 0 0; background:var(--c,var(--orange));
+    }
+    .demo-card::after {
+      content:''; position:absolute; inset:0;
+      background:radial-gradient(circle at 80% 20%, color-mix(in srgb,var(--c,var(--orange)) 8%,transparent),transparent 60%);
+      pointer-events:none; opacity:0; transition:opacity .3s;
+    }
+    .demo-card:hover::after { opacity:1; }
+    .demo-card:hover {
+      transform:translateY(-10px) scale(1.01);
+      border-color:var(--c,var(--orange));
+      box-shadow:0 28px 60px color-mix(in srgb,var(--c,var(--orange)) 22%,transparent),
+                 0 0 0 1px color-mix(in srgb,var(--c,var(--orange)) 20%,transparent);
+    }
+    @keyframes cardIn { to{opacity:1;transform:translateY(0)} }
+
+    .demo-num {
+      position:absolute; top:20px; right:22px;
+      font-family:'Courier New',monospace; font-size:.7rem;
+      color:color-mix(in srgb,var(--c,var(--orange)) 50%,transparent);
+      font-weight:700; letter-spacing:.12em;
+    }
+    .demo-icon { font-size:2.6rem; line-height:1; margin-bottom:18px; display:inline-block;
+      animation:breathe 4s ease-in-out infinite; }
+    @keyframes breathe { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+    .diff-badge {
+      font-size:.65rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+      color:var(--c,var(--orange)); background:color-mix(in srgb,var(--c,var(--orange)) 12%,transparent);
+      border:1px solid color-mix(in srgb,var(--c,var(--orange)) 28%,transparent);
+      border-radius:999px; padding:3px 10px; display:inline-block; margin-bottom:12px;
+    }
+    .demo-card h2 { font-size:1.18rem; font-weight:700; line-height:1.35; margin-bottom:8px; }
+    .demo-card p  { font-size:.875rem; color:var(--muted); line-height:1.6; flex:1; }
+    .flow-mini {
+      display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+      margin:16px 0; font-family:'Courier New',monospace; font-size:.72rem;
+    }
+    .fn { background:rgba(255,109,90,.12); border:1px solid rgba(255,109,90,.2); color:var(--orange);
+           border-radius:6px; padding:3px 9px; }
+    .fn.p { background:rgba(157,95,245,.12); border-color:rgba(157,95,245,.2); color:var(--purple); }
+    .fn.g { background:rgba(52,211,153,.12); border-color:rgba(52,211,153,.2); color:var(--green); }
+    .fn.b { background:rgba(96,165,250,.12); border-color:rgba(96,165,250,.2); color:var(--blue); }
+    .fn.y { background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.2); color:var(--yellow); }
+    .arr { color:var(--muted); }
+    .demo-arrow {
+      margin-top:20px; padding-top:16px; border-top:1px solid var(--border);
+      font-size:.8rem; color:var(--c,var(--orange)); display:flex;
+      align-items:center; gap:6px; opacity:.75; transition:gap .2s,opacity .2s;
+    }
+    .demo-card:hover .demo-arrow { gap:14px; opacity:1; }
+    .demo-arrow .a { transition:transform .2s; }
+    .demo-card:hover .demo-arrow .a { transform:translateX(4px); }
+
+    footer {
+      position:relative;z-index:2;text-align:center;
+      padding:36px 28px; color:var(--muted); font-size:.82rem;
+      border-top:1px solid var(--border); margin-top:40px;
+    }
+    .footer-code { font-family:'Courier New',monospace; font-size:.75rem; margin-top:8px; opacity:.4; }
+    .footer-code .o{color:var(--orange)} .footer-code .p{color:var(--purple)} .footer-code .g{color:var(--green)}
+
+    @media(max-width:600px){ header{padding:70px 16px 50px} .demos-grid{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+<div id="progress"></div>
+<canvas id="stars"></canvas>
+
+<div class="deco" style="left:4%;--dur:26s;animation-delay:0s">workflow.execute() → nodes.run() → output.return()</div>
+<div class="deco" style="left:18%;--dur:22s;animation-delay:8s">HTTP_Request → AI_Chain → Respond_Webhook</div>
+<div class="deco" style="left:33%;--dur:30s;animation-delay:14s">agent.tools = [search, code, http] → agent.run(prompt)</div>
+<div class="deco" style="left:50%;--dur:24s;animation-delay:5s">trigger → set → llm_chain → output</div>
+<div class="deco" style="left:65%;--dur:28s;animation-delay:19s">webhook.post("/chat") → openai.complete() → respond()</div>
+<div class="deco" style="left:80%;--dur:20s;animation-delay:10s">n8n.connect(python, ai, api, webhook)</div>
+<div class="deco" style="left:91%;--dur:33s;animation-delay:3s">schedule → fetch → summarize → notify</div>
+
+<header>
+  <span class="header-icon">⚡</span>
+  <h1>N8N — Zero to Hero</h1>
+  <p class="header-sub">localhost:5678 &nbsp;·&nbsp; Docker &nbsp;·&nbsp; AI Workflows</p>
+  <div class="stats-row">
+    <div class="stat-pill">⚡ 5 Demos</div>
+    <div class="stat-pill">🤖 LLM + Agents</div>
+    <div class="stat-pill">🐍 Python Friendly</div>
+  </div>
+</header>
+
+<div class="section">
+  <div class="section-heading">
+    <h2>Demos</h2>
+    <span class="badge">From Zero to Hero</span>
+  </div>
+
+  <div class="demos-grid">
+
+    <a class="demo-card" href="01_hello_world/index.html" style="--c:#ff6d5a;animation-delay:.08s">
+      <span class="demo-num">DEMO 01</span>
+      <span class="demo-icon">👋</span>
+      <span class="diff-badge">Beginner</span>
+      <h2>Hello World</h2>
+      <p>Your first N8N workflow. Learn the canvas, add nodes, connect them, and run your first execution.</p>
+      <div class="flow-mini">
+        <span class="fn">Manual Trigger</span><span class="arr">→</span>
+        <span class="fn p">Set</span>
+      </div>
+      <div class="demo-arrow">Open demo <span class="a">→</span></div>
+    </a>
+
+    <a class="demo-card" href="02_http_api/index.html" style="--c:#9d5ff5;animation-delay:.16s">
+      <span class="demo-num">DEMO 02</span>
+      <span class="demo-icon">🌐</span>
+      <span class="diff-badge" style="color:var(--purple);background:rgba(157,95,245,.12);border-color:rgba(157,95,245,.28)">Beginner+</span>
+      <h2>HTTP Request + Data</h2>
+      <p>Fetch data from a public API, inspect the JSON output, and transform fields using the Code node.</p>
+      <div class="flow-mini">
+        <span class="fn">Manual Trigger</span><span class="arr">→</span>
+        <span class="fn p">HTTP Request</span><span class="arr">→</span>
+        <span class="fn g">Code</span>
+      </div>
+      <div class="demo-arrow">Open demo <span class="a">→</span></div>
+    </a>
+
+    <a class="demo-card" href="03_llm/index.html" style="--c:#60a5fa;animation-delay:.24s">
+      <span class="demo-num">DEMO 03</span>
+      <span class="demo-icon">🧠</span>
+      <span class="diff-badge" style="color:var(--blue);background:rgba(96,165,250,.12);border-color:rgba(96,165,250,.28)">Intermediate</span>
+      <h2>LLM Integration</h2>
+      <p>Connect to OpenAI or a local Ollama model. Send prompts, get completions — everything you know from Python, now visual.</p>
+      <div class="flow-mini">
+        <span class="fn">Manual Trigger</span><span class="arr">→</span>
+        <span class="fn b">LLM Chain</span><span class="arr">→</span>
+        <span class="fn g">Output</span>
+      </div>
+      <div class="demo-arrow">Open demo <span class="a">→</span></div>
+    </a>
+
+    <a class="demo-card" href="04_webhook/index.html" style="--c:#fbbf24;animation-delay:.32s">
+      <span class="demo-num">DEMO 04</span>
+      <span class="demo-icon">🪝</span>
+      <span class="diff-badge" style="color:var(--yellow);background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.28)">Intermediate</span>
+      <h2>Webhook Chatbot API</h2>
+      <p>Build an HTTP endpoint that receives a POST request, runs AI processing, and returns a response. Test it with Python.</p>
+      <div class="flow-mini">
+        <span class="fn y">Webhook</span><span class="arr">→</span>
+        <span class="fn b">LLM Chain</span><span class="arr">→</span>
+        <span class="fn p">Respond</span>
+      </div>
+      <div class="demo-arrow">Open demo <span class="a">→</span></div>
+    </a>
+
+    <a class="demo-card" href="05_agent/index.html" style="--c:#34d399;animation-delay:.40s">
+      <span class="demo-num">DEMO 05</span>
+      <span class="demo-icon">🤖</span>
+      <span class="diff-badge" style="color:var(--green);background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.28)">Advanced</span>
+      <h2>AI Agent + Tools</h2>
+      <p>Build a full autonomous AI agent with memory, an HTTP tool, and a code execution tool. Chat with it live in N8N.</p>
+      <div class="flow-mini">
+        <span class="fn g">Chat Trigger</span><span class="arr">→</span>
+        <span class="fn b">AI Agent</span><span class="arr">→</span>
+        <span class="fn p">Tools + Memory</span>
+      </div>
+      <div class="demo-arrow">Open demo <span class="a">→</span></div>
+    </a>
+
+  </div>
+</div>
+
+<footer>
+  ⚡ N8N Zero to Hero &nbsp;|&nbsp; localhost:5678 &nbsp;|&nbsp; Docker
+  <div class="footer-code">
+    <span class="o">n8n</span>.<span class="p">start()</span> → <span class="g">workflows.forEach(w => w.automate())</span>
+  </div>
+</footer>
+
+<script>
+window.addEventListener('scroll', () => {
+  const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100;
+  document.getElementById('progress').style.width = (pct || 0) + '%';
+});
+(function(){
+  const canvas = document.getElementById('stars');
+  const ctx = canvas.getContext('2d');
+  let W, H, stars = [];
+  function resize(){ W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+  function init(n){ stars = []; for(let i=0;i<n;i++){ const isOrange = Math.random()<.2; stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.4+.2,a:Math.random(),da:(Math.random()*.004+.001)*(Math.random()<.5?1:-1),vx:(Math.random()-.5)*.08,vy:(Math.random()-.5)*.08,orange:isOrange}); } }
+  function tick(){ ctx.clearRect(0,0,W,H); stars.forEach(s=>{s.x=(s.x+s.vx+W)%W;s.y=(s.y+s.vy+H)%H;s.a+=s.da;if(s.a>1||s.a<0)s.da*=-1;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle=s.orange?`rgba(255,109,90,${s.a*.6})`:`rgba(148,163,184,${s.a})`;ctx.fill();}); requestAnimationFrame(tick); }
+  window.addEventListener('resize',()=>{resize();init(200)});
+  resize();init(200);tick();
+})();
+const obs = new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.style.animationPlayState='running';obs.unobserve(e.target);}});},{threshold:.08});
+document.querySelectorAll('.demo-card').forEach(c=>{c.style.animationPlayState='paused';obs.observe(c);});
+</script>
+</body>
+</html>

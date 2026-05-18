@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Demo 05 — AI Agent · N8N</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%23ff6d5a'/><text x='32' y='46' text-anchor='middle' font-family='Arial' font-size='28' font-weight='900' fill='white'>n8n</text></svg>">
+  <style>
+    :root{--bg:#0c0c18;--card:#111120;--card2:#16162a;--border:#1e1e32;--text:#e4e8f0;--muted:#6b7a90;--dim:#3a4456;--orange:#ff6d5a;--purple:#9d5ff5;--green:#34d399;--blue:#60a5fa;--yellow:#fbbf24;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;}
+    .top-nav{background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;position:sticky;top:0;z-index:100;height:52px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+    .nav-back{color:var(--yellow);text-decoration:none;font-size:.88rem;font-weight:700;}
+    .nav-back:hover{color:#fde68a;}
+    .nav-title{font-family:'Courier New',monospace;font-size:.8rem;color:var(--muted);letter-spacing:.06em;}
+    .nav-end{color:var(--orange);font-size:.88rem;font-weight:700;}
+    .hero{max-width:960px;margin:0 auto;padding:48px 24px 32px;}
+    .hero-tag{display:inline-block;padding:5px 12px;border-radius:999px;font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);color:var(--green);margin-bottom:16px;}
+    .hero h1{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:900;margin-bottom:12px;background:linear-gradient(120deg,#fff 30%,var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .hero p{color:var(--muted);font-size:1rem;line-height:1.7;max-width:680px;}
+    .flow-wrap{max-width:960px;margin:0 auto;padding:0 24px 32px;}
+    .flow-box{background:#08080f;border:1px solid var(--border);border-radius:14px;padding:28px 24px;}
+    .flow-main{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+    .flow-tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+    .n-node{background:var(--card);border:1px solid var(--nc,var(--border));border-radius:12px;padding:14px 18px;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:140px;transition:box-shadow .2s;}
+    .n-node:hover{box-shadow:0 0 0 1px var(--nc,var(--border)),0 8px 24px rgba(0,0,0,.4);}
+    .n-node.small{min-width:110px;padding:10px 12px;}
+    .n-icon{font-size:1.6rem;} .n-type{font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--nc,var(--muted));opacity:.8;} .n-name{font-size:.85rem;font-weight:700;color:var(--text);font-family:'Courier New',monospace;text-align:center;}
+    .n-arrow{font-size:1.6rem;color:var(--dim);align-self:center;}
+    .sub-label{font-size:.62rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;}
+    .flow-col{display:flex;flex-direction:column;align-items:center;gap:6px;}
+    .attach-line{width:1px;height:18px;background:var(--border);}
+    .tool-label{font-size:.68rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
+    .steps-wrap{max-width:960px;margin:0 auto;padding:0 24px 60px;}
+    .steps-label{font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--green);margin-bottom:20px;}
+    .step{display:flex;gap:16px;align-items:flex-start;margin-bottom:16px;}
+    .step-badge{width:40px;height:40px;border-radius:50%;background:var(--green);color:#000;display:grid;place-items:center;font-weight:900;font-size:1rem;flex-shrink:0;box-shadow:0 4px 14px rgba(52,211,153,.3);}
+    .step-badge.o{background:var(--orange);color:#fff;box-shadow:0 4px 14px rgba(255,109,90,.3);}
+    .step-badge.b{background:var(--blue);color:#fff;box-shadow:0 4px 14px rgba(96,165,250,.3);}
+    .step-badge.p{background:var(--purple);color:#fff;box-shadow:0 4px 14px rgba(157,95,245,.3);}
+    .step-badge.y{background:var(--yellow);color:#000;box-shadow:0 4px 14px rgba(251,191,36,.3);}
+    .step-body{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;flex:1;}
+    .step-body h3{font-size:1rem;font-weight:700;margin-bottom:6px;color:var(--text);}
+    .step-body p{font-size:.88rem;color:var(--muted);line-height:1.65;margin-bottom:8px;}
+    .step-body p:last-child{margin-bottom:0;}
+    .btn{display:inline-block;padding:4px 14px;border-radius:7px;font-size:.82rem;font-weight:700;cursor:default;margin:2px;}
+    .btn.orange{background:var(--orange);color:#fff;} .btn.ghost{background:var(--card2);border:1px solid var(--border);color:var(--text);}
+    .field{display:inline-block;font-family:'Courier New',monospace;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);border-radius:5px;padding:2px 8px;font-size:.84rem;color:var(--green);}
+    .val{display:inline-block;font-family:'Courier New',monospace;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.25);border-radius:5px;padding:2px 8px;font-size:.84rem;color:var(--blue);}
+    .note{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.22);border-radius:8px;padding:10px 14px;font-size:.85rem;color:#d4a30a;margin-top:10px;line-height:1.55;}
+    .note b{color:var(--yellow);}
+    .info{background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.22);border-radius:8px;padding:10px 14px;font-size:.85rem;color:var(--blue);margin-top:10px;line-height:1.55;}
+    .success{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.22);border-radius:8px;padding:10px 14px;font-size:.85rem;color:var(--green);margin-top:10px;}
+    .code-box{background:#040408;border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-family:'Courier New',monospace;font-size:.84rem;color:var(--text);margin-top:10px;line-height:1.7;white-space:pre-wrap;}
+    .code-box .k{color:var(--blue);font-weight:700;} .code-box .s{color:var(--green);} .code-box .fn{color:var(--purple);} .code-box .c{color:var(--dim);font-style:italic;} .code-box .n{color:var(--orange);}
+    .chat-demo{background:#040408;border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:10px;}
+    .chat-msg{display:flex;gap:10px;margin-bottom:14px;align-items:flex-start;}
+    .chat-msg:last-child{margin-bottom:0;}
+    .chat-avatar{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:1rem;flex-shrink:0;}
+    .chat-avatar.user{background:rgba(96,165,250,.2);}
+    .chat-avatar.ai{background:rgba(52,211,153,.2);}
+    .chat-bubble{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:.85rem;color:var(--text);line-height:1.6;flex:1;}
+    .chat-bubble.ai{border-color:rgba(52,211,153,.2);}
+    .chat-tool{font-size:.75rem;color:var(--muted);margin-top:6px;font-style:italic;}
+    .tool-chip{display:inline-block;background:rgba(157,95,245,.12);border:1px solid rgba(157,95,245,.25);border-radius:5px;padding:2px 8px;font-family:'Courier New',monospace;font-size:.75rem;color:var(--purple);margin:2px;}
+    .concept-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px;}
+    .concept-card{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:14px;}
+    .concept-icon{font-size:1.4rem;margin-bottom:8px;}
+    .concept-card h4{font-size:.9rem;font-weight:700;margin-bottom:4px;color:var(--text);}
+    .concept-card p{font-size:.8rem;color:var(--muted);line-height:1.5;}
+    .bottom-nav{max-width:960px;margin:0 auto;padding:0 24px 60px;display:flex;justify-content:space-between;align-items:center;}
+    .bottom-nav a{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:10px;text-decoration:none;font-weight:700;font-size:.9rem;transition:transform .2s;}
+    .bottom-nav a:hover{transform:translateY(-2px);}
+    .btn-back{background:var(--card);border:1px solid var(--border);color:var(--muted);}
+    .btn-home{background:var(--orange);color:#fff;box-shadow:0 4px 14px rgba(255,109,90,.3);}
+    @media(max-width:600px){.flow-main{flex-direction:column;}.n-arrow{transform:rotate(90deg)}.concept-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <a class="nav-back" href="../04_webhook/index.html">← Demo 04</a>
+  <span class="nav-title">DEMO 05 — AI Agent + Tools</span>
+  <span class="nav-end">🏆 Final Demo</span>
+</nav>
+
+<div class="hero">
+  <span class="hero-tag">Demo 05 · Advanced</span>
+  <h1>🤖 AI Agent + Tools</h1>
+  <p>Build a full autonomous AI agent — it decides which tools to use based on the question, maintains conversation memory, and you talk to it through N8N's built-in chat interface. This is the same architecture as ChatGPT plugins or LangChain agents, built visually.</p>
+</div>
+
+<!-- FLOW DIAGRAM -->
+<div class="flow-wrap">
+  <div class="flow-box">
+    <div class="flow-main">
+      <div class="n-node" style="--nc:#34d399"><span class="n-icon">💬</span><span class="n-type">Trigger</span><span class="n-name">Chat Trigger</span><span class="n-name" style="font-size:.7rem;color:var(--muted);">(N8N Chat UI)</span></div>
+      <div class="n-arrow">→</div>
+      <div class="flow-col">
+        <div class="n-node" style="--nc:#60a5fa"><span class="n-icon">🤖</span><span class="n-type">AI Core</span><span class="n-name">AI Agent</span></div>
+        <div class="attach-line"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+          <div class="n-node small" style="--nc:#9d5ff5"><span class="n-icon">🧠</span><span class="n-type" style="font-size:.55rem;">Model</span><span class="n-name" style="font-size:.72rem;">Chat Model</span><span class="sub-label">sub-node</span></div>
+          <div class="n-node small" style="--nc:#ff6d5a"><span class="n-icon">💾</span><span class="n-type" style="font-size:.55rem;">Memory</span><span class="n-name" style="font-size:.72rem;">Buffer Memory</span><span class="sub-label">sub-node</span></div>
+          <div class="n-node small" style="--nc:#fbbf24"><span class="n-icon">🌐</span><span class="n-type" style="font-size:.55rem;">Tool</span><span class="n-name" style="font-size:.72rem;">HTTP Request</span><span class="sub-label">sub-node</span></div>
+          <div class="n-node small" style="--nc:#34d399"><span class="n-icon">⚙️</span><span class="n-type" style="font-size:.55rem;">Tool</span><span class="n-name" style="font-size:.72rem;">Code Tool</span><span class="sub-label">sub-node</span></div>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:.73rem;color:var(--dim);margin-top:12px;">The AI Agent node is the brain. Everything below it (Model, Memory, Tools) are sub-nodes that give it capabilities. The agent decides when and how to use each tool.</p>
+  </div>
+</div>
+
+<div class="steps-wrap">
+  <div class="steps-label">Step by step</div>
+
+  <div class="step">
+    <div class="step-badge o">1</div>
+    <div class="step-body">
+      <h3>Add a Chat Trigger node</h3>
+      <p>New workflow → <span class="btn orange">+ Add first step</span> → search <span class="field">Chat Trigger</span> (full name: "When chat message received") → click it.</p>
+      <p>This is different from a Webhook trigger — it exposes a built-in chat UI at a special N8N URL, so you can test your agent without writing any Python.</p>
+      <div class="note"><b>Chat Trigger</b> automatically handles the conversation format. It passes each message to the next node and appends the response to the conversation history when Memory is attached.</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge">2</div>
+    <div class="step-body">
+      <h3>Add an AI Agent node</h3>
+      <p>Click <span class="btn orange">+</span> from Chat Trigger → search <span class="field">AI Agent</span> → click it.</p>
+      <p>In the right panel, set the <strong>System Message</strong>:</p>
+      <div class="code-box">You are an expert AI research assistant for a Python and ML class.
+You have access to tools to fetch live data from APIs.
+When asked about current data, use your HTTP tool.
+When asked to calculate or transform data, use your Code tool.
+Always explain your reasoning before giving the final answer.
+Keep responses clear and educational.</div>
+      <div class="note"><b>The AI Agent node</b> is an autonomous loop — the LLM decides what action to take, calls a tool, observes the result, and decides whether to call another tool or give the final answer. You don't hardcode the logic.</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge b">3</div>
+    <div class="step-body">
+      <h3>Attach a Chat Model sub-node</h3>
+      <p>Click the <span class="btn ghost">+ Model</span> attachment below the AI Agent → add <span class="field">OpenAI Chat Model</span>.</p>
+      <p>Set model to <span class="val">gpt-4o</span> — the agent needs a strong model to reason about tool use. GPT-4o works best.</p>
+      <div class="info">For Ollama users: use <span class="val">llama3.1</span> or <span class="val">qwen2.5</span> — these models support tool calling. Not all Ollama models do. Check with <code>ollama list</code>.</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge">4</div>
+    <div class="step-body">
+      <h3>Attach a Memory sub-node</h3>
+      <p>Click the <span class="btn ghost">+ Memory</span> attachment on the AI Agent → search <span class="field">Simple Memory</span> (also called "Window Buffer Memory") → add it.</p>
+      <p>Leave defaults — it keeps the last 10 messages as context.</p>
+      <div class="note"><b>Without memory</b> the agent forgets each message — every question is a fresh conversation. With memory it can answer follow-ups like "what was the second item?" or "summarize what we discussed".</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge y">5</div>
+    <div class="step-body">
+      <h3>Attach an HTTP Request Tool</h3>
+      <p>Click the <span class="btn ghost">+ Tool</span> attachment → search <span class="field">HTTP Request Tool</span> → add it.</p>
+      <p>Configure it:</p>
+      <p><strong>Name:</strong> <span class="val">fetch_post_data</span><br>
+         <strong>Description:</strong> <span class="val">Fetches data about a blog post by its ID (1-100). Input should be a post ID number.</span><br>
+         <strong>Method:</strong> <span class="val">GET</span><br>
+         <strong>URL:</strong> <span class="val">https://jsonplaceholder.typicode.com/posts/{{ $fromAI('post_id') }}</span></p>
+      <div class="note"><b>${"{"}$fromAI('post_id'){"}"}</b> is special — it tells N8N that the AI agent decides the value of <code>post_id</code> at runtime. The agent reads your description, understands what input the tool needs, and fills it in. This is how agent tool use works.</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge y">6</div>
+    <div class="step-body">
+      <h3>Attach a Code Tool</h3>
+      <p>Click <span class="btn ghost">+ Tool</span> → search <span class="field">Code Tool</span> → add it.</p>
+      <p>Configure:</p>
+      <p><strong>Name:</strong> <span class="val">calculate_stats</span><br>
+         <strong>Description:</strong> <span class="val">Performs mathematical calculations or text analysis. Input should be a JavaScript expression or transformation to run.</span></p>
+      <p>In the code body:</p>
+      <div class="code-box"><span class="c">// The agent passes its input via the 'query' variable</span>
+<span class="k">const</span> input = query;
+<span class="c">// Basic eval-style: return the result of a simple calculation</span>
+<span class="k">const</span> numbers = input.<span class="fn">match</span>(<span class="s">/\d+(\.\d+)?/g</span>)?.<span class="fn">map</span>(Number) || [];
+<span class="k">const</span> sum = numbers.<span class="fn">reduce</span>((a, b) => a + b, <span class="n">0</span>);
+<span class="k">const</span> avg = numbers.length ? (sum / numbers.length).<span class="fn">toFixed</span>(<span class="n">2</span>) : <span class="n">0</span>;
+<span class="k">return</span> <span class="s">`Numbers found: ${"{"}numbers{"}"}, Sum: ${"{"}sum{"}"}, Average: ${"{"}avg{"}"}`</span>;</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge p">7</div>
+    <div class="step-body">
+      <h3>Open the Chat UI and test</h3>
+      <p>Click <span class="btn orange">▶ Test workflow</span> — then click the <span class="btn ghost">💬 Chat</span> button that appears in the bottom right of the canvas (or the "Open Chat" link in the trigger panel).</p>
+      <p>A chat window opens. Try these messages:</p>
+      <div class="chat-demo">
+        <div class="chat-msg">
+          <div class="chat-avatar user">👤</div>
+          <div class="chat-bubble">Fetch post number 5 and tell me about it.</div>
+        </div>
+        <div class="chat-msg">
+          <div class="chat-avatar ai">🤖</div>
+          <div class="chat-bubble ai">
+            I'll fetch post #5 for you right now.<br>
+            <span class="tool-chip">🌐 Using tool: fetch_post_data(post_id=5)</span><br><br>
+            Post #5 is by user 1 with the title <em>"nesciunt quas odio"</em>. It discusses the difficulty of deciding when something is truly known versus guessed at — essentially touching on epistemology in a practical context. The post body contains 74 words.
+            <div class="chat-tool">↳ Called fetch_post_data → got JSON response → analyzed and summarized</div>
+          </div>
+        </div>
+        <div class="chat-msg">
+          <div class="chat-avatar user">👤</div>
+          <div class="chat-bubble">What was the user ID of that post? And can you calculate the average of 12, 45, 67, 23?</div>
+        </div>
+        <div class="chat-msg">
+          <div class="chat-avatar ai">🤖</div>
+          <div class="chat-bubble ai">
+            The user ID was <strong>1</strong> — I remember that from our previous exchange.<br><br>
+            For the average: <span class="tool-chip">⚙️ Using tool: calculate_stats([12, 45, 67, 23])</span><br><br>
+            Numbers: 12, 45, 67, 23 → Sum: 147 → <strong>Average: 36.75</strong>
+            <div class="chat-tool">↳ Remembered context (memory) + called calculate_stats</div>
+          </div>
+        </div>
+      </div>
+      <div class="success">✅ The agent used its memory (recalled userId from previous message), selected the right tool, called it with the correct input, and combined everything into a clear answer — all without you writing a single line of code.</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge p">8</div>
+    <div class="step-body">
+      <h3>Call the agent from Python</h3>
+      <p>Activate the workflow (toggle top right). The Chat Trigger also exposes a webhook endpoint. Find the URL in the trigger panel under <strong>Webhook URL</strong>.</p>
+      <div class="code-box"><span class="k">import</span> requests
+
+<span class="c"># Chat session ID groups messages into one conversation</span>
+CHAT_URL     = <span class="s">"http://localhost:5678/webhook/your-agent-id/chat"</span>
+SESSION_ID   = <span class="s">"python-session-001"</span>
+
+<span class="k">def</span> <span class="fn">ask_agent</span>(message):
+    response = requests.<span class="fn">post</span>(CHAT_URL, json={
+        <span class="s">"action"</span>:    <span class="s">"sendMessage"</span>,
+        <span class="s">"sessionId"</span>: SESSION_ID,
+        <span class="s">"chatInput"</span>:  message
+    })
+    <span class="k">return</span> response.<span class="fn">json</span>()[<span class="s">"output"</span>]
+
+<span class="c"># Multi-turn conversation</span>
+<span class="fn">print</span>(<span class="fn">ask_agent</span>(<span class="s">"Fetch post 3 and summarize it."</span>))
+<span class="fn">print</span>(<span class="fn">ask_agent</span>(<span class="s">"How long was the body text of that post?"</span>))  <span class="c"># uses memory</span>
+<span class="fn">print</span>(<span class="fn">ask_agent</span>(<span class="s">"Calculate the average word count of posts 1, 2, and 3."</span>))</div>
+    </div>
+  </div>
+
+  <!-- Concepts section -->
+  <div style="margin-top:32px;padding:20px;background:var(--card);border:1px solid var(--border);border-radius:14px;">
+    <div style="font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin-bottom:14px;">Agent Architecture — What You Just Built</div>
+    <div class="concept-grid">
+      <div class="concept-card">
+        <div class="concept-icon">🧠</div>
+        <h4>LLM Brain</h4>
+        <p>GPT-4o reads your message and the available tool descriptions, then decides: answer directly, or call a tool first?</p>
+      </div>
+      <div class="concept-card">
+        <div class="concept-icon">🛠️</div>
+        <h4>Tools</h4>
+        <p>Functions the agent can call. HTTP Request = browse web APIs. Code = run calculations. You define the name + description so the LLM knows when to use each one.</p>
+      </div>
+      <div class="concept-card">
+        <div class="concept-icon">💾</div>
+        <h4>Memory</h4>
+        <p>Previous messages are injected into every new prompt as context. The agent "remembers" your conversation without any extra code.</p>
+      </div>
+      <div class="concept-card">
+        <div class="concept-icon">🔄</div>
+        <h4>ReAct Loop</h4>
+        <p>Reason → Act → Observe → Repeat. The agent loops until it has enough information to give a final answer. This is the same pattern as LangChain agents or OpenAI function calling.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:20px;padding:20px;background:linear-gradient(135deg,rgba(52,211,153,.06),rgba(96,165,250,.06));border:1px solid rgba(52,211,153,.2);border-radius:14px;">
+    <div style="font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin-bottom:12px;">🏆 Zero to Hero — What You've Learned</div>
+    <div style="display:grid;gap:8px;">
+      <div style="display:flex;gap:10px;align-items:center;font-size:.88rem;"><span style="color:var(--orange);font-weight:700;">01</span><span style="color:var(--muted);">N8N canvas, nodes, connections, execution model</span></div>
+      <div style="display:flex;gap:10px;align-items:center;font-size:.88rem;"><span style="color:var(--purple);font-weight:700;">02</span><span style="color:var(--muted);">HTTP requests, JSON data, Code node transforms, IF branching</span></div>
+      <div style="display:flex;gap:10px;align-items:center;font-size:.88rem;"><span style="color:var(--blue);font-weight:700;">03</span><span style="color:var(--muted);">LLM integration (OpenAI / Ollama), system prompts, expressions</span></div>
+      <div style="display:flex;gap:10px;align-items:center;font-size:.88rem;"><span style="color:var(--yellow);font-weight:700;">04</span><span style="color:var(--muted);">Webhooks, HTTP API endpoints, testing with Python requests</span></div>
+      <div style="display:flex;gap:10px;align-items:center;font-size:.88rem;"><span style="color:var(--green);font-weight:700;">05</span><span style="color:var(--muted);">AI agents with tools, memory, ReAct loop — autonomous decision making</span></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="bottom-nav">
+  <a class="btn-back" href="../04_webhook/index.html">← Demo 04</a>
+  <a class="btn-home" href="../index.html">⚡ Back to All Demos</a>
+</div>
+
+</body>
+</html>
