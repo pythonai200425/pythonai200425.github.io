@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Assignment 3 — RAG with Word Document · AI Advanced</title>
+  <style>
+    :root {
+      --bg: #08080f; --card: #0e0e1c; --card2: #131325; --border: #1a1a2e;
+      --text: #e4e8f0; --muted: #7a8899;
+      --green: #22c55e; --gold: #f59e0b; --purple: #a855f7; --blue: #60a5fa; --orange: #f97316;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+    .top-nav {
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 0 24px; height: 52px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-back { color: var(--green); text-decoration: none; font-size: .88rem; font-weight: 700; }
+    .nav-back:hover { color: #86efac; }
+    .nav-title { font-family: 'Courier New', monospace; font-size: .8rem; color: var(--muted); }
+    .nav-pts { color: var(--gold); font-size: .88rem; font-weight: 700; }
+
+    .hero { max-width: 860px; margin: 0 auto; padding: 48px 24px 32px; }
+    .hero-tag {
+      display: inline-block; padding: 4px 12px; border-radius: 999px;
+      font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+      background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.28); color: var(--green); margin-bottom: 14px;
+    }
+    .hero h1 { font-size: clamp(1.6rem, 3.5vw, 2.4rem); font-weight: 900; margin-bottom: 10px; }
+    .hero p { color: var(--muted); font-size: .95rem; line-height: 1.7; max-width: 680px; }
+    .hero-meta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+    .meta-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--card2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 6px 14px; font-size: .82rem; color: var(--muted);
+    }
+    .meta-pill strong { color: var(--text); }
+
+    .wrap { max-width: 860px; margin: 0 auto; padding: 0 24px 60px; }
+
+    .section-heading {
+      font-size: .7rem; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+      color: var(--muted); margin: 32px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+    }
+
+    .pipeline {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 20px 24px; margin-bottom: 14px;
+    }
+    .pipe-node {
+      background: var(--card2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 16px; text-align: center; min-width: 110px;
+    }
+    .pipe-node .p-icon { font-size: 1.4rem; display: block; margin-bottom: 4px; }
+    .pipe-node .p-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .pipe-node .p-name { font-size: .82rem; font-weight: 700; color: var(--text); font-family: 'Courier New', monospace; }
+    .pipe-arrow { font-size: 1.4rem; color: #2a2a4a; }
+    .pipe-node.highlight { border-color: rgba(34,197,94,.35); }
+    .pipe-node.highlight .p-label { color: var(--green); }
+
+    .step { display: flex; gap: 16px; margin-bottom: 14px; align-items: flex-start; }
+    .step-badge {
+      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+      display: grid; place-items: center; font-weight: 900; font-size: .95rem;
+      background: var(--green); color: #000; box-shadow: 0 4px 14px rgba(34,197,94,.3);
+    }
+    .step-badge.purple { background: var(--purple); color: #fff; box-shadow: 0 4px 14px rgba(168,85,247,.3); }
+    .step-badge.blue   { background: var(--blue);   color: #fff; box-shadow: 0 4px 14px rgba(96,165,250,.3); }
+    .step-badge.gold   { background: var(--gold);   color: #000; box-shadow: 0 4px 14px rgba(245,158,11,.3); }
+    .step-body { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; flex: 1; }
+    .step-body h3 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+    .step-body p { font-size: .87rem; color: var(--muted); line-height: 1.65; }
+    .step-body p + p { margin-top: 6px; }
+
+    code { background: rgba(96,165,250,.1); color: var(--blue); padding: 1px 5px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: .88em; }
+
+    .code-box {
+      background: #040408; border: 1px solid var(--border); border-radius: 10px;
+      padding: 16px 18px; font-family: 'Courier New', monospace; font-size: .83rem;
+      color: var(--text); margin-top: 10px; line-height: 1.75; overflow-x: auto; white-space: pre;
+    }
+    .code-box .k  { color: var(--blue); font-weight: 700; }
+    .code-box .s  { color: var(--green); }
+    .code-box .c  { color: #3a4456; font-style: italic; }
+    .code-box .fn { color: var(--purple); }
+    .code-box .n  { color: var(--orange); }
+    .code-box .num { color: var(--gold); }
+
+    .note { background: rgba(245,158,11,.07); border: 1px solid rgba(245,158,11,.2); border-radius: 8px; padding: 10px 14px; font-size: .83rem; color: var(--gold); margin-top: 10px; line-height: 1.6; }
+    .info { background: rgba(96,165,250,.07); border: 1px solid rgba(96,165,250,.2); border-radius: 8px; padding: 10px 14px; font-size: .83rem; color: var(--blue); margin-top: 10px; line-height: 1.6; }
+    .success { background: rgba(34,197,94,.07); border: 1px solid rgba(34,197,94,.2); border-radius: 8px; padding: 10px 14px; font-size: .83rem; color: var(--green); margin-top: 10px; line-height: 1.6; }
+
+    .req-list { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
+    .req-list li { display: flex; gap: 10px; align-items: flex-start; font-size: .88rem; color: var(--muted); padding: 5px 0; list-style: none; }
+    .req-list li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
+    .req-list li strong { color: var(--text); }
+
+    .grading-box { background: rgba(34,197,94,.05); border: 1px solid rgba(34,197,94,.2); border-radius: 12px; padding: 20px 22px; margin-top: 14px; }
+    .grading-box h3 { font-size: .9rem; font-weight: 800; color: var(--green); margin-bottom: 12px; }
+    .grade-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: .85rem; }
+    .grade-row:last-child { border-bottom: none; }
+    .grade-pts { font-weight: 800; color: var(--gold); }
+
+    .ref-box { background: rgba(96,165,250,.06); border: 1px solid rgba(96,165,250,.2); border-radius: 10px; padding: 14px 18px; margin-top: 14px; }
+    .ref-box h3 { font-size: .82rem; font-weight: 700; color: var(--blue); margin-bottom: 8px; }
+    .ref-link { color: var(--blue); font-size: .85rem; text-decoration: none; display: block; margin-bottom: 4px; }
+    .ref-link:hover { text-decoration: underline; }
+
+    .bottom-nav { max-width: 860px; margin: 0 auto; padding: 0 24px 60px; display: flex; justify-content: space-between; }
+    .btn-nav { display: inline-flex; align-items: center; gap: 8px; padding: 10px 22px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: .9rem; transition: transform .2s; }
+    .btn-nav:hover { transform: translateY(-2px); }
+    .btn-back { background: var(--card); border: 1px solid var(--border); color: var(--muted); }
+    .btn-next { background: var(--green); color: #000; box-shadow: 0 4px 14px rgba(34,197,94,.3); }
+
+    @media(max-width:600px) { .pipeline { flex-direction: column; } .pipe-arrow { transform: rotate(90deg); } }
+  </style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <a class="nav-back" href="index.html">← Assignments</a>
+  <span class="nav-title">ASSIGNMENT 3 — RAG with Word Document</span>
+  <span class="nav-pts">20 pts</span>
+</nav>
+
+<div class="hero">
+  <span class="hero-tag">Assignment 3 · Coding</span>
+  <h1>📄 RAG — Chat with a Word Document</h1>
+  <p>Build a complete RAG pipeline that loads a <code>.docx</code> Word file, chunks it, stores the embeddings in ChromaDB, and lets you ask questions about the document's content.</p>
+  <div class="hero-meta">
+    <div class="meta-pill">🐍 <strong>Python</strong></div>
+    <div class="meta-pill">🔗 <strong>LangChain</strong></div>
+    <div class="meta-pill">📦 <strong>ChromaDB</strong></div>
+    <div class="meta-pill">📝 <strong>python-docx</strong></div>
+    <div class="meta-pill">🔑 <strong>OpenAI key OR free local</strong></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="section-heading">🔄 Pipeline Overview</div>
+
+  <div class="pipeline">
+    <div class="pipe-node highlight">
+      <span class="p-icon">📝</span>
+      <span class="p-label">Step 1</span>
+      <span class="p-name">Load .docx</span>
+    </div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-node highlight">
+      <span class="p-icon">✂️</span>
+      <span class="p-label">Step 2</span>
+      <span class="p-name">Chunk text</span>
+    </div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-node highlight">
+      <span class="p-icon">🔢</span>
+      <span class="p-label">Step 3</span>
+      <span class="p-name">Embed + Store</span>
+    </div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-node highlight">
+      <span class="p-icon">🔍</span>
+      <span class="p-label">Step 4</span>
+      <span class="p-name">Retrieve</span>
+    </div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-node highlight">
+      <span class="p-icon">🤖</span>
+      <span class="p-label">Step 5</span>
+      <span class="p-name">LLM Answer</span>
+    </div>
+  </div>
+
+  <div class="section-heading">📋 Requirements</div>
+
+  <ul class="req-list">
+    <li>Use a <strong>.docx Word document</strong> of your choice — any topic, min ~3–4 pages of content</li>
+    <li>Load it with LangChain's <strong>Docx2txtLoader</strong> (or <code>python-docx</code> manually)</li>
+    <li>Chunk the text using <strong>RecursiveCharacterTextSplitter</strong></li>
+    <li>Store embeddings in <strong>ChromaDB</strong></li>
+    <li>Ask at least <strong>5 questions</strong> about the document</li>
+    <li>Print both the <strong>LLM answer</strong> and the <strong>retrieved context chunks</strong> for each question</li>
+  </ul>
+
+  <div class="section-heading">💻 Setup</div>
+
+  <div class="step">
+    <div class="step-badge">1</div>
+    <div class="step-body">
+      <h3>Install dependencies</h3>
+      <div class="code-box">pip install langchain langchain-community langchain-openai chromadb docx2txt</div>
+      <div class="note">💡 If you don't have an OpenAI key, see the <strong>Free Version</strong> section at the bottom of this page.</div>
+    </div>
+  </div>
+
+  <div class="section-heading">📝 Full Code Scaffold</div>
+
+  <div class="step">
+    <div class="step-badge">2</div>
+    <div class="step-body">
+      <h3>Step 1–3 — Load, Chunk, and Store</h3>
+      <div class="code-box"><span class="k">import</span> os
+<span class="k">from</span> langchain_community.document_loaders <span class="k">import</span> Docx2txtLoader
+<span class="k">from</span> langchain.text_splitter <span class="k">import</span> RecursiveCharacterTextSplitter
+<span class="k">from</span> langchain_community.vectorstores <span class="k">import</span> Chroma
+<span class="k">from</span> langchain_openai <span class="k">import</span> OpenAIEmbeddings
+
+<span class="c"># ── STEP 1: Load the Word document ─────────────────────────</span>
+loader = <span class="fn">Docx2txtLoader</span>(<span class="s">"your_document.docx"</span>)  <span class="c"># ← change this</span>
+docs = loader.<span class="fn">load</span>()
+<span class="fn">print</span>(<span class="fn">f</span><span class="s">"Loaded </span>{<span class="fn">len</span>(docs)}<span class="s"> document(s)"</span>)
+
+<span class="c"># ── STEP 2: Split into chunks ───────────────────────────────</span>
+splitter = <span class="fn">RecursiveCharacterTextSplitter</span>(
+    chunk_size=<span class="num">500</span>,      <span class="c"># characters per chunk</span>
+    chunk_overlap=<span class="num">60</span>,    <span class="c"># overlap to preserve context at boundaries</span>
+)
+chunks = splitter.<span class="fn">split_documents</span>(docs)
+<span class="fn">print</span>(<span class="fn">f</span><span class="s">"Split into </span>{<span class="fn">len</span>(chunks)}<span class="s"> chunks"</span>)
+
+<span class="c"># ── STEP 3: Embed and store in ChromaDB ────────────────────</span>
+embeddings = <span class="fn">OpenAIEmbeddings</span>()   <span class="c"># requires OPENAI_API_KEY env var</span>
+vectorstore = Chroma.<span class="fn">from_documents</span>(
+    documents=chunks,
+    embedding=embeddings,
+    persist_directory=<span class="s">"./chroma_docx_db"</span>
+)
+<span class="fn">print</span>(<span class="s">"Vector store created and persisted."</span>)</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge purple">3</div>
+    <div class="step-body">
+      <h3>Step 4–5 — Retrieve and Answer</h3>
+      <div class="code-box"><span class="k">from</span> langchain_openai <span class="k">import</span> ChatOpenAI
+<span class="k">from</span> langchain.chains <span class="k">import</span> RetrievalQA
+
+llm = <span class="fn">ChatOpenAI</span>(model=<span class="s">"gpt-4o-mini"</span>, temperature=<span class="num">0</span>)
+
+qa_chain = RetrievalQA.<span class="fn">from_chain_type</span>(
+    llm=llm,
+    retriever=vectorstore.<span class="fn">as_retriever</span>(search_kwargs={<span class="s">"k"</span>: <span class="num">3</span>}),
+    return_source_documents=<span class="k">True</span>
+)
+
+<span class="c"># ── Ask your 5 questions ──────────────────────────────────</span>
+questions = [
+    <span class="s">"What is the main topic of this document?"</span>,
+    <span class="s">"Who are the key people or characters mentioned?"</span>,
+    <span class="c"># ... add 5 questions relevant to YOUR document</span>
+]
+
+<span class="k">for</span> question <span class="k">in</span> questions:
+    result = qa_chain.<span class="fn">invoke</span>({<span class="s">"query"</span>: question})
+    <span class="fn">print</span>(<span class="fn">f</span><span class="s">"\n❓ </span>{question}<span class="s">"</span>)
+    <span class="fn">print</span>(<span class="fn">f</span><span class="s">"🤖 </span>{result[<span class="s">'result'</span>]}<span class="s">"</span>)
+    <span class="fn">print</span>(<span class="s">"\n📚 Retrieved context:"</span>)
+    <span class="k">for</span> i, src <span class="k">in</span> <span class="fn">enumerate</span>(result[<span class="s">"source_documents"</span>], <span class="num">1</span>):
+        <span class="fn">print</span>(<span class="fn">f</span><span class="s">"  [{i}] ...{src.page_content[:<span class="num">200</span>]}..."</span>)</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge blue">4</div>
+    <div class="step-body">
+      <h3>Free version — no API key needed</h3>
+      <p>Replace the OpenAI embeddings and LLM with free local alternatives:</p>
+      <div class="code-box"><span class="k">from</span> langchain_community.embeddings <span class="k">import</span> SentenceTransformerEmbeddings
+<span class="k">from</span> langchain_community.llms <span class="k">import</span> Ollama
+
+<span class="c"># Free local embeddings</span>
+embeddings = <span class="fn">SentenceTransformerEmbeddings</span>(model_name=<span class="s">"all-MiniLM-L6-v2"</span>)
+
+<span class="c"># Free local LLM — requires Ollama running with a model pulled</span>
+<span class="c"># Run: ollama pull llama3.2</span>
+llm = <span class="fn">Ollama</span>(model=<span class="s">"llama3.2"</span>)</div>
+      <div class="info">💡 <strong>For the free version</strong> — embeddings work without any setup. For the local LLM you need Ollama running. If Ollama isn't available, you can skip the LLM step and just show the retrieved chunks.</div>
+    </div>
+  </div>
+
+  <div class="section-heading">📤 What to Submit</div>
+
+  <div class="step">
+    <div class="step-badge gold">✓</div>
+    <div class="step-body">
+      <h3>Deliverables</h3>
+      <p>• Your Python file (<code>.py</code> or <code>.ipynb</code>)<br>
+         • The <code>.docx</code> document you used<br>
+         • A screenshot showing: the questions, the LLM answers, and the retrieved context chunks</p>
+      <div class="success">✅ The output should clearly show that the answers come from the document, not from the LLM's general knowledge.</div>
+    </div>
+  </div>
+
+  <div class="ref-box">
+    <h3>📖 Reference Demo</h3>
+    <a class="ref-link" href="../rag_pdf/index.html">→ RAG — Chat with Your PDF (same pipeline, PDF instead of DOCX)</a>
+    <p style="font-size:.82rem;color:var(--muted);margin-top:6px;">The only difference from the PDF demo is the document loader. Everything else — chunking, embedding, ChromaDB, LLM — is identical.</p>
+  </div>
+
+  <div class="section-heading">🏆 Grading Criteria</div>
+
+  <div class="grading-box">
+    <h3>20 Points Total</h3>
+    <div class="grade-row"><span>.docx loaded and split into chunks (print chunk count)</span><span class="grade-pts">4 pts</span></div>
+    <div class="grade-row"><span>Embeddings stored in ChromaDB</span><span class="grade-pts">4 pts</span></div>
+    <div class="grade-row"><span>5 questions answered with LLM</span><span class="grade-pts">6 pts</span></div>
+    <div class="grade-row"><span>Retrieved context chunks printed alongside answers</span><span class="grade-pts">4 pts</span></div>
+    <div class="grade-row"><span>Questions are relevant and non-trivial (not "what color is mentioned?")</span><span class="grade-pts">2 pts</span></div>
+  </div>
+
+</div>
+
+<div class="bottom-nav">
+  <a class="btn-nav btn-back" href="02-vector-db.html">← Assignment 2</a>
+  <a class="btn-nav btn-next" href="04-n8n-restaurant.html">Assignment 4 →</a>
+</div>
+
+</body>
+</html>

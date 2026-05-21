@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Final Assignments — AI Advanced</title>
+  <style>
+    :root {
+      --bg: #08080f;
+      --card: #0e0e1c;
+      --card2: #131325;
+      --border: #1a1a2e;
+      --text: #e4e8f0;
+      --muted: #7a8899;
+      --green: #22c55e;
+      --green2: #86efac;
+      --gold: #f59e0b;
+      --purple: #a855f7;
+      --blue: #60a5fa;
+      --orange: #f97316;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+    .top-nav {
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 0 24px; height: 52px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-back { color: var(--green); text-decoration: none; font-size: .88rem; font-weight: 700; }
+    .nav-back:hover { color: var(--green2); }
+    .nav-title { font-family: 'Courier New', monospace; font-size: .8rem; color: var(--muted); }
+
+    .hero {
+      text-align: center; padding: 72px 24px 52px;
+      background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(34,197,94,.1) 0%, transparent 70%);
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.35);
+      color: var(--green); padding: 5px 16px; border-radius: 999px;
+      font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .hero h1 { font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 900; line-height: 1.1; margin-bottom: 14px; }
+    .hero h1 span { color: var(--green); }
+    .hero p { font-size: 1.05rem; color: var(--muted); max-width: 540px; margin: 0 auto 32px; line-height: 1.7; }
+    .stats-row { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; }
+    .stat { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 28px; text-align: center; }
+    .stat-val { font-size: 1.8rem; font-weight: 900; color: var(--green); }
+    .stat-label { font-size: .72rem; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: .06em; }
+
+    .wrap { max-width: 900px; margin: 0 auto; padding: 48px 24px 80px; }
+
+    .section-label {
+      font-size: .7rem; font-weight: 700; letter-spacing: .15em;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 20px; padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .acard {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+      padding: 24px 28px; margin-bottom: 14px;
+      text-decoration: none; color: inherit;
+      display: flex; align-items: center; gap: 20px;
+      transition: transform .2s, border-color .2s, box-shadow .2s;
+      position: relative; overflow: hidden;
+    }
+    .acard::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+      width: 4px; border-radius: 16px 0 0 16px;
+      background: linear-gradient(180deg, var(--green), #16a34a);
+      opacity: 0; transition: opacity .2s;
+    }
+    .acard:hover { transform: translateY(-3px); border-color: var(--green); box-shadow: 0 12px 40px rgba(34,197,94,.12); }
+    .acard:hover::before { opacity: 1; }
+    .acard.gold-card:hover { border-color: var(--gold); box-shadow: 0 12px 40px rgba(245,158,11,.12); }
+    .acard.gold-card::before { background: linear-gradient(180deg, var(--gold), #d97706); }
+
+    .acard-num {
+      width: 52px; height: 52px; border-radius: 12px; flex-shrink: 0;
+      display: grid; place-items: center; font-size: 1.5rem;
+      background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.25);
+    }
+    .acard-num.gold { background: rgba(245,158,11,.1); border-color: rgba(245,158,11,.25); }
+
+    .acard-body { flex: 1; }
+    .acard-body h2 { font-size: 1.1rem; font-weight: 800; margin-bottom: 5px; transition: color .2s; }
+    .acard:hover .acard-body h2 { color: var(--green); }
+    .acard.gold-card:hover .acard-body h2 { color: var(--gold); }
+    .acard-body p { font-size: .85rem; color: var(--muted); line-height: 1.65; }
+
+    .acard-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .atag {
+      font-size: .68rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 999px;
+      background: rgba(34,197,94,.08); color: var(--green); border: 1px solid rgba(34,197,94,.2);
+    }
+    .atag.gold { background: rgba(245,158,11,.08); color: var(--gold); border-color: rgba(245,158,11,.2); }
+
+    .acard-pts {
+      font-size: 1.1rem; font-weight: 900; color: var(--gold);
+      background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.25);
+      border-radius: 10px; padding: 8px 16px; flex-shrink: 0; text-align: center; min-width: 72px;
+    }
+    .acard-pts span { display: block; font-size: .65rem; font-weight: 600; color: var(--muted); margin-top: 1px; }
+    .acard-pts.big { color: var(--green); background: rgba(34,197,94,.1); border-color: rgba(34,197,94,.25); font-size: 1.3rem; }
+
+    .acard-arrow { font-size: 1.2rem; color: var(--muted); flex-shrink: 0; transition: transform .2s, color .2s; }
+    .acard:hover .acard-arrow { transform: translateX(4px); color: var(--green); }
+    .acard.gold-card:hover .acard-arrow { color: var(--gold); }
+
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 36px; }
+    @media(max-width: 600px) { .info-grid { grid-template-columns: 1fr; } }
+    .info-box {
+      background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px;
+    }
+    .info-box h3 { font-size: .9rem; font-weight: 800; margin-bottom: 10px; color: var(--text); }
+    .info-box ul { list-style: none; }
+    .info-box li { font-size: .83rem; color: var(--muted); padding: 4px 0; display: flex; gap: 8px; align-items: flex-start; }
+    .info-box li::before { content: '→'; color: var(--green); flex-shrink: 0; }
+
+    .submit-box {
+      margin-top: 14px; background: rgba(34,197,94,.05);
+      border: 1px solid rgba(34,197,94,.2); border-radius: 14px; padding: 22px 24px;
+    }
+    .submit-box h3 { font-size: .95rem; font-weight: 800; color: var(--green); margin-bottom: 12px; }
+    .submit-row { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 8px; font-size: .85rem; color: var(--muted); }
+    .submit-row .num { background: var(--green); color: #000; font-weight: 800; font-size: .75rem; border-radius: 6px; padding: 2px 8px; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <a class="nav-back" href="../index.html">← Back to Course</a>
+  <span class="nav-title">FINAL ASSIGNMENTS — AI ADVANCED</span>
+  <span style="color:var(--gold);font-size:.88rem;font-weight:700;">🏆 End of Course</span>
+</nav>
+
+<div class="hero">
+  <div class="hero-badge">🎓 Final Course Assignments</div>
+  <h1>Show What You <span>Learned</span></h1>
+  <p>4 assignments covering theory, embeddings, RAG, and a full AI system with automation. Complete all 4 to finish the course.</p>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-val">4</div><div class="stat-label">Assignments</div></div>
+    <div class="stat"><div class="stat-val">104</div><div class="stat-label">Total Points</div></div>
+    <div class="stat"><div class="stat-val">3</div><div class="stat-label">Coding Tasks</div></div>
+    <div class="stat"><div class="stat-val">1</div><div class="stat-label">Theory Task</div></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="section-label">Assignments</div>
+
+  <a class="acard" href="01-theory.html">
+    <div class="acard-num">📝</div>
+    <div class="acard-body">
+      <h2>Assignment 1 — Theory Questions</h2>
+      <p>12 conceptual questions covering NLP, Vector Databases, RAG, Docker, AI Agents, MCP, and Agent Skills. Written answers — no coding required.</p>
+      <div class="acard-tags">
+        <span class="atag">NLP</span>
+        <span class="atag">Vector DB</span>
+        <span class="atag">RAG</span>
+        <span class="atag">Docker</span>
+        <span class="atag">Agents</span>
+        <span class="atag">MCP</span>
+        <span class="atag">Skills</span>
+      </div>
+    </div>
+    <div class="acard-pts">24<span>points</span></div>
+    <div class="acard-arrow">→</div>
+  </a>
+
+  <a class="acard" href="02-vector-db.html">
+    <div class="acard-num">🗄️</div>
+    <div class="acard-body">
+      <h2>Assignment 2 — Build a Vector Database</h2>
+      <p>Create a ChromaDB collection with at least 15 documents of your choice, run semantic queries, and analyse the results with similarity scores.</p>
+      <div class="acard-tags">
+        <span class="atag">ChromaDB</span>
+        <span class="atag">Embeddings</span>
+        <span class="atag">Semantic Search</span>
+        <span class="atag">Python</span>
+      </div>
+    </div>
+    <div class="acard-pts">20<span>points</span></div>
+    <div class="acard-arrow">→</div>
+  </a>
+
+  <a class="acard" href="03-rag-word.html">
+    <div class="acard-num">📄</div>
+    <div class="acard-body">
+      <h2>Assignment 3 — RAG with a Word Document</h2>
+      <p>Build a RAG pipeline that loads a <code style="background:rgba(96,165,250,.1);color:#60a5fa;padding:1px 5px;border-radius:4px;">.docx</code> file, chunks it, stores embeddings in ChromaDB, and lets you chat with the document content.</p>
+      <div class="acard-tags">
+        <span class="atag">RAG</span>
+        <span class="atag">LangChain</span>
+        <span class="atag">ChromaDB</span>
+        <span class="atag">python-docx</span>
+      </div>
+    </div>
+    <div class="acard-pts">20<span>points</span></div>
+    <div class="acard-arrow">→</div>
+  </a>
+
+  <a class="acard gold-card" href="04-n8n-restaurant.html">
+    <div class="acard-num gold">🍽️</div>
+    <div class="acard-body">
+      <h2>Assignment 4 — Restaurant AI Agent + n8n Notifications</h2>
+      <p>Extend the restaurant chatbot to handle table reservations and cancellations in SQLite. Wire it to an n8n workflow that sends a different notification for each event — via email, Telegram, SMS, or console.</p>
+      <div class="acard-tags">
+        <span class="atag gold">LangChain</span>
+        <span class="atag gold">SQLite</span>
+        <span class="atag gold">Webhook</span>
+        <span class="atag gold">n8n</span>
+        <span class="atag gold">Notifications</span>
+      </div>
+    </div>
+    <div class="acard-pts big">40<span>points</span></div>
+    <div class="acard-arrow">→</div>
+  </a>
+
+  <div class="info-grid">
+    <div class="info-box">
+      <h3>📦 What to Submit</h3>
+      <ul>
+        <li>Assignment 1 — Written answers as PDF or Word doc</li>
+        <li>Assignment 2 — <code>.py</code> or <code>.ipynb</code> + output screenshot</li>
+        <li>Assignment 3 — <code>.py</code> or <code>.ipynb</code> + output screenshot</li>
+        <li>Assignment 4 — Python files + n8n workflow screenshot + demo screenshot</li>
+      </ul>
+    </div>
+    <div class="info-box">
+      <h3>💡 Tips</h3>
+      <ul>
+        <li>Each assignment page links to the relevant demo — read it first</li>
+        <li>Assignment 4 has a free option that needs no external accounts</li>
+        <li>For the RAG assignment any Word document works — use something interesting to you</li>
+        <li>Questions? Re-read the demo page before asking</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="submit-box">
+    <h3>📬 Submission Checklist</h3>
+    <div class="submit-row"><span class="num">1</span> Theory answers document (PDF or DOCX)</div>
+    <div class="submit-row"><span class="num">2</span> Vector DB Python file + screenshot showing query results with distances</div>
+    <div class="submit-row"><span class="num">3</span> RAG Python file + screenshot showing question → retrieved context → answer</div>
+    <div class="submit-row"><span class="num">4</span> Restaurant chatbot Python files + n8n workflow screenshot + screenshot of notification output</div>
+    <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(34,197,94,.2);">
+      <div style="font-size: .8rem; color: var(--muted); margin-bottom: 6px; letter-spacing: .05em;">📧 Send all files to:</div>
+      <a href="mailto:pythonai200425+finals@gmail.com" style="font-size: 1rem; font-weight: 800; color: var(--green); text-decoration: none; letter-spacing: .02em;">pythonai200425+finals@gmail.com</a>
+      <div style="font-size: .78rem; color: var(--muted); margin-top: 6px;">Subject: <code style="background:rgba(34,197,94,.1);color:var(--green);padding:2px 7px;border-radius:4px;">Finals – [Your Full Name]</code></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Assignment 1 — Theory Questions · AI Advanced</title>
+  <style>
+    :root {
+      --bg: #08080f; --card: #0e0e1c; --card2: #131325; --border: #1a1a2e;
+      --text: #e4e8f0; --muted: #7a8899;
+      --green: #22c55e; --gold: #f59e0b; --purple: #a855f7; --blue: #60a5fa; --orange: #f97316;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+    .top-nav {
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 0 24px; height: 52px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-back { color: var(--green); text-decoration: none; font-size: .88rem; font-weight: 700; }
+    .nav-back:hover { color: #86efac; }
+    .nav-title { font-family: 'Courier New', monospace; font-size: .8rem; color: var(--muted); }
+    .nav-pts { color: var(--gold); font-size: .88rem; font-weight: 700; }
+
+    .hero { max-width: 820px; margin: 0 auto; padding: 48px 24px 32px; }
+    .hero-tag {
+      display: inline-block; padding: 4px 12px; border-radius: 999px;
+      font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+      background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.28); color: var(--green); margin-bottom: 14px;
+    }
+    .hero h1 { font-size: clamp(1.6rem, 3.5vw, 2.4rem); font-weight: 900; margin-bottom: 10px; }
+    .hero p { color: var(--muted); font-size: .95rem; line-height: 1.7; max-width: 640px; margin-bottom: 16px; }
+    .pts-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.25);
+      color: var(--gold); border-radius: 10px; padding: 8px 16px; font-weight: 700; font-size: .9rem;
+    }
+
+    .wrap { max-width: 820px; margin: 0 auto; padding: 0 24px 60px; }
+
+    .section-heading {
+      font-size: .7rem; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+      color: var(--muted); margin: 32px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .q-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 22px 24px; margin-bottom: 12px; }
+    .q-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 8px; }
+    .q-num {
+      width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0;
+      display: grid; place-items: center; font-weight: 800; font-size: .9rem;
+      background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.25); color: var(--green);
+    }
+    .q-num.gold  { background: rgba(245,158,11,.1);  border-color: rgba(245,158,11,.25);  color: var(--gold);   }
+    .q-num.purp  { background: rgba(168,85,247,.1);  border-color: rgba(168,85,247,.25);  color: var(--purple); }
+    .q-num.blue  { background: rgba(96,165,250,.1);  border-color: rgba(96,165,250,.25);  color: var(--blue);   }
+    .q-text { font-size: .97rem; font-weight: 600; color: var(--text); line-height: 1.65; }
+    .q-hint { font-size: .83rem; color: var(--muted); line-height: 1.6; padding-left: 48px; margin-top: 4px; }
+    code { background: rgba(96,165,250,.1); color: var(--blue); padding: 1px 5px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: .88em; }
+
+    .hint-box {
+      background: rgba(96,165,250,.06); border: 1px solid rgba(96,165,250,.2); border-radius: 8px;
+      padding: 10px 14px; font-size: .82rem; color: var(--blue);
+      margin-top: 10px; margin-left: 48px; line-height: 1.6;
+    }
+    .note-box {
+      background: rgba(245,158,11,.06); border: 1px solid rgba(245,158,11,.2); border-radius: 8px;
+      padding: 10px 14px; font-size: .82rem; color: var(--gold);
+      margin-top: 10px; margin-left: 48px; line-height: 1.6;
+    }
+
+    .bottom-nav { max-width: 820px; margin: 0 auto; padding: 0 24px 60px; display: flex; justify-content: space-between; }
+    .btn-nav {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 22px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: .9rem;
+      transition: transform .2s;
+    }
+    .btn-nav:hover { transform: translateY(-2px); }
+    .btn-back { background: var(--card); border: 1px solid var(--border); color: var(--muted); }
+    .btn-next { background: var(--green); color: #000; box-shadow: 0 4px 14px rgba(34,197,94,.3); }
+    .q-num.orange { background: rgba(249,115,22,.1); border-color: rgba(249,115,22,.25); color: var(--orange); }
+    .code-box { background: #07070e; border: 1px solid rgba(249,115,22,.2); border-radius: 8px; padding: 14px 16px; font-family: 'Courier New', monospace; font-size: .82rem; line-height: 1.7; color: #cbd5e1; margin-top: 10px; margin-left: 48px; overflow-x: auto; white-space: pre; }
+    .code-box .k { color: #f59e0b; } .code-box .s { color: #86efac; } .code-box .c { color: #475569; font-style: italic; } .code-box .n { color: #93c5fd; }
+  </style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <a class="nav-back" href="index.html">← Assignments</a>
+  <span class="nav-title">ASSIGNMENT 1 — Theory Questions</span>
+  <span class="nav-pts">24 pts · 2 pts each</span>
+</nav>
+
+<div class="hero">
+  <span class="hero-tag">Assignment 1 · Theory</span>
+  <h1>📝 Theory Questions</h1>
+  <p>12 conceptual questions covering the key topics from the second half of the course. Write your answers in your own words — no copying from slides or the internet.</p>
+  <div class="pts-badge">🏆 24 points &nbsp;·&nbsp; 2 points per question</div>
+</div>
+
+<div class="wrap">
+
+  <!-- NLP -->
+  <div class="section-heading">🧠 NLP — Natural Language Processing &nbsp;<span style="color:var(--green);font-weight:900;">Q1–Q3</span></div>
+
+  <div class="q-card">
+    <div class="q-header">
+      <div class="q-num">1</div>
+      <div class="q-text">What is <strong>tokenization</strong>? Give an example — show how the sentence <em>"I'm learning NLP in 2025!"</em> would be tokenized.</div>
+    </div>
+    <div class="q-hint">Expected: a list of tokens and a one-sentence explanation of what tokenization does and why it's the first step in NLP.</div>
+  </div>
+
+  <div class="q-card">
+    <div class="q-header">
+      <div class="q-num">2</div>
+      <div class="q-text">What is the difference between <strong>stemming</strong> and <strong>lemmatization</strong>? Apply both to the words <em>"running"</em> and <em>"better"</em> and explain which preserves more linguistic meaning.</div>
+    </div>
+    <div class="q-hint">Hint: stemming is fast but crude (cuts off suffixes). Lemmatization uses a dictionary to find the base form.</div>
+  </div>
+
+  <div class="q-card">
+    <div class="q-header">
+      <div class="q-num">3</div>
+      <div class="q-text">What does <strong>TF-IDF</strong> stand for? Explain in plain language why the word <em>"the"</em> scores almost zero in TF-IDF, while the word <em>"photosynthesis"</em> would score high.</div>
+    </div>
+    <div class="q-hint">Think about: what makes a word useful for <em>identifying</em> a specific document among many documents?</div>
+  </div>
+
+  <!-- Vector DB -->
+  <div class="section-heading">🗄️ Vector Databases &amp; Embeddings &nbsp;<span style="color:var(--gold);font-weight:900;">Q4–Q6</span></div>
+
+  <div class="q-card">
+    <div class="q-header">
+      <div class="q-num gold">4</div>
+      <div class="q-text">What is a <strong>sentence embedding</strong>? How is it fundamentally different from one-hot encoding? Give one advantage embeddings have that one-hot vectors don't.</div>
+    </div>
+    <div class="q-hint">Think about: what can you measure between two embeddings that you can't measure between two one-hot vectors?</div>
+  </div>
+
+  <div class="q-card">
+    <div class="q-header">
+      <div class="q-num gold">5</div>
+      <div class="q-text">Explain <strong>cosine similarity</strong> in plain language. If two document vectors point in almost the same direction, what does that tell us about the documents they represent?</div>
+    </div>
+    <div class="q-hint">You don't need to write the formula — a geometric or intuitive explanation is enough.</div>
+    <div class="note-box">Bonus (+0.5 optional): When might Euclidean distance be a poor choice for comparing embeddings?</div>
+  </div>
+
+  <div class="q-card">
+    <div class="q-header">
+      <div class="q-num gold">6</div>
+      <div class="q-text">Why can't a regular SQL query like <code>WHERE description LIKE '%pizza%'</code> find semantically similar documents? What does a vector index solve that SQL can't?</div>
+    </div>
+    <div class="q-hint">Example to think about: <em>"Italian food"</em> and <em>"pasta and risotto"</em> — one contains the word, the other doesn't, but they're about the same topic.</div>
+  </div>
+
+  <!-- RAG -->
+  <div class="section-heading">📄 RAG — Retrieval-Augmented Generation &nbsp;<span style="color:var(--purple);font-weight:900;">Q7–Q8</span></div>
+
+  <div class="q-card">
+    <div class="q-header">
+      <div class="q-num purp">7</div>
+      <div class="q-text">What problem does <strong>RAG</strong> solve that a plain LLM (without RAG) cannot? Give a concrete example of when you would choose RAG over just prompting the LLM directly.</div>
+    </div>
+    <div class="q-hint">Think about: knowledge cutoffs, private data, hallucinations, up-to-date information.</div>
+  </div>
+
+  <div class="q-card">
+    <div class="q-header">
+      <div class="q-num purp">8</div>
+      <div class="q-text">Describe the <strong>3 main steps</strong> of a RAG pipeline in the correct order. Be clear about what happens at <em>ingestion time</em> (when you load documents) vs <em>query time</em> (when a user asks a question).</div>
+    </div>
+    <div class="q-hint">The 3 steps are: chunk → embed → store (ingestion) and embed query → retrieve → generate (query time).</div>
+    <div class="hint-box">💡 Reference: <a href="../rag_pdf/index.html" style="color:var(--blue);">RAG — Chat with Your PDF demo</a></div>
+  </div>
+
+  <!-- Docker + Agents -->
+  <div class="section-heading">🐳 Docker &nbsp;+&nbsp; 🤖 AI Agents &nbsp;<span style="color:var(--blue);font-weight:900;">Q9–Q10</span></div>
+
+  <div class="q-card">
+    <div class="q-header">
+      <div class="q-num blue">9</div>
+      <div class="q-text">What is the difference between a Docker <strong>image</strong> and a Docker <strong>container</strong>? Use an analogy to explain.</div>
+    </div>
+    <div class="q-hint">Common analogies: class vs instance, recipe vs cake, blueprint vs building. Any analogy that works is fine.</div>
+    <div class="hint-box">💡 Reference: <a href="../docker_site/index.html" style="color:var(--blue);">Docker — Zero to Compose</a></div>
+  </div>
+
+  <div class="q-card">
+    <div class="q-header">
+      <div class="q-num blue">10</div>
+      <div class="q-text">What is the difference between a simple LLM chatbot and an <strong>AI agent with tools</strong>? Give one concrete example of a "tool" and explain why it makes the agent more capable.</div>
+    </div>
+    <div class="q-hint">Think about: what can an agent do that a plain LLM cannot? (e.g., look things up in real-time, run code, query a database, send an email...)</div>
+    <div class="hint-box">💡 Reference: <a href="../n8n/05_agent/index.html" style="color:var(--blue);">n8n Demo 05 — AI Agent + Tools</a></div>
+  </div>
+
+  <!-- MCP + Skills -->
+  <div class="section-heading">🔌 MCP &amp; Agent Skills &nbsp;<span style="color:var(--orange);font-weight:900;">Q11–Q12</span></div>
+
+  <div class="q-card">
+    <div class="q-header">
+      <div class="q-num orange">11</div>
+      <div class="q-text">What is <strong>MCP</strong> (Model Context Protocol)? What problem does it solve for AI coding assistants like GitHub Copilot? Name <strong>two examples</strong> of things an MCP server might expose to an AI assistant.</div>
+    </div>
+    <div class="q-hint">Think about: how does a language model normally know about your database, your files, or your GitHub issues? What does MCP standardize?</div>
+    <div class="note-box">💡 Examples of MCP servers: filesystem access, database queries, GitHub API, web search, browser automation…</div>
+  </div>
+
+  <div class="q-card">
+    <div class="q-header">
+      <div class="q-num orange">12</div>
+      <div class="q-text">What are <strong>Agent Skills</strong> in the context of AI coding assistants? How are they different from just writing instructions in a plain prompt? Show a minimal example of what a skill's <code>.md</code> metadata block might look like.</div>
+    </div>
+    <div class="q-hint">Think about: a skill has a name, a description, and a path to a detailed instructions file — it lets the AI decide <em>when</em> to activate domain-specific knowledge automatically.</div>
+    <div class="code-box"><span class="c"># Example skill metadata in copilot-instructions.md</span>
+<span class="k">&lt;skill&gt;</span>
+  <span class="k">&lt;name&gt;</span><span class="s">mongodb-query-optimizer</span><span class="k">&lt;/name&gt;</span>
+  <span class="k">&lt;description&gt;</span><span class="s">Help with MongoDB query optimization and indexing.</span>
+  <span class="s">Use when the user asks "How do I optimize this query?"</span>
+  <span class="s">or "Why is this query slow?"</span><span class="k">&lt;/description&gt;</span>
+  <span class="k">&lt;file&gt;</span><span class="n">path/to/skills/mongodb-query-optimizer/SKILL.md</span><span class="k">&lt;/file&gt;</span>
+<span class="k">&lt;/skill&gt;</span></div>
+  </div>
+
+</div>
+
+<div class="bottom-nav">
+  <a class="btn-nav btn-back" href="index.html">← All Assignments</a>
+  <a class="btn-nav btn-next" href="02-vector-db.html">Assignment 2 →</a>
+</div>
+
+</body>
+</html>

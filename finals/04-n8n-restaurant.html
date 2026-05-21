@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Assignment 4 — Restaurant Agent + n8n · AI Advanced</title>
+  <style>
+    :root {
+      --bg: #08080f; --card: #0e0e1c; --card2: #131325; --border: #1a1a2e;
+      --text: #e4e8f0; --muted: #7a8899;
+      --green: #22c55e; --gold: #f59e0b; --purple: #a855f7; --blue: #60a5fa;
+      --orange: #f97316; --red: #f87171; --teal: #2dd4bf;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+    .top-nav {
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 0 24px; height: 52px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-back { color: var(--green); text-decoration: none; font-size: .88rem; font-weight: 700; }
+    .nav-back:hover { color: #86efac; }
+    .nav-title { font-family: 'Courier New', monospace; font-size: .8rem; color: var(--muted); }
+    .nav-pts { color: var(--gold); font-size: .88rem; font-weight: 700; }
+
+    .hero { max-width: 900px; margin: 0 auto; padding: 48px 24px 32px; }
+    .hero-tag {
+      display: inline-block; padding: 4px 12px; border-radius: 999px;
+      font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+      background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.3); color: var(--gold); margin-bottom: 14px;
+    }
+    .hero h1 { font-size: clamp(1.6rem, 3.5vw, 2.4rem); font-weight: 900; margin-bottom: 10px; }
+    .hero p { color: var(--muted); font-size: .95rem; line-height: 1.7; max-width: 720px; }
+    .parts-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+    .part-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      border-radius: 10px; padding: 8px 16px; font-size: .85rem; font-weight: 700;
+    }
+    .part-badge.py  { background: rgba(96,165,250,.1);  border: 1px solid rgba(96,165,250,.3);  color: var(--blue);   }
+    .part-badge.n8n { background: rgba(249,115,22,.1);  border: 1px solid rgba(249,115,22,.3);  color: var(--orange); }
+
+    .wrap { max-width: 900px; margin: 0 auto; padding: 0 24px 60px; }
+
+    .section-heading {
+      font-size: .7rem; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+      color: var(--muted); margin: 36px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+    }
+    .part-header {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--card2); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px 20px; margin-bottom: 14px;
+    }
+    .part-num {
+      width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0;
+      display: grid; place-items: center; font-size: 1.2rem; font-weight: 900;
+    }
+    .part-num.py  { background: rgba(96,165,250,.1);  border: 1px solid rgba(96,165,250,.3);  color: var(--blue); }
+    .part-num.n8n { background: rgba(249,115,22,.1);  border: 1px solid rgba(249,115,22,.3);  color: var(--orange); }
+    .part-title h2 { font-size: 1rem; font-weight: 800; }
+    .part-title p  { font-size: .83rem; color: var(--muted); margin-top: 2px; }
+
+    .step { display: flex; gap: 16px; margin-bottom: 14px; align-items: flex-start; }
+    .step-badge {
+      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+      display: grid; place-items: center; font-weight: 900; font-size: .95rem;
+      background: var(--blue); color: #fff; box-shadow: 0 4px 14px rgba(96,165,250,.3);
+    }
+    .step-badge.orange { background: var(--orange); color: #fff; box-shadow: 0 4px 14px rgba(249,115,22,.3); }
+    .step-badge.green  { background: var(--green);  color: #000; box-shadow: 0 4px 14px rgba(34,197,94,.3); }
+    .step-badge.purple { background: var(--purple); color: #fff; box-shadow: 0 4px 14px rgba(168,85,247,.3); }
+    .step-badge.gold   { background: var(--gold);   color: #000; box-shadow: 0 4px 14px rgba(245,158,11,.3); }
+    .step-body { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; flex: 1; }
+    .step-body h3 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+    .step-body p { font-size: .87rem; color: var(--muted); line-height: 1.65; }
+    .step-body p + p { margin-top: 6px; }
+
+    code { background: rgba(96,165,250,.1); color: var(--blue); padding: 1px 5px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: .88em; }
+
+    .code-box {
+      background: #040408; border: 1px solid var(--border); border-radius: 10px;
+      padding: 16px 18px; font-family: 'Courier New', monospace; font-size: .82rem;
+      color: var(--text); margin-top: 10px; line-height: 1.75; overflow-x: auto; white-space: pre;
+    }
+    .code-box .k  { color: var(--blue); font-weight: 700; }
+    .code-box .s  { color: var(--green); }
+    .code-box .c  { color: #3a4456; font-style: italic; }
+    .code-box .fn { color: var(--purple); }
+    .code-box .n  { color: var(--orange); }
+    .code-box .num { color: var(--gold); }
+    .code-box .t  { color: var(--teal); }
+
+    .note    { background: rgba(245,158,11,.07); border: 1px solid rgba(245,158,11,.2);  border-radius: 8px; padding: 10px 14px; font-size: .83rem; color: var(--gold);   margin-top: 10px; line-height: 1.6; }
+    .info    { background: rgba(96,165,250,.07);  border: 1px solid rgba(96,165,250,.2);  border-radius: 8px; padding: 10px 14px; font-size: .83rem; color: var(--blue);   margin-top: 10px; line-height: 1.6; }
+    .success { background: rgba(34,197,94,.07);   border: 1px solid rgba(34,197,94,.2);   border-radius: 8px; padding: 10px 14px; font-size: .83rem; color: var(--green);  margin-top: 10px; line-height: 1.6; }
+    .warn    { background: rgba(249,115,22,.07);  border: 1px solid rgba(249,115,22,.2);  border-radius: 8px; padding: 10px 14px; font-size: .83rem; color: var(--orange); margin-top: 10px; line-height: 1.6; }
+
+    /* Flow diagram */
+    .flow-box { background: #040408; border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin-bottom: 14px; overflow-x: auto; }
+    .flow-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+    .flow-row:last-child { margin-bottom: 0; }
+    .f-node {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 14px; text-align: center; min-width: 120px;
+    }
+    .f-node .f-icon { font-size: 1.2rem; display: block; margin-bottom: 3px; }
+    .f-node .f-type { font-size: .6rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+    .f-node .f-name { font-size: .8rem; font-weight: 700; font-family: 'Courier New', monospace; }
+    .f-node.blue   { border-color: rgba(96,165,250,.35); }  .f-node.blue   .f-type { color: var(--blue);   }
+    .f-node.orange { border-color: rgba(249,115,22,.35); }  .f-node.orange .f-type { color: var(--orange); }
+    .f-node.green  { border-color: rgba(34,197,94,.35);  }  .f-node.green  .f-type { color: var(--green);  }
+    .f-node.purple { border-color: rgba(168,85,247,.35); }  .f-node.purple .f-type { color: var(--purple); }
+    .f-node.gold   { border-color: rgba(245,158,11,.35); }  .f-node.gold   .f-type { color: var(--gold);   }
+    .f-arrow { font-size: 1.4rem; color: #2a2a4a; flex-shrink: 0; }
+    .f-branch { display: flex; flex-direction: column; gap: 8px; }
+    .f-branch-label { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    .f-indent { padding-left: 20px; border-left: 2px solid var(--border); }
+
+    .notif-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 10px; }
+    .notif-card {
+      background: var(--card2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px 16px; text-align: center;
+    }
+    .notif-card .n-icon { font-size: 1.5rem; display: block; margin-bottom: 6px; }
+    .notif-card h4 { font-size: .85rem; font-weight: 700; margin-bottom: 3px; }
+    .notif-card p  { font-size: .75rem; color: var(--muted); line-height: 1.4; }
+    .notif-card.free { border-color: rgba(34,197,94,.3); }
+    .notif-card.free h4 { color: var(--green); }
+    .badge-free { display: inline-block; background: rgba(34,197,94,.1); color: var(--green); border: 1px solid rgba(34,197,94,.25); border-radius: 999px; font-size: .65rem; font-weight: 700; padding: 2px 8px; margin-top: 4px; }
+
+    .grading-box { background: rgba(245,158,11,.05); border: 1px solid rgba(245,158,11,.2); border-radius: 12px; padding: 20px 22px; margin-top: 14px; }
+    .grading-box h3 { font-size: .9rem; font-weight: 800; color: var(--gold); margin-bottom: 12px; }
+    .grade-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: .85rem; }
+    .grade-row:last-child { border-bottom: none; font-weight: 700; }
+    .grade-pts { font-weight: 800; color: var(--gold); }
+
+    .ref-box { background: rgba(249,115,22,.06); border: 1px solid rgba(249,115,22,.2); border-radius: 10px; padding: 14px 18px; margin-top: 14px; }
+    .ref-box h3 { font-size: .82rem; font-weight: 700; color: var(--orange); margin-bottom: 8px; }
+    .ref-link { color: var(--orange); font-size: .85rem; text-decoration: none; display: block; margin-bottom: 4px; }
+    .ref-link:hover { text-decoration: underline; }
+
+    .bottom-nav { max-width: 900px; margin: 0 auto; padding: 0 24px 60px; display: flex; justify-content: space-between; }
+    .btn-nav { display: inline-flex; align-items: center; gap: 8px; padding: 10px 22px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: .9rem; transition: transform .2s; }
+    .btn-nav:hover { transform: translateY(-2px); }
+    .btn-back { background: var(--card); border: 1px solid var(--border); color: var(--muted); }
+    .btn-done { background: var(--gold); color: #000; box-shadow: 0 4px 14px rgba(245,158,11,.3); }
+
+    @media(max-width:640px) { .flow-row { flex-direction: column; } .f-arrow { transform: rotate(90deg); } }
+  </style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <a class="nav-back" href="index.html">← Assignments</a>
+  <span class="nav-title">ASSIGNMENT 4 — Restaurant Agent + n8n</span>
+  <span class="nav-pts">40 pts · Capstone</span>
+</nav>
+
+<div class="hero">
+  <span class="hero-tag">Assignment 4 · Capstone · 40 pts</span>
+  <h1>🍽️ Restaurant AI Agent + n8n Notifications</h1>
+  <p>You have the restaurant chatbot code. Extend it to handle table reservations and cancellations stored in SQLite. When a booking is made or cancelled, the chatbot fires a webhook to n8n — which runs a different flow for each event and sends a notification.</p>
+  <div class="parts-row">
+    <div class="part-badge py">🐍 Part 1 — Python (extend chatbot)</div>
+    <div class="part-badge n8n">⚙️ Part 2 — n8n (webhook + notification)</div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ARCHITECTURE -->
+  <div class="section-heading">🏗️ System Architecture</div>
+
+  <div class="flow-box">
+    <div class="flow-row">
+      <div class="f-node green"><span class="f-icon">💬</span><span class="f-type">UI</span><span class="f-name">Gradio Chat</span></div>
+      <div class="f-arrow">→</div>
+      <div class="f-node blue"><span class="f-icon">🤖</span><span class="f-type">LangChain</span><span class="f-name">Chatbot</span></div>
+      <div class="f-arrow">→</div>
+      <div class="f-node blue"><span class="f-icon">🔀</span><span class="f-type">Classifier</span><span class="f-name">Route intent</span></div>
+      <div class="f-arrow">→</div>
+      <div class="f-node purple"><span class="f-icon">🧠</span><span class="f-type">LLM</span><span class="f-name">Extract details</span></div>
+      <div class="f-arrow">→</div>
+      <div class="f-node blue"><span class="f-icon">🗃️</span><span class="f-type">SQLite</span><span class="f-name">Save booking</span></div>
+      <div class="f-arrow">→</div>
+      <div class="f-node orange"><span class="f-icon">📡</span><span class="f-type">Webhook</span><span class="f-name">POST to n8n</span></div>
+    </div>
+    <div class="flow-row" style="padding-left:40px;margin-top:4px;">
+      <div style="font-size:.72rem;color:#2a2a4a;padding-right:12px;">n8n:</div>
+      <div class="f-node orange"><span class="f-icon">🔗</span><span class="f-type">Trigger</span><span class="f-name">Webhook</span></div>
+      <div class="f-arrow">→</div>
+      <div class="f-node gold"><span class="f-icon">⚖️</span><span class="f-type">Logic</span><span class="f-name">IF event type</span></div>
+      <div class="f-arrow">→</div>
+      <div class="f-node green" style="min-width:90px;"><span class="f-icon">📅</span><span class="f-type">True branch</span><span class="f-name">reservation</span></div>
+      <div style="font-size:.75rem;color:#2a2a4a;padding:0 4px;">/</div>
+      <div class="f-node red" style="min-width:90px;border-color:rgba(248,113,113,.35);"><span class="f-icon">❌</span><span class="f-type" style="color:#f87171;">False branch</span><span class="f-name">cancellation</span></div>
+      <div class="f-arrow">→</div>
+      <div class="f-node purple"><span class="f-icon">🔔</span><span class="f-type">Notify</span><span class="f-name">Send message</span></div>
+    </div>
+  </div>
+
+  <!-- PART 1 -->
+  <div class="section-heading">🐍 Part 1 — Extend the Python Chatbot</div>
+
+  <div class="part-header">
+    <div class="part-num py">🐍</div>
+    <div class="part-title">
+      <h2>Python Changes</h2>
+      <p>You will modify two files: <code>restaurant_db.py</code> and <code>restaurant_chatbot.py</code></p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge">1</div>
+    <div class="step-body">
+      <h3>Add the <code>reservations</code> table — in <code>restaurant_db.py</code></h3>
+      <p>Add this table creation inside the <code>initialize_database()</code> function, alongside the existing tables:</p>
+      <div class="code-box"><span class="c"># Add inside initialize_database(), after the opening_hours table</span>
+conn.<span class="fn">execute</span>(
+    <span class="s">"""
+    CREATE TABLE IF NOT EXISTS reservations (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_name TEXT NOT NULL,
+        date          TEXT NOT NULL,
+        time          TEXT NOT NULL,
+        party_size    INTEGER NOT NULL,
+        contact       TEXT,
+        status        TEXT NOT NULL DEFAULT 'confirmed',
+        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """</span>
+)</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge">2</div>
+    <div class="step-body">
+      <h3>Add helper functions — in <code>restaurant_db.py</code></h3>
+      <p>Add these three functions at the bottom of the file:</p>
+      <div class="code-box"><span class="k">def</span> <span class="fn">book_reservation</span>(
+    db_path: str, customer_name: str, date: str,
+    time: str, party_size: int, contact: str = <span class="k">None</span>
+) -> int:
+    <span class="s">"""Insert a new reservation and return its ID."""</span>
+    <span class="k">with</span> sqlite3.<span class="fn">connect</span>(db_path) <span class="k">as</span> conn:
+        cursor = conn.<span class="fn">execute</span>(
+            <span class="s">"INSERT INTO reservations (customer_name, date, time, party_size, contact)"</span>
+            <span class="s">" VALUES (?, ?, ?, ?, ?)"</span>,
+            (customer_name, date, time, party_size, contact)
+        )
+        <span class="k">return</span> cursor.lastrowid
+
+
+<span class="k">def</span> <span class="fn">cancel_reservation</span>(db_path: str, reservation_id: int) -> <span class="k">None</span>:
+    <span class="s">"""Mark a reservation as cancelled (soft delete)."""</span>
+    <span class="k">with</span> sqlite3.<span class="fn">connect</span>(db_path) <span class="k">as</span> conn:
+        conn.<span class="fn">execute</span>(
+            <span class="s">"UPDATE reservations SET status = 'cancelled' WHERE id = ?"</span>,
+            (reservation_id,)
+        )
+
+
+<span class="k">def</span> <span class="fn">get_reservations</span>(db_path: str, customer_name: str = <span class="k">None</span>) -> <span class="fn">list</span>:
+    <span class="s">"""Return confirmed reservations, optionally filtered by customer name."""</span>
+    <span class="k">with</span> sqlite3.<span class="fn">connect</span>(db_path) <span class="k">as</span> conn:
+        conn.row_factory = sqlite3.Row
+        <span class="k">if</span> customer_name:
+            rows = conn.<span class="fn">execute</span>(
+                <span class="s">"SELECT * FROM reservations WHERE status='confirmed'"</span>
+                <span class="s">" AND customer_name LIKE ?"</span>, (<span class="fn">f</span><span class="s">"%{customer_name}%"</span>,)
+            ).<span class="fn">fetchall</span>()
+        <span class="k">else</span>:
+            rows = conn.<span class="fn">execute</span>(
+                <span class="s">"SELECT * FROM reservations WHERE status='confirmed'"</span>
+            ).<span class="fn">fetchall</span>()
+        <span class="k">return</span> [<span class="fn">dict</span>(r) <span class="k">for</span> r <span class="k">in</span> rows]</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge">3</div>
+    <div class="step-body">
+      <h3>Add new routes to the classifier — in <code>restaurant_chatbot.py</code></h3>
+      <p>In the <code>classify_question()</code> method, add two new routes <strong>before</strong> the existing LLM fallback:</p>
+      <div class="code-box"><span class="c"># Add these checks in classify_question(), before the LLM call:</span>
+<span class="k">if</span> <span class="fn">any</span>(k <span class="k">in</span> lower_q <span class="k">for</span> k <span class="k">in</span> [
+    <span class="s">"reserve"</span>, <span class="s">"reservation"</span>, <span class="s">"book"</span>, <span class="s">"table for"</span>, <span class="s">"booking"</span>
+]):
+    <span class="k">return</span> <span class="s">"reservation"</span>
+
+<span class="k">if</span> <span class="fn">any</span>(k <span class="k">in</span> lower_q <span class="k">for</span> k <span class="k">in</span> [
+    <span class="s">"cancel"</span>, <span class="s">"cancellation"</span>, <span class="s">"delete my booking"</span>, <span class="s">"remove reservation"</span>
+]):
+    <span class="k">return</span> <span class="s">"cancellation"</span></div>
+      <p style="margin-top:8px;">Then in the <code>answer()</code> method, add the two new branches:</p>
+      <div class="code-box"><span class="c"># In answer() method, add alongside the existing elif branches:</span>
+<span class="k">elif</span> category == <span class="s">"reservation"</span>:
+    <span class="k">return</span> self.<span class="fn">_handle_reservation</span>(question)
+<span class="k">elif</span> category == <span class="s">"cancellation"</span>:
+    <span class="k">return</span> self.<span class="fn">_handle_cancellation</span>(question)</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge purple">4</div>
+    <div class="step-body">
+      <h3>Add the reservation handler — in <code>restaurant_chatbot.py</code></h3>
+      <p>This method uses the LLM to extract structured details from natural language, saves them to SQLite, and fires the n8n webhook:</p>
+      <div class="code-box"><span class="k">import</span> json, requests
+
+<span class="k">def</span> <span class="fn">_handle_reservation</span>(self, question: str) -> str:
+    <span class="c"># Ask the LLM to extract structured data from the user's message</span>
+    extract_prompt = <span class="fn">ChatPromptTemplate</span>.<span class="fn">from_messages</span>([
+        (<span class="s">"system"</span>,
+         <span class="s">"Extract reservation details from the message. "</span>
+         <span class="s">"Return ONLY valid JSON with keys: "</span>
+         <span class="s">"customer_name, date, time, party_size, contact. "</span>
+         <span class="s">"Use null for missing fields. No explanation."</span>),
+        (<span class="s">"human"</span>, <span class="s">"{question}"</span>)
+    ])
+
+    <span class="k">if not</span> self.llm:
+        <span class="k">return</span> <span class="s">"Please call us directly to make a reservation!"</span>
+
+    chain = extract_prompt | self.llm | <span class="fn">StrOutputParser</span>()
+    raw = chain.<span class="fn">invoke</span>({<span class="s">"question"</span>: question})
+
+    <span class="k">try</span>:
+        details = json.<span class="fn">loads</span>(raw)
+        required = [<span class="s">"customer_name"</span>, <span class="s">"date"</span>, <span class="s">"time"</span>, <span class="s">"party_size"</span>]
+        <span class="k">if not</span> <span class="fn">all</span>(details.<span class="fn">get</span>(k) <span class="k">for</span> k <span class="k">in</span> required):
+            <span class="k">return</span> (<span class="s">"I need your name, date, time, and party size. "</span>
+                    <span class="s">"Example: 'Table for 2 on Friday at 7pm, name is Sara'"</span>)
+
+        res_id = <span class="fn">book_reservation</span>(
+            self.db_path,
+            details[<span class="s">"customer_name"</span>], details[<span class="s">"date"</span>],
+            <span class="fn">str</span>(details[<span class="s">"time"</span>]), <span class="fn">int</span>(details[<span class="s">"party_size"</span>]),
+            details.<span class="fn">get</span>(<span class="s">"contact"</span>)
+        )
+        self.<span class="fn">_notify_n8n</span>({**details, <span class="s">"id"</span>: res_id}, event=<span class="s">"reservation"</span>)
+
+        <span class="k">return</span> (<span class="fn">f</span><span class="s">"✅ Reservation confirmed!\n"</span>
+                <span class="fn">f</span><span class="s">"Name: {details['customer_name']}\n"</span>
+                <span class="fn">f</span><span class="s">"Date: {details['date']} at {details['time']}\n"</span>
+                <span class="fn">f</span><span class="s">"Party of {details['party_size']} · Booking #{res_id}"</span>)
+    <span class="k">except</span> (<span class="n">json.JSONDecodeError</span>, <span class="n">ValueError</span>):
+        <span class="k">return</span> <span class="s">"Sorry, I couldn't process that. Please try again."</span>
+
+
+<span class="k">def</span> <span class="fn">_handle_cancellation</span>(self, question: str) -> str:
+    <span class="c"># Simple: ask the user for their booking ID</span>
+    <span class="c"># (For the bonus: use LLM to extract booking ID from the message)</span>
+    <span class="k">import</span> re
+    match = re.<span class="fn">search</span>(<span class="s">r'\b(\d+)\b'</span>, question)
+    <span class="k">if</span> match:
+        res_id = <span class="fn">int</span>(match.<span class="fn">group</span>(<span class="num">1</span>))
+        <span class="fn">cancel_reservation</span>(self.db_path, res_id)
+        self.<span class="fn">_notify_n8n</span>({<span class="s">"id"</span>: res_id}, event=<span class="s">"cancellation"</span>)
+        <span class="k">return</span> <span class="fn">f</span><span class="s">"Reservation #{res_id} has been cancelled."</span>
+    <span class="k">return</span> <span class="s">"Please provide your booking ID number to cancel."</span>
+
+
+<span class="k">def</span> <span class="fn">_notify_n8n</span>(self, data: dict, event: str) -> <span class="k">None</span>:
+    <span class="s">"""Fire-and-forget webhook to n8n. Never crashes the chatbot."""</span>
+    webhook_url = os.<span class="fn">getenv</span>(<span class="s">"N8N_WEBHOOK_URL"</span>)
+    <span class="k">if not</span> webhook_url:
+        <span class="k">return</span>
+    <span class="k">try</span>:
+        requests.<span class="fn">post</span>(
+            webhook_url,
+            json={**data, <span class="s">"event"</span>: event},
+            timeout=<span class="num">5</span>
+        )
+    <span class="k">except</span> <span class="n">Exception</span>:
+        <span class="k">pass</span>  <span class="c"># n8n being down should not crash the chatbot</span></div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge green">5</div>
+    <div class="step-body">
+      <h3>Set the webhook URL when running</h3>
+      <p>Add the <code>N8N_WEBHOOK_URL</code> to your <code>.env</code> file or export it before running:</p>
+      <div class="code-box"><span class="c"># .env file</span>
+<span class="t">OPENAI_API_KEY</span>=sk-...
+<span class="t">N8N_WEBHOOK_URL</span>=http://localhost:5678/webhook/restaurant</div>
+      <div class="note">💡 The webhook path <code>/webhook/restaurant</code> must match whatever path you set in the n8n Webhook node in Part 2.</div>
+    </div>
+  </div>
+
+  <!-- PART 2 -->
+  <div class="section-heading">⚙️ Part 2 — Build the n8n Workflow</div>
+
+  <div class="part-header">
+    <div class="part-num n8n">⚙️</div>
+    <div class="part-title">
+      <h2>n8n Workflow</h2>
+      <p>Open n8n at <code>http://localhost:5678</code> and build this workflow from scratch.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge orange">1</div>
+    <div class="step-body">
+      <h3>Add a Webhook node (trigger)</h3>
+      <p>• Method: <strong>POST</strong><br>
+         • Path: <code>restaurant</code><br>
+         • Authentication: None</p>
+      <p>This will listen at <code>http://localhost:5678/webhook/restaurant</code> — the same URL you put in your Python env.</p>
+      <div class="info">💡 The webhook will receive a JSON body like:<br>
+      <code>{"customer_name": "Sara", "date": "2026-06-10", "time": "19:00", "party_size": 2, "id": 3, "event": "reservation"}</code></div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge orange">2</div>
+    <div class="step-body">
+      <h3>Add an IF node — split reservation vs cancellation</h3>
+      <p>Connect it to the Webhook node. Add one condition:</p>
+      <div class="code-box"><span class="c">Value 1:</span>  {{ $json.body.event }}
+<span class="c">Operation:</span> equals
+<span class="c">Value 2:</span>  reservation</div>
+      <p style="margin-top:8px;">• <strong>True branch</strong> → reservation flow<br>
+         • <strong>False branch</strong> → cancellation flow</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge orange">3</div>
+    <div class="step-body">
+      <h3>True branch — reservation confirmation</h3>
+      <p>Add a node to format and send the reservation message. Choose <strong>one</strong> of the options below.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge orange">4</div>
+    <div class="step-body">
+      <h3>False branch — cancellation notification</h3>
+      <p>Add a separate node for the cancellation message (different text, same notification method).</p>
+      <div class="success">✅ Having <strong>two different messages</strong> for the two events is the key requirement of this part.</div>
+    </div>
+  </div>
+
+  <!-- Notification options -->
+  <div class="section-heading">🔔 Notification Options — choose at least one</div>
+
+  <div class="notif-options">
+    <div class="notif-card free">
+      <span class="n-icon">🖥️</span>
+      <h4>Respond to Webhook</h4>
+      <p>Reply back with the formatted message. Visible in the terminal / curl output.</p>
+      <span class="badge-free">✓ No account needed</span>
+    </div>
+    <div class="notif-card">
+      <span class="n-icon">📧</span>
+      <h4>Gmail</h4>
+      <p>Use the Gmail node with your Google account. Sends a real email confirmation.</p>
+    </div>
+    <div class="notif-card">
+      <span class="n-icon">✈️</span>
+      <h4>Telegram</h4>
+      <p>Create a bot with BotFather, get a token, and use the Telegram node.</p>
+    </div>
+    <div class="notif-card">
+      <span class="n-icon">📱</span>
+      <h4>Twilio SMS</h4>
+      <p>Use the Twilio node to send an SMS. Requires a free Twilio trial account.</p>
+    </div>
+  </div>
+
+  <div class="note" style="margin-top:14px;">
+    💡 <strong>Minimum requirement:</strong> Use <em>Respond to Webhook</em> — this requires no external accounts and you can test it with curl or by observing the chatbot's Python output.<br><br>
+    Implementing Gmail, Telegram, or Twilio earns bonus points.
+  </div>
+
+  <!-- Test it -->
+  <div class="section-heading">🧪 Testing the Full Flow</div>
+
+  <div class="step">
+    <div class="step-badge green">✓</div>
+    <div class="step-body">
+      <h3>How to test end-to-end</h3>
+      <p>1. Start n8n (<code>docker run -p 5678:5678 n8nio/n8n</code> or use the n8n desktop app)<br>
+         2. Activate your workflow in n8n<br>
+         3. Run the chatbot: <code>python restaurant_chatbot_app.py</code><br>
+         4. In Gradio, type: <em>"I'd like a table for 3 on Saturday June 20 at 8pm. My name is Alex."</em><br>
+         5. The chatbot confirms → check your n8n execution log → you should see the webhook received the data and sent the notification</p>
+      <div class="code-box"><span class="c"># You can also test n8n directly without running the chatbot:</span>
+curl -X POST http://localhost:5678/webhook/restaurant \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"event":"reservation","customer_name":"Alex","date":"2026-06-20","time":"20:00","party_size":3,"id":1}'</span></div>
+    </div>
+  </div>
+
+  <div class="ref-box">
+    <h3>📖 Reference Demos</h3>
+    <a class="ref-link" href="../chatbot-restaurant/index.html">→ Restaurant Chatbot — original code walkthrough</a>
+    <a class="ref-link" href="../n8n_co/index.html">→ n8n Demo 2 — AI Class (webhook + LLM nodes)</a>
+    <a class="ref-link" href="../n8n/04_webhook/index.html">→ n8n Demo 04 — Webhooks</a>
+  </div>
+
+  <!-- Grading -->
+  <div class="section-heading">🏆 Grading Criteria</div>
+
+  <div class="grading-box">
+    <h3>40 Points Total</h3>
+    <div class="grade-row"><span><strong>Part 1 — Python</strong></span><span class="grade-pts"></span></div>
+    <div class="grade-row"><span style="padding-left:12px;">reservations table added to DB</span><span class="grade-pts">5 pts</span></div>
+    <div class="grade-row"><span style="padding-left:12px;">book_reservation() and cancel_reservation() functions</span><span class="grade-pts">5 pts</span></div>
+    <div class="grade-row"><span style="padding-left:12px;">Classifier routes "reservation" and "cancellation" correctly</span><span class="grade-pts">5 pts</span></div>
+    <div class="grade-row"><span style="padding-left:12px;">LLM extracts name / date / time / party size from natural language</span><span class="grade-pts">5 pts</span></div>
+    <div class="grade-row"><span style="padding-left:12px;">Webhook fired on booking AND on cancellation</span><span class="grade-pts">5 pts</span></div>
+    <div class="grade-row"><span><strong>Part 2 — n8n</strong></span><span class="grade-pts"></span></div>
+    <div class="grade-row"><span style="padding-left:12px;">Webhook node configured and receiving data</span><span class="grade-pts">5 pts</span></div>
+    <div class="grade-row"><span style="padding-left:12px;">IF node splits reservation vs cancellation into two branches</span><span class="grade-pts">5 pts</span></div>
+    <div class="grade-row"><span style="padding-left:12px;">Different notification message for each branch</span><span class="grade-pts">5 pts</span></div>
+    <div class="grade-row" style="font-weight:700;"><span>Bonus — Gmail / Telegram / Twilio (real notification)</span><span class="grade-pts">+5 pts</span></div>
+  </div>
+
+</div>
+
+<div class="bottom-nav">
+  <a class="btn-nav btn-back" href="03-rag-word.html">← Assignment 3</a>
+  <a class="btn-nav btn-done" href="index.html">🏆 All Assignments</a>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Assignment 2 — Vector Database · AI Advanced</title>
+  <style>
+    :root {
+      --bg: #08080f; --card: #0e0e1c; --card2: #131325; --border: #1a1a2e;
+      --text: #e4e8f0; --muted: #7a8899;
+      --green: #22c55e; --gold: #f59e0b; --purple: #a855f7; --blue: #60a5fa; --orange: #f97316;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+    .top-nav {
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 0 24px; height: 52px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-back { color: var(--green); text-decoration: none; font-size: .88rem; font-weight: 700; }
+    .nav-back:hover { color: #86efac; }
+    .nav-title { font-family: 'Courier New', monospace; font-size: .8rem; color: var(--muted); }
+    .nav-pts { color: var(--gold); font-size: .88rem; font-weight: 700; }
+
+    .hero { max-width: 860px; margin: 0 auto; padding: 48px 24px 32px; }
+    .hero-tag {
+      display: inline-block; padding: 4px 12px; border-radius: 999px;
+      font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+      background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.28); color: var(--green); margin-bottom: 14px;
+    }
+    .hero h1 { font-size: clamp(1.6rem, 3.5vw, 2.4rem); font-weight: 900; margin-bottom: 10px; }
+    .hero p { color: var(--muted); font-size: .95rem; line-height: 1.7; max-width: 680px; }
+    .hero-meta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+    .meta-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--card2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 6px 14px; font-size: .82rem; color: var(--muted);
+    }
+    .meta-pill strong { color: var(--text); }
+
+    .wrap { max-width: 860px; margin: 0 auto; padding: 0 24px 60px; }
+
+    .section-heading {
+      font-size: .7rem; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+      color: var(--muted); margin: 32px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+    }
+
+    .step { display: flex; gap: 16px; margin-bottom: 14px; align-items: flex-start; }
+    .step-badge {
+      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+      display: grid; place-items: center; font-weight: 900; font-size: .95rem;
+      background: var(--green); color: #000; box-shadow: 0 4px 14px rgba(34,197,94,.3);
+    }
+    .step-badge.gold { background: var(--gold); color: #000; box-shadow: 0 4px 14px rgba(245,158,11,.3); }
+    .step-body { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; flex: 1; }
+    .step-body h3 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+    .step-body p { font-size: .87rem; color: var(--muted); line-height: 1.65; }
+    .step-body p + p { margin-top: 6px; }
+
+    code { background: rgba(96,165,250,.1); color: var(--blue); padding: 1px 5px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: .88em; }
+
+    .code-box {
+      background: #040408; border: 1px solid var(--border); border-radius: 10px;
+      padding: 16px 18px; font-family: 'Courier New', monospace; font-size: .83rem;
+      color: var(--text); margin-top: 10px; line-height: 1.75; overflow-x: auto; white-space: pre;
+    }
+    .code-box .k  { color: var(--blue); font-weight: 700; }
+    .code-box .s  { color: var(--green); }
+    .code-box .c  { color: #3a4456; font-style: italic; }
+    .code-box .fn { color: var(--purple); }
+    .code-box .n  { color: var(--orange); }
+    .code-box .num { color: var(--gold); }
+
+    .req-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+    @media(max-width:600px) { .req-grid { grid-template-columns: 1fr; } }
+    .req-item {
+      background: var(--card2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start;
+    }
+    .req-icon { font-size: 1.2rem; flex-shrink: 0; }
+    .req-text h4 { font-size: .88rem; font-weight: 700; margin-bottom: 3px; }
+    .req-text p { font-size: .8rem; color: var(--muted); line-height: 1.5; }
+
+    .grading-box { background: rgba(34,197,94,.05); border: 1px solid rgba(34,197,94,.2); border-radius: 12px; padding: 20px 22px; margin-top: 14px; }
+    .grading-box h3 { font-size: .9rem; font-weight: 800; color: var(--green); margin-bottom: 12px; }
+    .grade-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: .85rem; }
+    .grade-row:last-child { border-bottom: none; }
+    .grade-pts { font-weight: 800; color: var(--gold); }
+
+    .ref-box { background: rgba(96,165,250,.06); border: 1px solid rgba(96,165,250,.2); border-radius: 10px; padding: 14px 18px; margin-top: 14px; }
+    .ref-box h3 { font-size: .82rem; font-weight: 700; color: var(--blue); margin-bottom: 8px; }
+    .ref-link { color: var(--blue); font-size: .85rem; }
+
+    .note { background: rgba(245,158,11,.07); border: 1px solid rgba(245,158,11,.2); border-radius: 8px; padding: 10px 14px; font-size: .83rem; color: var(--gold); margin-top: 10px; line-height: 1.6; }
+
+    .bottom-nav { max-width: 860px; margin: 0 auto; padding: 0 24px 60px; display: flex; justify-content: space-between; }
+    .btn-nav { display: inline-flex; align-items: center; gap: 8px; padding: 10px 22px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: .9rem; transition: transform .2s; }
+    .btn-nav:hover { transform: translateY(-2px); }
+    .btn-back { background: var(--card); border: 1px solid var(--border); color: var(--muted); }
+    .btn-next { background: var(--green); color: #000; box-shadow: 0 4px 14px rgba(34,197,94,.3); }
+  </style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <a class="nav-back" href="index.html">← Assignments</a>
+  <span class="nav-title">ASSIGNMENT 2 — Vector Database</span>
+  <span class="nav-pts">20 pts</span>
+</nav>
+
+<div class="hero">
+  <span class="hero-tag">Assignment 2 · Coding</span>
+  <h1>🗄️ Build a Vector Database</h1>
+  <p>Create a ChromaDB collection with documents from a domain of your choice, run semantic search queries, and analyse the results. No API key needed — we use a free local embedding model.</p>
+  <div class="hero-meta">
+    <div class="meta-pill">🐍 <strong>Python</strong></div>
+    <div class="meta-pill">📦 <strong>chromadb</strong></div>
+    <div class="meta-pill">🔢 <strong>sentence-transformers</strong></div>
+    <div class="meta-pill">🔑 <strong>No API key needed</strong></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="section-heading">📋 Requirements</div>
+
+  <div class="req-grid">
+    <div class="req-item">
+      <div class="req-icon">📚</div>
+      <div class="req-text">
+        <h4>At least 15 documents</h4>
+        <p>Movies, books, recipes, products, news articles — any domain you find interesting.</p>
+      </div>
+    </div>
+    <div class="req-item">
+      <div class="req-icon">🏷️</div>
+      <div class="req-text">
+        <h4>Metadata on every document</h4>
+        <p>At least one metadata field (e.g. category, year, author, genre).</p>
+      </div>
+    </div>
+    <div class="req-item">
+      <div class="req-icon">🔍</div>
+      <div class="req-text">
+        <h4>5 different semantic queries</h4>
+        <p>Queries that would NOT work with a simple keyword search — use concepts, not exact words.</p>
+      </div>
+    </div>
+    <div class="req-item">
+      <div class="req-icon">📊</div>
+      <div class="req-text">
+        <h4>Show distances in the output</h4>
+        <p>Print the similarity distance for each result. Discuss: which query gave the best results?</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-heading">💻 Setup</div>
+
+  <div class="step">
+    <div class="step-badge">1</div>
+    <div class="step-body">
+      <h3>Install dependencies</h3>
+      <p>Run this once in your terminal or at the top of your notebook:</p>
+      <div class="code-box"><span class="c"># No API key needed — all local</span>
+pip install chromadb sentence-transformers</div>
+    </div>
+  </div>
+
+  <div class="section-heading">📝 Code Scaffold</div>
+
+  <div class="step">
+    <div class="step-badge">2</div>
+    <div class="step-body">
+      <h3>Create collection and add documents</h3>
+      <p>Use the free <code>all-MiniLM-L6-v2</code> model — small, fast, no API key.</p>
+      <div class="code-box"><span class="k">import</span> chromadb
+<span class="k">from</span> chromadb.utils.embedding_functions <span class="k">import</span> SentenceTransformerEmbeddingFunction
+
+<span class="c"># Free local embedding model — no API key needed</span>
+ef = <span class="fn">SentenceTransformerEmbeddingFunction</span>(model_name=<span class="s">"all-MiniLM-L6-v2"</span>)
+
+client = chromadb.<span class="fn">Client</span>()
+collection = client.<span class="fn">create_collection</span>(
+    name=<span class="s">"my_collection"</span>,
+    embedding_function=ef
+)
+
+<span class="c"># --- Add your documents here ---</span>
+collection.<span class="fn">add</span>(
+    documents=[
+        <span class="s">"The Shawshank Redemption — a story of hope and friendship in prison"</span>,
+        <span class="s">"Inception — a heist thriller set inside layers of dreams"</span>,
+        <span class="s">"The Lion King — an animated film about a young lion reclaiming his kingdom"</span>,
+        <span class="c"># ... add at least 15 total</span>
+    ],
+    metadatas=[
+        {<span class="s">"genre"</span>: <span class="s">"drama"</span>,  <span class="s">"year"</span>: <span class="num">1994</span>},
+        {<span class="s">"genre"</span>: <span class="s">"sci-fi"</span>, <span class="s">"year"</span>: <span class="num">2010</span>},
+        {<span class="s">"genre"</span>: <span class="s">"animation"</span>, <span class="s">"year"</span>: <span class="num">1994</span>},
+        <span class="c"># ... one metadata dict per document</span>
+    ],
+    ids=[<span class="s">"doc1"</span>, <span class="s">"doc2"</span>, <span class="s">"doc3"</span>]  <span class="c"># must be unique strings</span>
+)
+
+<span class="fn">print</span>(<span class="fn">f</span><span class="s">"Collection created with </span>{collection.<span class="fn">count</span>()}<span class="s"> documents"</span>)</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge">3</div>
+    <div class="step-body">
+      <h3>Run semantic queries</h3>
+      <p>Ask questions using concepts — not the exact words in the documents:</p>
+      <div class="code-box"><span class="c"># Example: query uses different words than the stored documents</span>
+queries = [
+    <span class="s">"a movie about escaping a difficult situation"</span>,
+    <span class="s">"film involving the subconscious mind"</span>,
+    <span class="s">"story about growing up and taking responsibility"</span>,
+    <span class="c"># ... add 5 queries total</span>
+]
+
+<span class="k">for</span> query <span class="k">in</span> queries:
+    results = collection.<span class="fn">query</span>(
+        query_texts=[query],
+        n_results=<span class="num">3</span>,
+        include=[<span class="s">"documents"</span>, <span class="s">"metadatas"</span>, <span class="s">"distances"</span>]
+    )
+    <span class="fn">print</span>(<span class="fn">f</span><span class="s">"\n🔍 Query: '</span>{query}<span class="s">'"</span>)
+    <span class="fn">print</span>(<span class="s">"-"</span> * <span class="num">60</span>)
+    <span class="k">for</span> doc, meta, dist <span class="k">in</span> <span class="fn">zip</span>(
+        results[<span class="s">"documents"</span>][<span class="num">0</span>],
+        results[<span class="s">"metadatas"</span>][<span class="num">0</span>],
+        results[<span class="s">"distances"</span>][<span class="num">0</span>]
+    ):
+        <span class="fn">print</span>(<span class="fn">f</span><span class="s">"  Distance: </span>{dist:<span class="num">.4f</span>}<span class="s">  |  </span>{doc[:<span class="num">80</span>]}<span class="s">..."</span>)
+        <span class="fn">print</span>(<span class="fn">f</span><span class="s">"  Metadata: </span>{meta}<span class="s">"</span>)</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-badge gold">4</div>
+    <div class="step-body">
+      <h3>Write a short analysis (5–8 sentences)</h3>
+      <p>In a comment block or a print statement at the end of your file, answer:</p>
+      <p>• Which query returned the most relevant results, and why?<br>
+         • Did any query return a <em>surprisingly good</em> match — a document that matched the concept even though it didn't share any words?<br>
+         • What distance threshold would you use to decide "this result is relevant"?</p>
+      <div class="note">💡 A lower distance = more similar. ChromaDB uses L2 distance by default — 0.0 is a perfect match.</div>
+    </div>
+  </div>
+
+  <div class="ref-box">
+    <h3>📖 Reference Demo</h3>
+    <a class="ref-link" href="../vector-db.html">→ Vector DB &amp; RAG — Module 01</a>
+    <p style="font-size:.82rem;color:var(--muted);margin-top:6px;">Covers embeddings, ChromaDB hands-on, FAISS, HNSW/IVF/Flat indexes, and the RAG pipeline.</p>
+  </div>
+
+  <div class="section-heading">🏆 Grading Criteria</div>
+
+  <div class="grading-box">
+    <h3>20 Points Total</h3>
+    <div class="grade-row"><span>Collection created with ≥ 15 documents + metadata</span><span class="grade-pts">6 pts</span></div>
+    <div class="grade-row"><span>5 semantic queries run (concepts, not keyword copies)</span><span class="grade-pts">6 pts</span></div>
+    <div class="grade-row"><span>Distances displayed in output</span><span class="grade-pts">4 pts</span></div>
+    <div class="grade-row"><span>Short written analysis of results</span><span class="grade-pts">4 pts</span></div>
+  </div>
+
+</div>
+
+<div class="bottom-nav">
+  <a class="btn-nav btn-back" href="01-theory.html">← Assignment 1</a>
+  <a class="btn-nav btn-next" href="03-rag-word.html">Assignment 3 →</a>
+</div>
+
+</body>
+</html>
