@@ -283,17 +283,29 @@ conn.<span class="fn">execute</span>(
     <div class="step-badge">3</div>
     <div class="step-body">
       <h3>Add new routes to the classifier — in <code>restaurant_chatbot.py</code></h3>
-      <p>In the <code>classify_question()</code> method, add two new routes <strong>before</strong> the existing LLM fallback:</p>
-      <div class="code-box"><span class="c"># Add these checks in classify_question(), before the LLM call:</span>
-<span class="k">if</span> <span class="fn">any</span>(k <span class="k">in</span> lower_q <span class="k">for</span> k <span class="k">in</span> [
-    <span class="s">"reserve"</span>, <span class="s">"reservation"</span>, <span class="s">"book"</span>, <span class="s">"table for"</span>, <span class="s">"booking"</span>
-]):
-    <span class="k">return</span> <span class="s">"reservation"</span>
+      <p>Replace the <code>classify_question()</code> method so it uses the <strong>LLM</strong> to detect intent. Pass all possible categories — including the two new ones — in the system prompt:</p>
+      <div class="code-box"><span class="k">def</span> <span class="fn">classify_question</span>(self, question: str) -> str:
+    <span class="s">"""Use the LLM to classify the user's intent."""</span>
+    <span class="k">if not</span> self.llm:
+        <span class="k">return</span> <span class="s">"general"</span>
 
-<span class="k">if</span> <span class="fn">any</span>(k <span class="k">in</span> lower_q <span class="k">for</span> k <span class="k">in</span> [
-    <span class="s">"cancel"</span>, <span class="s">"cancellation"</span>, <span class="s">"delete my booking"</span>, <span class="s">"remove reservation"</span>
-]):
-    <span class="k">return</span> <span class="s">"cancellation"</span></div>
+    classify_prompt = <span class="fn">ChatPromptTemplate</span>.<span class="fn">from_messages</span>([
+        (<span class="s">"system"</span>,
+         <span class="s">"You are a router for a restaurant chatbot. "</span>
+         <span class="s">"Classify the user message into exactly one of these categories:\n"</span>
+         <span class="s">"  reservation   — user wants to book a table\n"</span>
+         <span class="s">"  cancellation  — user wants to cancel an existing booking\n"</span>
+         <span class="s">"  menu          — questions about food, drinks, or prices\n"</span>
+         <span class="s">"  hours         — questions about opening hours or location\n"</span>
+         <span class="s">"  general       — anything else\n"</span>
+         <span class="s">"Return ONLY the single category word. No punctuation, no explanation."</span>),
+        (<span class="s">"human"</span>, <span class="s">"{question}"</span>)
+    ])
+
+    chain = classify_prompt | self.llm | <span class="fn">StrOutputParser</span>()
+    result = chain.<span class="fn">invoke</span>({<span class="s">"question"</span>: question}).<span class="fn">strip</span>().<span class="fn">lower</span>()
+    valid = {<span class="s">"reservation"</span>, <span class="s">"cancellation"</span>, <span class="s">"menu"</span>, <span class="s">"hours"</span>, <span class="s">"general"</span>}
+    <span class="k">return</span> result <span class="k">if</span> result <span class="k">in</span> valid <span class="k">else</span> <span class="s">"general"</span></div>
       <p style="margin-top:8px;">Then in the <code>answer()</code> method, add the two new branches:</p>
       <div class="code-box"><span class="c"># In answer() method, add alongside the existing elif branches:</span>
 <span class="k">elif</span> category == <span class="s">"reservation"</span>:
